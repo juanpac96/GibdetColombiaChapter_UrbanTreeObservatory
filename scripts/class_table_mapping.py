@@ -335,48 +335,70 @@ class Taxonomy_details(Base):
 
 # Table of observations from biodiversity records 
 class Observations_details(Base):
-  '''
-  This table has the observations
-  from the biodiversity records, and specifying the methods by which these values were taken.
-  It inherits its properties from the `Base` class of the SQLAlchemy module. 
-  The columns and data types that this table requires are:
+    """
+    This table contains observations from biodiversity records,
+    specifying the methods by which these values were taken.
+    It inherits its properties from the `Base` class of the SQLAlchemy module.
+    
+    Columns:
+    - id_observation: Integer (Primary Key)
+    - record_code: String (ForeignKey from biodiversity_records.code_record)
+    - biological_record_comments: String
+    - reproductive_condition: String
+    - observations: String
+    - phytosanitary_status: String
+    - accompanying_collectors: String
+    - use: String
+    - physical_condition: String (New)
+    - foliage_density: String (New)
+    - aesthetic_value: String (New)
+    - growth_phase: String (New)
+    """
 
-  id_observation: Integer
-  record_code: String
-  biological_record_comments: String
-  reproductive_condition: String
-  observations String
-  phytosanitary_status: String
-  accompanying_collectors: String
-  use: String
-  '''
-  # Table name
-  __tablename__ = 'observations_details'
-  # Table columns
-  id_observation = Column(Integer, primary_key=True)
-  record_code = Column(String, ForeignKey('biodiversity_records.code_record'))
-  biological_record_comments  = Column(Text)
-  reproductive_condition =  Column(String)
-  observations = Column(String)
-  phytosanitary_status = Column(String)
-  accompanying_collectors = Column(String)
-  use = Column(String)
-  biodiversity = relationship("Biodiversity_records")
-  # This is a atribute than contain the columns names
-  list_columns = ['record_code','biological_record_comments','reproductive_condition','observations','phytosanitary_status','accompanying_collectors','use']
+    # Table name
+    __tablename__ = 'observations_details'
 
-  def __init__(self, record_code,biological_record_comments,reproductive_condition,observations,phytosanitary_status,accompanying_collectors,use):
-    self.record_code = record_code
-    self.biological_record_comments = biological_record_comments
-    self.reproductive_condition =reproductive_condition
-    self.observations = observations
-    self.phytosanitary_status = phytosanitary_status
-    self.accompanying_collectors = accompanying_collectors
-    self.use = use
+    # Table columns
+    id_observation = Column(Integer, primary_key=True)
+    record_code = Column(String, ForeignKey('biodiversity_records.code_record'))
+    biological_record_comments = Column(Text)
+    reproductive_condition = Column(String)
+    observations = Column(String)
+    phytosanitary_status = Column(String)
+    accompanying_collectors = Column(String)
+    use = Column(String)
+    physical_condition = Column(String)  # New column
+    foliage_density = Column(String)  # New column
+    aesthetic_value = Column(String)  # New column
+    growth_phase = Column(String)  # New column
 
-  def __repr__(self):
-    tt = "<observations_details(" + ','.join([f"'{i}'" for i in self.list_columns]) + ")>"
-    return tt 
+    biodiversity = relationship("Biodiversity_records")
 
-  def __str__(self):
-    return self.record_code
+    # Updated list of column names
+    list_columns = [
+        'record_code', 'biological_record_comments', 'reproductive_condition', 'observations',
+        'phytosanitary_status', 'accompanying_collectors', 'use',
+        'physical_condition', 'foliage_density', 'aesthetic_value', 'growth_phase'
+    ]
+
+    def __init__(self, record_code, biological_record_comments, reproductive_condition, observations, 
+                 phytosanitary_status, accompanying_collectors, use, 
+                 physical_condition=None, foliage_density=None, aesthetic_value=None, growth_phase=None):
+        self.record_code = record_code
+        self.biological_record_comments = biological_record_comments
+        self.reproductive_condition = reproductive_condition
+        self.observations = observations
+        self.phytosanitary_status = phytosanitary_status
+        self.accompanying_collectors = accompanying_collectors
+        self.use = use
+        self.physical_condition = physical_condition
+        self.foliage_density = foliage_density
+        self.aesthetic_value = aesthetic_value
+        self.growth_phase = growth_phase
+
+    def __repr__(self):
+        return f"<Observations_details(record_code='{self.record_code}', physical_condition='{self.physical_condition}', foliage_density='{self.foliage_density}', aesthetic_value='{self.aesthetic_value}', growth_phase='{self.growth_phase}')>"
+
+    def __str__(self):
+        return self.record_code
+

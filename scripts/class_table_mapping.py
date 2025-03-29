@@ -222,18 +222,16 @@ class Biodiversity_records(Base):
   list_columns = ['code_record','common_name',
                    'latitude','longitude','elevation_m','registered_by','date_event','place_id','epsg_id'] #,'project_id'
 
-  def __init__(self,code_record,common_name,habitat,
+  def __init__(self,code_record,common_name,
                latitude,longitude,elevation_m,registered_by,
-               date_event,plot_id,place_id,epsg_id): #,project_id
+               date_event,place_id,epsg_id): #,project_id
     self.code_record = code_record
     self.common_name = common_name
-    self.habitat = habitat
     self.latitude = latitude
     self.longitude = longitude
     self.elevation_m = elevation_m
     self.registered_by = registered_by
     self.date_event = date_event
-    self.plot_id = plot_id
     self.place_id = place_id
     #self.project_id = project_id
     self.epsg_id = epsg_id

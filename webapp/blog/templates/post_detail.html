@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% block content %}
+<p>...</p>
+<p>...</p>
+<p>...</p>
+<p>...</p>
+<div class="container">
+  <div class="row">
+    <div class="col-md-8 card mb-4 mt-3 left top">
+      <div class="card-body">
+        <h1>{% block title %} {{ object.title }} {% endblock title %}</h1>
+        <p class="text-muted">{{ post.author }} | {{ post.created_on }}</p>
+        <p class="card-text">{{ object.content | safe }}</p>
+      </div>
+    </div>
+    <div class="col-md-4">
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="row">
+    <div class="col-md-12">
+      {% include object.html_file %}
+    </div>
+  </div>
+</div>
+
+{% endblock content %}

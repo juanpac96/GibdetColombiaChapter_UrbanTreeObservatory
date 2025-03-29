@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% load static %}  <!-- Agregado en la plantilla base -->
+{% block content %}
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>GreenyPat</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link href="{% static 'assets/css/style2.css' %}" rel="stylesheet" type="text/css" />
+<script type="text/javascript" src="{% static 'assets/js/cufon-yui.js' %}"></script>
+<script type="text/javascript" src="{% static 'assets/js/arial.js' %}"></script>
+<script type="text/javascript" src="{% static 'assets/js/cuf_run.js' %}"></script>
+<script src="{% static 'assets/js/jquery.js' %}" type="text/javascript"></script>
+</head>
+<body>
+  <p>...</p>
+  <p>...</p>
+  <div class="body">
+    <div class="body_resize">
+      {% for post in post_list %}
+      <div class="left">
+          <img src="{% static 'media/post_covers/ppost' %}{{ forloop.counter }}.jpeg" alt="" width="207" height="210" class="floated" />
+          <h2><span>{{ post.title }}</span>...</h2>
+          <p>{{ post.content|slice:":200" }}</p>
+          <a href="{% url 'post_detail' post.slug %}">
+              <img src="{% static 'images2/reading.gif' %}" alt="" width="118" height="26" border="0" />
+          </a>
+          <div class="bg"></div>
+          <p>&nbsp;</p>
+          <p>&nbsp;</p>
+      </div>
+      {% endfor %}
+      <div class="right">
+        <h2><span>Sidebar</span> Menu</h2>
+        <ul>
+          <li><a href="#">Home legut</a></li>
+          <li><a href="#">TemplateInfo</a></li>
+          <li><a href="#">Style Demo</a></li>
+          <li><a href="#">Blog</a></li>
+          <li><a href="#">Archives</a></li>
+        </ul>
+        <h2><span>Sponsors</span></h2>
+        <ul class="sponsors">
+          <li class="sponsors"><a href="#">im sponsor</a><br />
+            Donec libero. Suspendisse bibendum</li>
+          <li class="sponsors"><a href="#">Donec mattis</a><br />
+            Phasellus suscipit, leo a pharetra</li>
+          <li class="sponsors"><a href="#">Dui pede condimentum</a><br />
+            Tellus eleifend magna eget</li>
+          <li class="sponsors"><a href="#">Condimentum lorem</a><br />
+            Curabitur vel urna in tristique</li>
+          <li class="sponsors"><a href="#">Fringilla velit magna</a><br />
+            Cras id urna orbi tincidunt orci ac</li>
+          <li class="sponsors"><a href="#">Suspendisse bibendum</a><br />
+            purus nec placerat bibendum</li>
+        </ul>
+        <p>&nbsp;</p>
+        <h2><span>Search</span></h2>
+        <div class="search">
+          <form id="form1" name="form1" method="post" action="#">
+            <span>
+            <input name="q" type="text" class="keywords" id="textfield" maxlength="50" value="Search..." />
+            </span>
+            <input name="b" type="image" src="{% static 'images2/search.gif' %}" class="button" />
+          </form>
+        </div>
+        <div class="clr"></div>
+      </div>
+      <div class="clr"></div>
+    </div>
+  </div>
+  <div class="FBG">
+    <div class="FBG_resize">
+      <div class="blok">
+        <h2>About</h2>
+        <img src="{% static 'images2/fbg_1.jpg' %}" alt="" width="74" height="84" />
+        <p>Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Donec libero. Suspendisse bibendum. Cras id urna. Morbi tincidunt, orci ac convallis aliquam, lectus turpis varius lorem, eu turpis varius lorem, eu posuere nunc justo tempus leo. Donec mattis, purus nec placerat bibendum, dui pede condimentum odio, ac blandit ante orci ut diam.</p>
+        <p>Lorem ipsum dolor sit amet, consectetuer adipiscing urna.</p>
+        <p> <strong><a href="#">Learn more...</a></strong><br />
+        </p>
+      </div>
+      <div class="blok">
+        <h2><span>Lorem</span> Ipsum</h2>
+        <p><strong>Lorem ipsum dolor sit amet, consectetuer adipiscing elit.</strong> Donec libero. Suspendisse bibendum. Cras id urna. Morbi tincidunt, orci ac convallis aliquam, lectus turpis varius lorem, eu posuere nunc justo tempus leo. <br />
+          Donec mattis, purus nec placerat bibendum, dui pede condimentum odio, ac blandit ante orci ut diam.</p>
+        <ul>
+          <li><a href="#">• consequat molestie</a></li>
+          <li><a href="#">• sem justo</a></li>
+          <li><a href="#">• semper</a></li>
+          <li><a href="#">• magna sed purus</a></li>
+        </ul>
+        <ul>
+          <li><a href="#">• sem justo</a></li>
+          <li><a href="#">• semper</a></li>
+          <li><a href="#">• magna sed purus</a></li>
+          <li><a href="#">• consequat molestie</a></li>
+        </ul>
+      </div>
+      <div class="blok">
+        <h2>Image Gallery</h2>
+        <img src="{% static 'images2/banner_1.gif' %}" alt="" width="68" height="68" /><img src="{% static 'images2/banner_2.jpg' %}" alt="" width="68" height="68" /><img src="{% static 'images2/banner_3.jpg' %}" alt="" width="68" height="68" /><img src="{% static 'images2/banner_4.jpg' %}" alt="" width="68" height="68" /><img src="{% static 'images2/banner_5.jpg' %}" alt="" width="68" height="68" /><img src="{% static 'images2/banner_6.jpg' %}" alt="" width="68" height="68" />
+        <div class="clr"></div>
+        <h2>Lorem ipsum </h2>
+        <p>Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Donec libero. Suspendisse bibendum. </p>
+      </div>
+      <div class="clr"></div>
+    </div>
+  </div>
+  <div class="footer">
+    <div class="footer_resize">
+      <p class="lf">Copyright &copy; <a href="#">Domain Name</a>. All Rights Reserved</p>
+      <p class="rf">Design by <a target="_blank" href="http://www.hotwebsitetemplates.net/">HotWebsiteTemplates</a></p>
+      <div class="clr"></div>
+    </div>
+    <div class="clr"></div>
+  </div>
+</div>
+</body>
+</html>
+{%endblock%}

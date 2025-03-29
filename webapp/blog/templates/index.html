@@ -1,0 +1,427 @@
+{% extends "base.html" %}
+{% load static %}  <!-- Agregado en la plantilla base -->
+{% block content %}
+  <!-- ======= Hero Section ======= -->
+  <section id="hero" class="d-flex align-items-center">
+
+    <div class="container">
+      <div class="row">
+        <div class="col-lg-6 pt-5 pt-lg-0 order-2 order-lg-1 d-flex flex-column justify-content-center">
+          <h1>Laboratorio virtual de ecología y genética en unidades de bosque tropical</h1>
+          <h2>Plan piloto para el uso de tecnologías emergentes en el campo forestal</h2>
+          <div class="d-flex">
+            <a href="{% url 'blog' %}" class="btn-get-started scrollto">Blog</a>
+            <a href="http://localhost:5000/" class="btn-watch-video btn-blue"><i class="fas fa-arrow-right"></i><span>Datasets</span></a>
+          </div>
+        </div>
+        <div class="col-lg-6 order-1 order-lg-2 hero-img">
+          <img src="{% static 'images/logo_lagut.png' %}" class="img-fluid animated" alt="">
+        </div>
+      </div>
+    </div>
+
+  </section><!-- End Hero -->
+
+  <main id="main">
+
+    <!-- ======= Featured Services Section ======= -->
+    <section id="featured-services" class="featured-services">
+      <div class="container">
+
+        <div class="row">
+          <div class="col-lg-4 col-md-6">
+            <div class="icon-box">
+              <div class="icon"><i class="bi bi-laptop"></i></div>
+              <h4 class="title"><a href="">Ventajas</a></h4>
+              <p class="description">análisis de datos de eventos puntuales en ecología, para desarrollar métodos modernos para encontrar patrones en la distribución.</p>
+            </div>
+          </div>
+          <div class="col-lg-4 col-md-6 mt-4 mt-md-0">
+            <div class="icon-box">
+              <div class="icon"><i class="bi bi-card-checklist"></i></div>
+              <h4 class="title"><a href="">Impacto</a></h4>
+              <p class="description">Estos métodos y el software asociado se han utilizado en varios miles de estudios en todo el mundo para estudiar la distribución de especies y las comunidades ecológicas.</p>
+            </div>
+          </div>
+          <div class="col-lg-4 col-md-6 mt-4 mt-lg-0">
+            <div class="icon-box">
+              <div class="icon"><i class="bi bi-clipboard-data"></i></div>
+              <h4 class="title"><a href="">Resultados</a></h4>
+              <p class="description">Contamos con diferentes herramientas, proyectos y casos de estudios generados por el LEGUT y su grupo de investigación.</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section><!-- End Featured Services Section -->
+
+    <!-- ======= About Section ======= -->
+    <section id="about" class="about">
+      <div class="container">
+
+        <div class="row">
+          <div class="col-lg-6">
+            <img src="{% static 'images/about2.png' %}" class="img-fluid" alt="">
+          </div>
+          <div class="col-lg-6 pt-4 pt-lg-0 content">
+            <h3>Facilitando el Aprendizaje Tecnológico: Apoyo de LEGUT</h3>
+            <div style="text-align: justify;">
+                <p class="fst-italic">
+                    Dominar y aplicar nuevas tecnologías a un campo determinado puede ser un desafío, pero en la actualidad,
+                    aprenderlas es más accesible que nunca. La abundancia de recursos disponibles en diversas fuentes y el constante crecimiento 
+                    de la comunidad tecnológica facilitan este proceso. Sin embargo, adquirir conocimientos en este campo requiere dedicación y perseverancia 
+                    a lo largo del camino educativo. Es aquí donde entra en juego el laboratorio virtual de ecología y genética forestal de la Universidad del 
+                    Tolima (LEGUT), que brinda su apoyo para facilitar el aprendizaje en estas áreas. Su respaldo es invaluable para aquellos interesados en 
+                    mejorar sus habilidades y conocimientos en el ámbito de la ecología y la genética forestal mediante:
+                </p>
+            </div>
+            <ul>
+              <li><i class="bi bi-check-circle"></i> Conectar diferentes áreas del conocimiento forestal</li>
+              <li><i class="bi bi-check-circle"></i> Crear comunidad</li>
+              <li><i class="bi bi-check-circle"></i> Ciencia de datos aplicada</li>
+            </ul>
+
+          </div>
+        </div>
+
+      </div>
+    </section><!-- End About Section -->
+
+    <!-- ======= Services Section ======= -->
+    <section id="services" class="services section-bg">
+      <div class="container">
+
+        <div class="section-title">
+          <span>Servicios</span>
+          <h2>Servicios</h2>
+          <p>
+            Ofrecemos una solución integral para integrar la ciencia de datos en el campo forestal y la restauración. 
+            Proporcionamos herramientas avanzadas de análisis y visualización de datos que permiten a los profesionales forestales 
+            y expertos en restauración tomar decisiones informadas y estratégicas.
+          </p>
+        </div>
+
+        <div class="row">
+          <div class="col-lg-4 col-md-6 d-flex align-items-stretch">
+            <div class="icon-box">
+              <div class="icon"><i class="bx bxl-dribbble"></i></div>
+              <h4><a href="">Restauración</a></h4>
+              <p>Nuestro servicio de restauración se enfoca en la recuperación y mejora de áreas forestales degradadas o impactadas por actividades humanas. 
+                Mediante el uso de datos científicos y técnicas innovadoras, 
+                trabajamos para restablecer el equilibrio ecológico y promover la regeneración natural de los ecosistemas forestales.</p>
+            </div>
+          </div>
+
+          <div class="col-lg-4 col-md-6 d-flex align-items-stretch mt-4 mt-md-0">
+            <div class="icon-box">
+              <div class="icon"><i class="bx bx-file"></i></div>
+              <h4><a href="">Reforestación</a></h4>
+              <p>La reforestación es fundamental para aumentar la cobertura forestal y combatir la deforestación. 
+                Nuestro equipo se encarga de identificar áreas adecuadas para la plantación de árboles, 
+                seleccionando especies nativas y aplicando prácticas sostenibles para restaurar la biodiversidad y los servicios ecosistémicos.</p>
+            </div>
+          </div>
+
+          <div class="col-lg-4 col-md-6 d-flex align-items-stretch mt-4 mt-lg-0">
+            <div class="icon-box">
+              <div class="icon"><i class="bx bx-tachometer"></i></div>
+              <h4><a href="">Cartografía</a></h4>
+              <p>Con nuestro servicio de cartografía, producimos mapas precisos y detallados que reflejan la distribución y la composición de los bosques. 
+                Utilizamos tecnologías de mapeo avanzadas y datos geoespaciales para obtener una visión completa del paisaje forestal y facilitar la toma de 
+                decisiones informadas.</p>
+            </div>
+          </div>
+
+          <div class="col-lg-4 col-md-6 d-flex align-items-stretch mt-4">
+            <div class="icon-box">
+              <div class="icon"><i class="bx bx-world"></i></div>
+              <h4><a href="">Genética forestal</a></h4>
+              <p>La genética forestal es esencial para comprender la diversidad genética de las especies arbóreas y su adaptabilidad a diferentes condiciones 
+                ambientales. Mediante análisis genéticos, evaluamos la salud y la viabilidad de las poblaciones forestales, lo que contribuye a una gestión 
+                más efectiva y resiliente de los bosques.</p>
+            </div>
+          </div>
+
+          <div class="col-lg-4 col-md-6 d-flex align-items-stretch mt-4">
+            <div class="icon-box">
+              <div class="icon"><i class="bx bx-slideshow"></i></div>
+              <h4><a href="">Gestión forestal</a></h4>
+              <p>Nuestro servicio de gestión forestal se enfoca en la planificación estratégica y el manejo sostenible de los recursos forestales. 
+                Desarrollamos planes de manejo adaptados a cada área, considerando aspectos económicos, sociales y ambientales para garantizar 
+                la conservación a largo plazo.</p>
+            </div>
+          </div>
+
+          <div class="col-lg-4 col-md-6 d-flex align-items-stretch mt-4">
+            <div class="icon-box">
+              <div class="icon"><i class="bx bx-arch"></i></div>
+              <h4><a href="">Visualización de datos</a></h4>
+              <p>A través de herramientas de visualización de datos, traducimos información compleja en representaciones visuales claras y accesibles. 
+                Nuestras visualizaciones permiten a los actores clave comprender mejor los resultados de nuestros análisis y tomar decisiones fundamentadas 
+                en la gestión forestal y la restauración.</p>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </section><!-- End Services Section -->
+
+    <!-- ======= Portfolio Section ======= -->
+    <section id="portfolio" class="portfolio">
+      <div class="container">
+
+        <div class="section-title">
+          <span>Repositorio</span>
+          <h2>Repositorio</h2>
+          <p>Explora nuestro repositorio de producción científica: libros, artículos y proyectos de investigación destacados.</p>
+        </div>
+
+        <div class="row">
+          <div class="col-lg-12 d-flex justify-content-center">
+            <ul id="portfolio-flters">
+              <li data-filter="*" class="filter-active">Todo</li>
+              <li data-filter=".filter-app">Libros</li>
+              <li data-filter=".filter-card">Articulos</li>
+              <li data-filter=".filter-web">Proyectos</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="row portfolio-container">
+
+          <div class="col-lg-4 col-md-6 portfolio-item filter-app">
+            <img src="{% static 'assets/img/portfolio/portfolio-1.png' %}" class="img-fluid" alt="">
+            <div class="portfolio-info">
+              <h4>Libro 1</h4>
+              <p>Libro</p>
+              <a href="{% static 'assets/img/portfolio/portfolio-1.png' %}" data-gallery="portfolioGallery" class="portfolio-lightbox preview-link" title="App 1"><i class="bx bx-plus"></i></a>
+              <a href="https://www.researchgate.net/publication/365319189_AVANCES_Y_PERSPECTIVAS_DE_INVESTIGACION_EN_BIODIVERSIDAD_Y_SU_USO_EN_EL_TERRITORIO_COLECTIVO_DEL_BAJO_CALIMA" class="details-link" title="More Details"><i class="bx bx-link"></i></a>
+            </div>
+          </div>
+
+          <div class="col-lg-4 col-md-6 portfolio-item filter-app">
+            <img src="{% static 'assets/img/portfolio/portfolio-2.png' %}" class="img-fluid" alt="">
+            <div class="portfolio-info">
+              <h4>Libro 2</h4>
+              <p>Libro</p>
+              <a href="{% static 'assets/img/portfolio/portfolio-2.png' %}" data-gallery="portfolioGallery" class="portfolio-lightbox preview-link" title="Web 3"><i class="bx bx-plus"></i></a>
+              <a href="https://www.researchgate.net/publication/366093667_The_global_spectrum_of_plant_form_and_function_enhanced_species-level_trait_dataset" class="details-link" title="More Details"><i class="bx bx-link"></i></a>
+            </div>
+          </div>
+
+          <div class="col-lg-4 col-md-6 portfolio-item filter-app">
+            <img src="{% static 'assets/img/portfolio/portfolio-3.png' %}" class="img-fluid" alt="">
+            <div class="portfolio-info">
+              <h4>Libro 3</h4>
+              <p>Libro</p>
+              <a href="{% static 'assets/img/portfolio/portfolio-3.jpg' %}" data-gallery="portfolioGallery" class="portfolio-lightbox preview-link" title="App 2"><i class="bx bx-plus"></i></a>
+              <a href="https://www.researchgate.net/publication/363229910_Light_habitat_structure_diversity_and_dynamics_of_the_tropical_dry_forests_of_the_upper_Magdalena_river" class="details-link" title="More Details"><i class="bx bx-link"></i></a>
+            </div>
+          </div>
+
+          <div class="col-lg-4 col-md-6 portfolio-item filter-card">
+            <img src="{% static 'assets/img/portfolio/portfolio-4.png' %}" class="img-fluid" alt="">
+            <div class="portfolio-info">
+              <h4>Card 2</h4>
+              <p>Card</p>
+              <a href="{% static 'assets/img/portfolio/portfolio-4.png' %}" data-gallery="portfolioGallery" class="portfolio-lightbox preview-link" title="Card 2"><i class="bx bx-plus"></i></a>
+              <a href="portfolio-details.html" class="details-link" title="More Details"><i class="bx bx-link"></i></a>
+            </div>
+          </div>
+
+          <div class="col-lg-4 col-md-6 portfolio-item filter-web">
+            <img src="{% static 'assets/img/portfolio/portfolio-5.png' %}" class="img-fluid" alt="">
+            <div class="portfolio-info">
+              <h4>Web 2</h4>
+              <p>Web</p>
+              <a href="{% static 'assets/img/portfolio/portfolio-5.png' %}" data-gallery="portfolioGallery" class="portfolio-lightbox preview-link" title="Web 2"><i class="bx bx-plus"></i></a>
+              <a href="portfolio-details.html" class="details-link" title="More Details"><i class="bx bx-link"></i></a>
+            </div>
+          </div>
+
+          <div class="col-lg-4 col-md-6 portfolio-item filter-app">
+            <img src="{% static 'assets/img/portfolio/portfolio-6.png' %}" class="img-fluid" alt="">
+            <div class="portfolio-info">
+              <h4>App 3</h4>
+              <p>App</p>
+              <a href="{% static 'assets/img/portfolio/portfolio-6.png' %}" data-gallery="portfolioGallery" class="portfolio-lightbox preview-link" title="App 3"><i class="bx bx-plus"></i></a>
+              <a href="portfolio-details.html" class="details-link" title="More Details"><i class="bx bx-link"></i></a>
+            </div>
+          </div>
+
+          <div class="col-lg-4 col-md-6 portfolio-item filter-card">
+            <img src="{% static 'assets/img/portfolio/portfolio-7.png' %}" class="img-fluid" alt="">
+            <div class="portfolio-info">
+              <h4>Card 1</h4>
+              <p>Card</p>
+              <a href="{% static 'assets/img/portfolio/portfolio-7.png' %}" data-gallery="portfolioGallery" class="portfolio-lightbox preview-link" title="Card 1"><i class="bx bx-plus"></i></a>
+              <a href="portfolio-details.html" class="details-link" title="More Details"><i class="bx bx-link"></i></a>
+            </div>
+          </div>
+
+          <div class="col-lg-4 col-md-6 portfolio-item filter-card">
+            <img src="{% static 'assets/img/portfolio/portfolio-8.png' %}" class="img-fluid" alt="">
+            <div class="portfolio-info">
+              <h4>Card 3</h4>
+              <p>Card</p>
+              <a href="{% static 'assets/img/portfolio/portfolio-8.png' %}" data-gallery="portfolioGallery" class="portfolio-lightbox preview-link" title="Card 3"><i class="bx bx-plus"></i></a>
+              <a href="portfolio-details.html" class="details-link" title="More Details"><i class="bx bx-link"></i></a>
+            </div>
+          </div>
+
+          <div class="col-lg-4 col-md-6 portfolio-item filter-web">
+            <img src="{% static 'assets/img/portfolio/portfolio-9.png' %}" class="img-fluid" alt="">
+            <div class="portfolio-info">
+              <h4>Web 3</h4>
+              <p>Web</p>
+              <a href="{% static 'assets/img/portfolio/portfolio-9.png' %}" data-gallery="portfolioGallery" class="portfolio-lightbox preview-link" title="Web 3"><i class="bx bx-plus"></i></a>
+              <a href="portfolio-details.html" class="details-link" title="More Details"><i class="bx bx-link"></i></a>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </section><!-- End Portfolio Section -->
+
+    <!-- ======= Team Section ======= -->
+    <section id="team" class="team section-bg">
+      <div class="container">
+
+        <div class="section-title">
+          <span>Equipo</span>
+          <h2>Equipo</h2>
+          <p>Nuestro equipo de desarrolladores e investigadores</p>
+        </div>
+
+        <div class="row">
+          <div class="col-lg-4 col-md-6 d-flex align-items-stretch">
+            <div class="member">
+              <img src="{% static 'assets/img/team/team1.jpg' %}" alt="">
+              <h4>Esneider Barrera</h4>
+              <span>Desarrollador Web</span>
+              <p>
+                Desarrollador web / Investigador / Parte fundamental del equipo
+              </p>
+              <div class="social">
+                <a href=""><i class="bi bi-twitter"></i></a>
+                <a href=""><i class="bi bi-facebook"></i></a>
+                <a href=""><i class="bi bi-instagram"></i></a>
+                <a href=""><i class="bi bi-linkedin"></i></a>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg-4 col-md-6 d-flex align-items-stretch">
+            <div class="member">
+              <img src="{% static 'assets/img/team/team2.jpg' %}" alt="">
+              <h4>Juan David Céspedes</h4>
+              <span>Desarrollador Backend</span>
+              <p>
+                Desarrollador backend / Investigador / Parte fundamental del equipo
+              </p>
+              <div class="social">
+                <a href=""><i class="bi bi-twitter"></i></a>
+                <a href=""><i class="bi bi-facebook"></i></a>
+                <a href=""><i class="bi bi-instagram"></i></a>
+                <a href=""><i class="bi bi-linkedin"></i></a>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg-4 col-md-6 d-flex align-items-stretch">
+            <div class="member">
+              <img src="{% static 'assets/img/team/team3.jpg' %}" alt="">
+              <h4>Juan Pablo Cuevas</h4>
+              <span>Desarrollador Backend</span>
+              <p>
+                Desarrollador backend / Investigador / Parte fundamental del equipo
+              </p>
+              <div class="social">
+                <a href=""><i class="bi bi-twitter"></i></a>
+                <a href=""><i class="bi bi-facebook"></i></a>
+                <a href=""><i class="bi bi-instagram"></i></a>
+                <a href=""><i class="bi bi-linkedin"></i></a>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </section><!-- End Team Section -->
+
+    <!-- ======= Contact Section ======= -->
+    <section id="contact" class="contact">
+      <div class="container">
+
+        <div class="section-title">
+          <span>Contacto</span>
+          <h2>Contacto</h2>
+          <p>Si tienes alguna duda o comentario comunicate con nosotros</p>
+        </div>
+
+        <div class="row">
+
+          <div class="col-lg-5 d-flex align-items-stretch">
+            <div class="info">
+              <div class="address">
+                <i class="bi bi-geo-alt"></i>
+                <h4>Location:</h4>
+                <p>Universidad del Tolima Cl. 42 #1b-1, Ibagué, Tolima</p>
+              </div>
+
+              <div class="email">
+                <i class="bi bi-envelope"></i>
+                <h4>Email:</h4>
+                <p>jpcuevas@ut.edu.co</p>
+              </div>
+
+              <div class="phone">
+                <i class="bi bi-phone"></i>
+                <h4>Call:</h4>
+                <p>+1 5589 55488 55s</p>
+              </div>
+
+              <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d1988.9543934256874!2d-75.21281115733318!3d4.428090970590468!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x8e409a460eb67b0b%3A0x1f970430faade1d7!2sUniversidad%20del%20Tolima!5e0!3m2!1ses!2sco!4v1661022868791!5m2!1ses!2sco" frameborder="0" style="border:0; width: 100%; height: 290px;" allowfullscreen></iframe>
+            </div>
+
+          </div>
+
+          <div class="col-lg-7 mt-5 mt-lg-0 d-flex align-items-stretch">
+            <form action="{% static 'forms/contact.php' %}" method="post" role="form" class="php-email-form">
+              <div class="row">
+                <div class="form-group col-md-6">
+                  <label for="name">Your Name</label>
+                  <input type="text" name="name" class="form-control" id="name" required>
+                </div>
+                <div class="form-group col-md-6 mt-3 mt-md-0">
+                  <label for="name">Your Email</label>
+                  <input type="email" class="form-control" name="email" id="email" required>
+                </div>
+              </div>
+              <div class="form-group mt-3">
+                <label for="name">Subject</label>
+                <input type="text" class="form-control" name="subject" id="subject" required>
+              </div>
+              <div class="form-group mt-3">
+                <label for="name">Message</label>
+                <textarea class="form-control" name="message" rows="10" required></textarea>
+              </div>
+              <div class="my-3">
+                <div class="loading">Loading</div>
+                <div class="error-message"></div>
+                <div class="sent-message">Your message has been sent. Thank you!</div>
+              </div>
+              <div class="text-center"><button type="submit">Send Message</button></div>
+            </form>
+          </div>
+
+        </div>
+
+      </div>
+    </section><!-- End Contact Section -->
+
+  </main><!-- End #main -->
+{%endblock%}

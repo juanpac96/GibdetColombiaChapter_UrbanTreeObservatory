@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% load static %}  <!-- Agregado en la plantilla base -->
+{% block content %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{% static 'assets/css/style3.css' %}"> <!-- Link to your CSS file -->
+    <title>My Blog</title>
+</head>
+<body>
+    <nav class="navbar">
+        <ul>
+            <li><a href="#">Inicio</a></li>
+            <li><a href="#">Sobre nosotros</a></li>
+            <li><a href="#">Servicios</a></li>
+            <li><a href="#">Blog</a></li>
+            <!-- Add other navigation items here -->
+        </ul>
+    </nav>
+
+    <section class="blog-content">
+        <h1>El Blog de Instituto Emprende</h1>
+        <p>Marketing Digital para Emprendedores</p>
+        <p>¿Qué quieres aprender hoy?</p>
+        <p>El emprendimiento digital actual cambia constantemente; debemos estar al día y formarnos para no perder estas oportunidades. En Instituto Emprende, tenemos formación gratuita constante para ayudarte a conseguir tus metas y además recursos de podcast. ¡Descubre los últimos posts de nuestro blog!</p>
+    </section>
+
+    <section class="latest-posts">
+        <div class="blog-card-container">
+        <div class="post">
+            <img src="{% static 'images/logo_lagut.png' %}" alt="Instagram Algorithm">
+            <h2>Cómo funciona el algoritmo de Instagram en 2024</h2>
+        </div>
+        <!-- Add other posts here -->
+        
+      {% for post in post_list %}
+      <article class="blog-card">
+        <img src="{% static 'media/post_covers/ppost' %}{{ forloop.counter }}.jpeg" alt="Blog post image" class="blog-card-image">
+        <div class="blog-card-content">
+          <h3 class="blog-card-title">{{ post.title }}</h3>
+          <p class="blog-card-excerpt">  {{ post.content|slice:":200" }} "Read More" button.</p>
+          <a href="#" class="btn btn-primary blog-card-button"><img src="{% static 'images2/reading.gif' %}" alt="" width="118" height="26" border="0" /></a>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+    </section>
+
+    <footer>
+        <p>© 2024 Instituto Emprende. Todos los derechos reservados.</p>
+    </footer>
+</body>
+</html>
+
+{%endblock%}

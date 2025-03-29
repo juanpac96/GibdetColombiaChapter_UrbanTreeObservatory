@@ -178,89 +178,7 @@ class Geog_coord_syst(Base):
   def __str__(self):
     return self.epsg
 
-# Table for plots
 
-class Plot(Base):
-  '''
-  This table have the information of blocks,
-  plots, subplots and any unit of measurement
-  in the field than take biodiversity data.
-  It inherits its properties from the `Base` class of the SQLAlchemy module. 
-  The columns and data types that this table requires are:
-
-  code_plot: String
-  longitude: Float
-  latitude: Float
-  place_id: Integer
-  project_id: Integer
-  '''
-  # Table name
-  __tablename__ = 'plots'
-  # Table columns
-  id_plot = Column(Integer, primary_key=True)
-  code_plot = Column(String, unique=True,nullable=False)
-  longitude = Column(Float)
-  latitude = Column(Float)
-  # In this section we implement the relation between the tables and their forgering keys.
-  place = relationship("Place")
-  place_id = Column(Integer, ForeignKey("places.id_place"))
-  #project = relationship("Project")
-  #project_id = Column(Integer, ForeignKey("projects.id_project"))
-  biodiversity = relationship("Biodiversity_records", back_populates="plots")
-  list_columns = ['code_plot',	'longitude',	'latitude',	'geodetic_datum', 'place_id']#,'project_id']
-
-
-  def __init__(self, code_plot,	longitude,	latitude,	geodetic_datum, place_id): #,project_id
-      self.code_plot = code_plot 
-      self.longitude = longitude
-      self.latitude = latitude
-      self.geodetic_datum = geodetic_datum
-      self.place_id = place_id
-      #self.project_id = project_id
-
-
-  
-  def __repr__(self):
-    return "<plots(" + ','.join([f"'{i}'" for i in self.list_columns]) + ")>"
-
-
-  def __str__(self):
-    return self.code_plot
-
-# This table contain the details of the plots
-class Inventory_details(Base):
-  '''
-  This table have import details about block,plots and subplots
-  It inherits its properties from the `Base` class of the SQLAlchemy module. 
-  The columns and data types that this table requires are:
-  plot_id: Integer
-  area_plot: Float
-  unit_area_plot: String
-  shape_plot: String
-  '''
-  # Table name
-  __tablename__ = 'inventory_details'
-  # Table column
-  id_details_plot = Column(Integer, primary_key=True)
-  plot_id = Column(Integer, ForeignKey('plots.id_plot')) # Relation
-  inventory = relationship('Plot')
-  area_plot = Column(Float)
-  unit_area_plot = Column(String)
-  shape_plot = Column(String)
-  list_columns = ['plot_id', 'area_plot','unit_area_plot','shape_plot']
-
-  def __init__(self,plot_id, area_plot,unit_area_plot,shape_plot):
-    self.plot_id = plot_id
-    self.area_plot = area_plot
-    self.unit_area_plot = unit_area_plot
-    self.shape_plot = shape_plot
-
-  def __repr__(self):
-    tt = "<inventory_details(" + ','.join([f"'{i}'" for i in self.list_columns]) + ")>"
-    return tt 
-
-  def __str__(self):
-    return self.plot_id
 
 # Table of biodiversity records registered in the main project
 class Biodiversity_records(Base):
@@ -273,12 +191,12 @@ class Biodiversity_records(Base):
   code_record = String |This must to be UNIQUE in all table|
   species: String
   common_name: String
+  habitat: String
   latitude: Float
   longitude: Float
   elevation_m: Float
   registered_by: String
   date_event:  DateTime
-  plot_id: Integer
   project_id: Integer
   place_id: Integer
   epsg_id: SmallInteger
@@ -294,8 +212,6 @@ class Biodiversity_records(Base):
   registered_by = Column(String)
   date_event =  Column(DateTime)
   # In this section we implement the relation between the tables and their forgering keys.
-  plot_id = Column(Integer, ForeignKey("plots.id_plot"))
-  plots = relationship("Plot", back_populates="biodiversity")
   #project_id = Column(Integer, ForeignKey("projects.id_project"))
   #project = relationship("Project")
   place_id = Column(Integer, ForeignKey("places.id_place"))
@@ -304,13 +220,14 @@ class Biodiversity_records(Base):
   epsg = relationship("Geog_coord_syst")
 
   list_columns = ['code_record','common_name',
-                   'latitude','longitude','elevation_m','registered_by','date_event','plot_id','place_id','epsg_id'] #,'project_id'
+                   'latitude','longitude','elevation_m','registered_by','date_event','place_id','epsg_id'] #,'project_id'
 
   def __init__(self,code_record,common_name,habitat,
                latitude,longitude,elevation_m,registered_by,
                date_event,plot_id,place_id,epsg_id): #,project_id
     self.code_record = code_record
     self.common_name = common_name
+    self.habitat = habitat
     self.latitude = latitude
     self.longitude = longitude
     self.elevation_m = elevation_m
@@ -465,143 +382,3 @@ class Observations_details(Base):
 
   def __str__(self):
     return self.record_code
-
-
-# Table of botanic collections
-class Collections():
-  '''
-  In this table we put information aboute the collect sample in field
-  Wich type of collect was made and make a tracking of the samples.
-  It inherits its properties from the `Base` class of the SQLAlchemy module. 
-  The columns and data types that this table requires are:
-
-  record_code: String |is the same value to code record from biodiversity_record|
-  collection_type: String
-  herbarium: String
-  silica_collection: String
-  
-  # Table name
-  __tablename__ = 'collections'
-  # Columns name
-  id_collection = Column(Integer, primary_key=True)
-  record_code = Column(String, ForeignKey('biodiversity_records.code_record'))
-  biodiversity = relationship("Biodiversity_records")
-  collection_type = Column(String)
-  herbarium = Column(String)
-  silica_collection = Column(String)
-  # This is a atribute than contain the columns names
-  list_columns = ['record_code','collection_type','herbarium','silica_collection']
-
-  def __init__(self,record_code,collection_type,herbarium,silica_collection):
-    self.record_code = record_code
-    self.collection_type = collection_type
-    self.herbarium = herbarium
-    self.silica_collection = silica_collection
-
-  def __repr__(self):
-    return "<collections(" + ','.join([f"'{i}'" for i in self.list_columns]) + ")>"
-
-  def __str__(self):
-    return self.record_code
-  '''
-  pass
-
-
-
-# Table of experiments
-class Experiments():
-  '''
-  __tablename__ = 'experiments'
-  id_experiment = Column(Integer, primary_key=True)
-  project_id = Column(Integer, ForeignKey('projects.id_project'))
-  project = relationship('Project')
-  experiment_name = Column(String)
-  experiment_obs = Column(Text)
-  experiment_unit = Column(String)
-  experiment = relationship('Experiment_records', back_populates="experiment_record")
-  list_columns = ['project_id','experiment_name','experiment_obs','experiment_unit']
-
-  def __init__(self,project_id,experiment_name,experiment_obs,experiment_unit):
-    self.project_id = project_id
-    self.experiment_name = experiment_name
-    self.experiment_obs = experiment_obs
-    self.experiment_unit = experiment_unit
-
-  def __repr__(self):
-    tt = "<experiments(" + ','.join([f"'{i}'" for i in self.list_columns]) + ")>"
-    return tt 
-
-  def __str__(self):
-    return self.experiment_name
-  '''
-  pass
-
-
-# Table of types of experiments made in the project
-class Experiment_types():
-  '''
-  In this table we put information aboute the the experiments made in the project
-  Wich type of experiment was made etc.
-  It inherits its properties from the `Base` class of the SQLAlchemy module. 
-  The columns and data types that this table requires are:
-
-  experiment_type_name: String
-  experiment_id: Integer
-  
-  # Table name
-  __tablename__ = 'experiment_types'
-  # Table columns
-  id_experiment_type = Column(Integer, primary_key=True)
-  experiment_type_name = Column(String)
-  experiment_id = Column(Integer, ForeignKey('experiments.id_experiment'))
-  experiment = relationship('Experiments')
-  # This is a atribute than contain the columns names
-  list_columns = ['experiment_type_name','experiment_id']
-
-  def __init__(self,experiment_type_name,experiment_id):
-    self.experiment_type_name = experiment_type_name
-    self.experiment_id = experiment_id
-
-  def __repr__(self):
-    tt = "<experiment_types(" + ','.join([f"'{i}'" for i in self.list_columns]) + ")>"
-    return tt 
-
-  def __str__(self):
-    return self.experiment_type_name
-  '''
-  pass
-
-  
-# The values and observations made in the experiments derivate from main project
-
-class Experiment_records():
-  '''
-  # Table name
-  __tablename__ = 'experiment_records'
-  # Table columns
-  id_expe_record = Column(Integer, primary_key=True)
-  code_expe_record = Column(String)
-  experiment_id = Column(Integer, ForeignKey('experiments.id_experiment'))
-  experiment_record = relationship('Experiments', back_populates="experiment")
-  experiment_var_name = Column(String)
-  experiment_var_value = Column(String)
-  experiment_value_date = Column(DateTime)
-  
-  # This is a atribute than contain the columns names
-  list_columns =['code_expe_record','experiment_id','experiment_value_date','experiment_var_value','experiment_var_name']
-
-  def __init__(self,code_expe_record,experiment_id,experiment_var_name,experiment_var_value,experiment_value_date):
-    self.code_expe_record = code_expe_record
-    self.experiment_id = experiment_id
-    self.experiment_var_name = experiment_var_name
-    self.experiment_var_value = experiment_var_value
-    self.experiment_value_date = experiment_value_date
-
-  def __repr__(self):
-    tt = "<experiment_records(" + ','.join([f"'{i}'" for i in self.list_columns]) + ")>"
-    return tt 
-
-  def __str__(self):
-    return self.code_expe_record
-  '''
-  pass

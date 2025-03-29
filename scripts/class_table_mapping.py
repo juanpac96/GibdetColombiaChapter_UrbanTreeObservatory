@@ -273,7 +273,6 @@ class Biodiversity_records(Base):
   code_record = String |This must to be UNIQUE in all table|
   species: String
   common_name: String
-  habitat: String
   latitude: Float
   longitude: Float
   elevation_m: Float
@@ -289,7 +288,6 @@ class Biodiversity_records(Base):
   # Table columns
   code_record = Column(String, nullable=False, unique=True, primary_key=True)
   common_name = Column(String)
-  habitat = Column(String)
   latitude = Column(Float)
   longitude = Column(Float)
   elevation_m = Column(Float)
@@ -305,7 +303,7 @@ class Biodiversity_records(Base):
   epsg_id = Column(SmallInteger,ForeignKey("geog_coord_syst.epsg"))
   epsg = relationship("Geog_coord_syst")
 
-  list_columns = ['code_record','common_name','habitat',
+  list_columns = ['code_record','common_name',
                    'latitude','longitude','elevation_m','registered_by','date_event','plot_id','place_id','epsg_id'] #,'project_id'
 
   def __init__(self,code_record,common_name,habitat,
@@ -313,7 +311,6 @@ class Biodiversity_records(Base):
                date_event,plot_id,place_id,epsg_id): #,project_id
     self.code_record = code_record
     self.common_name = common_name
-    self.habitat = habitat
     self.latitude = latitude
     self.longitude = longitude
     self.elevation_m = elevation_m

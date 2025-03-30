@@ -349,10 +349,13 @@ class Observations_details(Base):
     - phytosanitary_status: String
     - accompanying_collectors: String
     - use: String
-    - physical_condition: String (New)
-    - foliage_density: String (New)
-    - aesthetic_value: String (New)
-    - growth_phase: String (New)
+    - physical_condition: String
+    - foliage_density: String
+    - aesthetic_value: String
+    - growth_phase: String
+    - origin: String (New)
+    - iucn_status: String (New)
+    - growth_habit: String (New)
     """
 
     # Table name
@@ -367,10 +370,13 @@ class Observations_details(Base):
     phytosanitary_status = Column(String)
     accompanying_collectors = Column(String)
     use = Column(String)
-    physical_condition = Column(String)  # New column
-    foliage_density = Column(String)  # New column
-    aesthetic_value = Column(String)  # New column
-    growth_phase = Column(String)  # New column
+    physical_condition = Column(String)  
+    foliage_density = Column(String)  
+    aesthetic_value = Column(String)  
+    growth_phase = Column(String)  
+    origin = Column(String)  # New column
+    iucn_status = Column(String)  # New column
+    growth_habit = Column(String)  # New column
 
     biodiversity = relationship("Biodiversity_records")
 
@@ -378,12 +384,14 @@ class Observations_details(Base):
     list_columns = [
         'record_code', 'biological_record_comments', 'reproductive_condition', 'observations',
         'phytosanitary_status', 'accompanying_collectors', 'use',
-        'physical_condition', 'foliage_density', 'aesthetic_value', 'growth_phase'
+        'physical_condition', 'foliage_density', 'aesthetic_value', 'growth_phase',
+        'origin', 'iucn_status', 'growth_habit'
     ]
 
     def __init__(self, record_code, biological_record_comments, reproductive_condition, observations, 
                  phytosanitary_status, accompanying_collectors, use, 
-                 physical_condition=None, foliage_density=None, aesthetic_value=None, growth_phase=None):
+                 physical_condition=None, foliage_density=None, aesthetic_value=None, growth_phase=None,
+                 origin=None, iucn_status=None, growth_habit=None):
         self.record_code = record_code
         self.biological_record_comments = biological_record_comments
         self.reproductive_condition = reproductive_condition
@@ -395,9 +403,12 @@ class Observations_details(Base):
         self.foliage_density = foliage_density
         self.aesthetic_value = aesthetic_value
         self.growth_phase = growth_phase
+        self.origin = origin
+        self.iucn_status = iucn_status
+        self.growth_habit = growth_habit
 
     def __repr__(self):
-        return f"<Observations_details(record_code='{self.record_code}', physical_condition='{self.physical_condition}', foliage_density='{self.foliage_density}', aesthetic_value='{self.aesthetic_value}', growth_phase='{self.growth_phase}')>"
+        return f"<Observations_details(record_code='{self.record_code}', physical_condition='{self.physical_condition}', foliage_density='{self.foliage_density}', aesthetic_value='{self.aesthetic_value}', growth_phase='{self.growth_phase}', origin='{self.origin}', iucn_status='{self.iucn_status}', growth_habit='{self.growth_habit}')>"
 
     def __str__(self):
         return self.record_code

@@ -16,7 +16,7 @@ The Urban Tree Observatory is a data-driven platform for monitoring and conservi
 1. Clone this repository:
 
    ```bash
-   git clone https://github.com/dr-rompecabezas/GibdetColombiaChapter_UrbanTreeObservatory
+   git clone https://github.com/OmdenaAI/GibdetColombiaChapter_UrbanTreeObservatory
    cd urban-tree-observatory
    ```
 

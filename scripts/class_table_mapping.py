@@ -178,53 +178,96 @@ class Geog_coord_syst(Base):
   def __str__(self):
     return self.epsg
 
+# Botanical taxonomy table
+class Taxonomy_details(Base):
+  '''
+  This table stores botanical taxonomy information related to species recorded 
+  in biodiversity studies. It inherits its properties from the `Base` class 
+  of the SQLAlchemy module. This table is linked to the `biodiversity_records` 
+  table via a foreign key relationship.
+
+  The columns and data types in this table are:
+
+  id_taxonomy: Integer |Primary Key|
+  family: String
+  genus: String
+  specie: String
+  accept_scientific_name: String
+  identified_by: String
+  date_of_identification: String
+  '''
+  __tablename__ = 'taxonomy_details'
+  id_taxonomy = Column(Integer, primary_key=True)
+  family = Column(String)
+  genus = Column(String)
+  specie = Column(String)
+  accept_scientific_name = Column(String)
+  identified_by = Column(String)
+  date_of_identification = Column(String)
+  
+  # Relationship with biodiversity records
+  biodiversity_records = relationship("Biodiversity_records", back_populates="taxonomy")
+
+  list_columns = ['family', 'genus', 'specie', 'accept_scientific_name', 'identified_by', 'date_of_identification']
+  
+  def __init__(self, family, genus, specie, accept_scientific_name, identified_by, date_of_identification):
+    self.family = family
+    self.genus = genus
+    self.specie = specie
+    self.accept_scientific_name = accept_scientific_name
+    self.identified_by = identified_by
+    self.date_of_identification = date_of_identification
+
+  def __repr__(self):
+    return "<taxonomy_details(" + ','.join([f"'{i}'" for i in self.list_columns]) + ")>"
+
+  def __str__(self):
+    return self.accept_scientific_name
 
 
-# Table of biodiversity records registered in the main project
+
+# Biodiversity records table
 class Biodiversity_records(Base):
   '''
-  This table has the information
-  from the biodiversity records, and the most important data take from the field.
-  It inherits its properties from the `Base` class of the SQLAlchemy module. 
+  This table contains the biodiversity records and the most important data 
+  collected in the field. It inherits its properties from the `Base` class 
+  of the SQLAlchemy module. This table is related to taxonomy, geographic 
+  coordinate systems, and location data via foreign keys.
+
   The columns and data types that this table requires are:
 
-  code_record = String |This must to be UNIQUE in all table|
-  species: String
+  code_record: String |This must be UNIQUE in the entire table| |Primary Key|
   common_name: String
-  habitat: String
   latitude: Float
   longitude: Float
   elevation_m: Float
   registered_by: String
-  date_event:  DateTime
-  project_id: Integer
-  place_id: Integer
-  epsg_id: SmallInteger
+  date_event: DateTime
+  taxonomy_id: Integer |Foreign Key to taxonomy_details.id_taxonomy|
+  place_id: Integer |Foreign Key to places.id_place|
+  epsg_id: SmallInteger |Foreign Key to geog_coord_syst.epsg|
   '''
-  # Table name
   __tablename__ = 'biodiversity_records'
-  # Table columns
   code_record = Column(String, nullable=False, unique=True, primary_key=True)
   common_name = Column(String)
   latitude = Column(Float)
   longitude = Column(Float)
   elevation_m = Column(Float)
   registered_by = Column(String)
-  date_event =  Column(DateTime)
-  # In this section we implement the relation between the tables and their forgering keys.
-  #project_id = Column(Integer, ForeignKey("projects.id_project"))
-  #project = relationship("Project")
+  date_event = Column(DateTime)
+
+  taxonomy_id = Column(Integer, ForeignKey("taxonomy_details.id_taxonomy"))
+  taxonomy = relationship("Taxonomy_details", back_populates="biodiversity_records")
+
   place_id = Column(Integer, ForeignKey("places.id_place"))
   place = relationship("Place")
-  epsg_id = Column(SmallInteger,ForeignKey("geog_coord_syst.epsg"))
+
+  epsg_id = Column(SmallInteger, ForeignKey("geog_coord_syst.epsg"))
   epsg = relationship("Geog_coord_syst")
 
-  list_columns = ['code_record','common_name',
-                   'latitude','longitude','elevation_m','registered_by','date_event','place_id','epsg_id'] #,'project_id'
+  list_columns = ['code_record', 'common_name', 'latitude', 'longitude', 'elevation_m', 'registered_by', 'date_event', 'place_id', 'epsg_id', 'taxonomy_id']
 
-  def __init__(self,code_record,common_name,
-               latitude,longitude,elevation_m,registered_by,
-               date_event,place_id,epsg_id): #,project_id
+  def __init__(self, code_record, common_name, latitude, longitude, elevation_m, registered_by, date_event, place_id, epsg_id, taxonomy_id):
     self.code_record = code_record
     self.common_name = common_name
     self.latitude = latitude
@@ -233,16 +276,17 @@ class Biodiversity_records(Base):
     self.registered_by = registered_by
     self.date_event = date_event
     self.place_id = place_id
-    #self.project_id = project_id
     self.epsg_id = epsg_id
-
-
+    self.taxonomy_id = taxonomy_id
 
   def __repr__(self):
-    return "<biodiversity_records(" + ','.join([f"'{i}'" for i in self.list_columns]) + ")>" 
+    return "<biodiversity_records(" + ','.join([f"'{i}'" for i in self.list_columns]) + ")>"
 
   def __str__(self):
     return self.code_record
+    
+# Table of biodiversity records registered in the main project
+
 
 # Table of measuraments
 class Measurements(Base):
@@ -286,51 +330,7 @@ class Measurements(Base):
 
 
 
-# Table of taxonomic botanic transformation
-class Taxonomy_details(Base):
-  '''
-  This table has the taxonomic botanic category
-  from the biodiversity records, and specifying the methods by which these values were taken.
-  It inherits its properties from the `Base` class of the SQLAlchemy module. 
-  The columns and data types that this table requires are:
 
-  family: String
-  genus: String
-  specie: String
-  accept_scientific_name: String
-  record_code: String
-  identified_by: String
-  date_of_identification: DateTime
-  '''
-  # Table name
-  __tablename__ = 'taxonomy_details'
-  # Table columns
-  id_taxonomy = Column(Integer, primary_key=True)
-  family = Column(String)
-  genus = Column(String)
-  specie = Column(String)
-  accept_scientific_name = Column(String)
-  record_code = Column(String, ForeignKey('biodiversity_records.code_record'))
-  identified_by = Column(String)
-  date_of_identification =  Column(String)
-  biodiversity = relationship("Biodiversity_records")
-  list_columns = ['family', 'genus', 'specie','accept_scientific_name','record_code','identified_by','date_of_identification']
-  
-  def __init__(self,family, genus, specie,accept_scientific_name,record_code,identified_by,date_of_identification):
-    self.family = family
-    self.genus = genus
-    self.specie = specie
-    self.accept_scientific_name = accept_scientific_name
-    self.record_code = record_code
-    self.identified_by = identified_by
-    self.date_of_identification = date_of_identification
-
-  def __repr__(self):
-    tt = "<taxonomy_details(" + ','.join([f"'{i}'" for i in self.list_columns]) + ")>"
-    return tt 
-
-  def __str__(self):
-    return self.record_code
 
 
 # Table of observations from biodiversity records 

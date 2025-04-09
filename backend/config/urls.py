@@ -33,10 +33,7 @@ urlpatterns = [
                     ),
                 ),
                 # App endpoints
-                # path("accounts/", include("apps.accounts.urls")),
-                path("trees/", include("apps.trees.urls")),
-                # path("reports/", include("apps.reports.urls")),
-                # path("analysis/", include("apps.analysis.urls")),
+                # path("trees/", include("apps.trees.urls")),
             ]
         ),
     ),

@@ -4,169 +4,160 @@ from django.contrib.gis.db import models
 from django.utils.translation import gettext_lazy as _
 
 
-class Species(models.Model):
-    """Tree species classification"""
-
-    uuid = models.UUIDField(_("UUID"), default=uuid.uuid4, editable=False)
-    scientific_name = models.CharField(_("Scientific Name"), max_length=255)
-    common_name = models.CharField(_("Common Name"), max_length=255)
-    family = models.CharField(_("Family"), max_length=255, blank=True)
-    native = models.BooleanField(_("Native Species"), default=False)
-    description = models.TextField(_("Description"), blank=True)
-
-    # Growth characteristics
-    average_height = models.FloatField(_("Average Height (m)"), null=True, blank=True)
-    average_canopy_diameter = models.FloatField(
-        _("Average Canopy Diameter (m)"), null=True, blank=True
-    )
-    growth_rate = models.CharField(
-        _("Growth Rate"),
-        max_length=10,
-        choices=[("slow", "Slow"), ("medium", "Medium"), ("fast", "Fast")],
-        blank=True,
-    )
-
-    # Environmental benefits
-    carbon_sequestration = models.FloatField(
-        _("Carbon Sequestration (kg/year)"), null=True, blank=True
-    )
-    oxygen_production = models.FloatField(
-        _("Oxygen Production (kg/year)"), null=True, blank=True
-    )
-
-    created_at = models.DateTimeField(_("Created At"), auto_now_add=True)
-    updated_at = models.DateTimeField(_("Updated At"), auto_now=True)
+class Family(models.Model):
+    uuid = models.UUIDField(_("uuid"), default=uuid.uuid4, editable=False)
+    name = models.CharField(_("family name"), max_length=255, unique=True)
 
     class Meta:
-        verbose_name = _("Species")
-        verbose_name_plural = _("Species")
-        ordering = ["scientific_name"]
+        verbose_name = _("family")
+        verbose_name_plural = _("families")
 
     def __str__(self):
-        return f"{self.scientific_name} ({self.common_name})"
+        return self.name
 
 
-class Tree(models.Model):
+class Genus(models.Model):
+    uuid = models.UUIDField(_("uuid"), default=uuid.uuid4, editable=False)
+    name = models.CharField(_("genus name"), max_length=255, unique=True)
+    family = models.ForeignKey(
+        Family,
+        on_delete=models.CASCADE,
+        related_name="genera",
+        verbose_name=_("family"),
+    )
+
+    class Meta:
+        verbose_name = _("genus")
+        verbose_name_plural = _("genera")
+
+    def __str__(self):
+        return self.name
+
+
+class Species(models.Model):
+    uuid = models.UUIDField(_("uuid"), default=uuid.uuid4, editable=False)
+    name = models.CharField(_("species name"), max_length=255)
+    accepted_scientific_name = models.CharField(
+        _("accepted scientific name"), max_length=255, unique=True
+    )
+    genus = models.ForeignKey(
+        Genus,
+        on_delete=models.CASCADE,
+        related_name="species",
+        verbose_name=_("genus"),
+    )
+    identified_by = models.CharField(
+        _("identified by"), max_length=255, default="Cortolima", blank=True
+    )
+    identified_date = models.DateField(_("identified date"), null=True, blank=True)
+    created_at = models.DateTimeField(_("created at"), auto_now_add=True)
+    updated_at = models.DateTimeField(_("updated at"), auto_now=True)
+
+    class Meta:
+        verbose_name = _("species")
+        verbose_name_plural = _("species")
+        ordering = ["accepted_scientific_name"]
+
+    def __str__(self):
+        return self.accepted_scientific_name
+
+
+class Place(models.Model):
+    uuid = models.UUIDField(_("uuid"), default=uuid.uuid4, editable=False)
+    country = models.CharField(_("country"), default="Colombia", max_length=255)
+    department = models.CharField(_("department"), default="Tolima", max_length=255)
+    municipality = models.CharField(_("municipality"), default="Ibagué", max_length=255)
+    populated_center = models.CharField(
+        _("populated center"), max_length=255, blank=True
+    )
+    zone = models.CharField(_("zone"), max_length=255, blank=True)
+    subzone = models.CharField(_("subzone"), max_length=255, blank=True)
+    site = models.CharField(_("site"), max_length=255, blank=True)
+    created_by = models.CharField(_("created by"), max_length=255, blank=True)
+    updated_by = models.CharField(_("updated by"), max_length=255, blank=True)
+    created_at = models.DateTimeField(_("created at"), auto_now_add=True)
+    updated_at = models.DateTimeField(_("updated at"), auto_now=True)
+
+    class Meta:
+        verbose_name = _("place")
+        verbose_name_plural = _("places")
+        constraints = [
+            models.UniqueConstraint(
+                fields=["country", "department", "municipality", "site"],
+                name="unique_place",
+            )
+        ]
+
+    def __str__(self):
+        return self.site
+
+
+class BiodiversityRecord(models.Model):
     """Individual tree instance with geospatial data"""
 
-    uuid = models.UUIDField(_("UUID"), default=uuid.uuid4, editable=False)
-
-    # Tree identification
+    uuid = models.UUIDField(_("uuid"), default=uuid.uuid4, editable=False)
     species = models.ForeignKey(
         Species,
         on_delete=models.PROTECT,
-        related_name="trees",
-        verbose_name=_("Species"),
+        related_name="biodeversity_records",
+        verbose_name=_("species"),
     )
-
-    # Location data (using GeoDjango)
-    location = models.PointField(_("Location"), srid=4326, geography=True)
-    address = models.CharField(_("Address"), max_length=255, blank=True)
-    neighborhood = models.CharField(_("Neighborhood"), max_length=100, blank=True)
-
-    # Tree characteristics
-    height = models.FloatField(_("Height (m)"), null=True, blank=True)
-    trunk_diameter = models.FloatField(_("Trunk Diameter (cm)"), null=True, blank=True)
-    canopy_diameter = models.FloatField(_("Canopy Diameter (m)"), null=True, blank=True)
-    estimated_age = models.PositiveIntegerField(
-        _("Estimated Age (years)"), null=True, blank=True
+    place = models.ForeignKey(
+        Place,
+        on_delete=models.PROTECT,
+        related_name="biodiversity_records",
+        verbose_name=_("place"),
     )
-    planting_date = models.DateField(_("Planting Date"), null=True, blank=True)
-
-    # Health and status
-    class HealthStatus(models.TextChoices):
-        EXCELLENT = "excellent", _("Excellent")
-        GOOD = "good", _("Good")
-        FAIR = "fair", _("Fair")
-        POOR = "poor", _("Poor")
-        CRITICAL = "critical", _("Critical")
-        DEAD = "dead", _("Dead")
-
-    health_status = models.CharField(
-        _("Health Status"),
-        max_length=20,
-        choices=HealthStatus,
-        default=HealthStatus.GOOD,
+    common_names = models.TextField(_("common names"), blank=True)
+    location = models.PointField(_("location"), srid=4326, geography=True)
+    elevation_m = models.FloatField(_("elevation (m)"), null=True, blank=True)
+    registered_by = models.CharField(
+        _("registered by"), max_length=255, default="Cortolima", blank=True
     )
-    health_notes = models.TextField(_("Health Notes"), blank=True)
-
-    # Metadata
-    created_at = models.DateTimeField(_("Created At"), auto_now_add=True)
-    updated_at = models.DateTimeField(_("Updated At"), auto_now=True)
-    last_inspection_date = models.DateField(
-        _("Last Inspection Date"), null=True, blank=True
-    )
+    registered_date = models.DateField(_("registered date"), null=True, blank=True)
+    created_at = models.DateTimeField(_("created at"), auto_now_add=True)
+    updated_at = models.DateTimeField(_("updated at"), auto_now=True)
 
     class Meta:
+        verbose_name = _("biodiversity record")
+        verbose_name_plural = _("biodiversity records")
         ordering = ["species", "location"]
 
     def __str__(self):
-        return f"{self.species.common_name} at {self.adress}"
+        return f"{self.species.accepted_scientific_name} at {self.longitude}, {self.latitude}"
 
     @property
-    def is_native(self):
-        """Check if the tree is a native species"""
-        return self.species.native
+    def longitude(self):
+        """Get the longitude of the tree's location"""
+        return self.location.x if self.location else None
 
     @property
-    def carbon_benefit(self):
-        """Calculate carbon sequestration benefit based on the tree's characteristics"""
-        # Simplified calculation based on species average and tree size
-        if self.species.carbon_sequestration and self.trunk_diameter:
-            return (self.trunk_diameter / 30) * self.species.carbon_sequestration
-        return None
+    def latitude(self):
+        """Get the latitude of the tree's location"""
+        return self.location.y if self.location else None
 
 
-class Maintenance(models.Model):
-    """Record of maintenance activities performed on trees"""
+class Measurement(models.Model):
+    """A measurement of a tree instance"""
 
-    uuid = models.UUIDField(_("UUID"), default=uuid.uuid4, editable=False)
-
-    tree = models.ForeignKey(
-        Tree,
+    uuid = models.UUIDField(_("uuid"), default=uuid.uuid4, editable=False)
+    biodiversity_record = models.ForeignKey(
+        BiodiversityRecord,
         on_delete=models.CASCADE,
-        related_name="maintenance_records",
-        verbose_name=_("Tree"),
+        related_name="measurements",
+        verbose_name=_("biodiversity record"),
     )
-
-    class MaintenanceType(models.TextChoices):
-        PRUNING = "pruning", _("Pruning")
-        FERTILIZATION = "fertilization", _("Fertilization")
-        PEST_CONTROL = "pest_control", _("Pest Control")
-        DISEASE_TREATMENT = "disease_treatment", _("Disease Treatment")
-        WATERING = "watering", _("Watering")
-        STAKING = "staking", _("Staking")
-        MULCHING = "mulching", _("Mulching")
-        REMOVAL = "removal", _("Removal")
-        PLANTING = "planting", _("Planting")
-        INSPECTION = "inspection", _("Inspection")
-        OTHER = "other", _("Other")
-
-    maintenance_type = models.CharField(
-        _("Maintenance Type"), max_length=30, choices=MaintenanceType
-    )
-    date_performed = models.DateField(_("Date Performed"))
-    performed_by = models.CharField(_("Performed By"), max_length=255)
-    description = models.TextField(_("Description"))
-    cost = models.DecimalField(
-        _("Cost"), max_digits=10, decimal_places=2, null=True, blank=True
-    )
-
-    # Before and after assessment
-    before_health = models.CharField(
-        _("Health Before"), max_length=20, choices=Tree.HealthStatus, blank=True
-    )
-    after_health = models.CharField(
-        _("Health After"), max_length=20, choices=Tree.HealthStatus, blank=True
-    )
-
-    created_at = models.DateTimeField(_("Created At"), auto_now_add=True)
-    updated_at = models.DateTimeField(_("Updated At"), auto_now=True)
+    name = models.CharField(_("measurement name"), max_length=255)
+    value = models.FloatField(_("measurement value"))
+    method = models.CharField(_("measurement method"), max_length=255, blank=True)
+    date = models.DateField(_("measurement date"), null=True, blank=True)
+    created_at = models.DateTimeField(_("created at"), auto_now_add=True)
+    updated_at = models.DateTimeField(_("updated at"), auto_now=True)
 
     class Meta:
-        verbose_name = _("Maintenance Record")
-        verbose_name_plural = _("Maintenance Records")
-        ordering = ["-date_performed"]
+        verbose_name = _("measurement")
+        verbose_name_plural = _("measurements")
+        ordering = ["biodiversity_record", "created_at"]
 
     def __str__(self):
-        return f"{self.maintenance_type} for {self.tree} on {self.date_performed}"
+        return f"Measurement for {self.biodiversity_record}"

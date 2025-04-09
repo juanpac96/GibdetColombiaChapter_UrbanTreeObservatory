@@ -37,11 +37,8 @@ INSTALLED_APPS = [
     "django_filters",
     "leaflet",
     # Project apps
-    "apps.core",
     "apps.accounts",
     "apps.trees",
-    "apps.reports",
-    "apps.analysis",
 ]
 
 MIDDLEWARE = [

@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     # Project apps
     "apps.accounts",
     "apps.trees",
+    "apps.observations",
 ]
 
 MIDDLEWARE = [

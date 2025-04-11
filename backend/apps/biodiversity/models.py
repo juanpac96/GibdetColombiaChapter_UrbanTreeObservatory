@@ -50,7 +50,7 @@ class BiodiversityRecord(models.Model):
     species = models.ForeignKey(
         Species,
         on_delete=models.PROTECT,
-        related_name="biodeversity_records",
+        related_name="biodiversity_records",
         verbose_name=_("species"),
     )
     place = models.ForeignKey(

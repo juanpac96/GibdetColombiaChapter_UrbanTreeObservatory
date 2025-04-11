@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-The Urban Tree Observatory is a data-driven platform for monitoring and conserving urban trees in Ibagué, Colombia. The project centralizes tree data, enables citizen reporting, and tracks conservation efforts.
+The Urban Tree Observatory is a data-driven platform for monitoring and conserving urban trees in Ibagué, Colombia. The project centralizes tree data and tracks conservation efforts.
 
 ## Development Environment Setup
 
@@ -17,7 +17,7 @@ The Urban Tree Observatory is a data-driven platform for monitoring and conservi
 
    ```bash
    git clone https://github.com/OmdenaAI/GibdetColombiaChapter_UrbanTreeObservatory
-   cd urban-tree-observatory
+   cd GibdetColombiaChapter_UrbanTreeObservatory
    ```
 
 2. Start the development environment:
@@ -41,12 +41,6 @@ After starting the containers for the first time, you'll need to create a superu
 docker-compose exec backend python manage.py createsuperuser
 ```
 
-You can also load initial data fixtures:
-
-```bash
-docker-compose exec backend python manage.py loaddata species
-```
-
 ## Project Structure
 
 ### Backend (Django REST API)
@@ -54,11 +48,10 @@ docker-compose exec backend python manage.py loaddata species
 - `backend/` - Django project
   - `config/` - Django project settings
   - `apps/` - Django apps
-    - `core/` - Shared utilities
     - `accounts/` - User management
+    - `taxonomy/` - Family, genus, and species management
     - `trees/` - Tree data management with GIS
-    - `reports/` - Citizen reporting system
-    - `analysis/` - Environmental impact analysis
+    - `observations/` - Tree measurements and observations
 
 ### Frontend (Angular)
 

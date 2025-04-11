@@ -32,8 +32,6 @@ urlpatterns = [
                         ]
                     ),
                 ),
-                # App endpoints
-                # path("trees/", include("apps.trees.urls")),
             ]
         ),
     ),

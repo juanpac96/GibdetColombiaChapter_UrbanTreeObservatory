@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 
 
-class TreesConfig(AppConfig):
+class ReportsConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
-    name = "apps.trees"
+    name = "apps.reports"

@@ -33,3 +33,64 @@ After resetting the database, create a new superuser:
 ```bash
 docker-compose exec backend python manage.py createsuperuser
 ```
+
+## Common Django Commands
+
+Here are instructions for running common Django management commands using Docker Compose:
+
+### Migrations
+
+To create new migrations based on model changes:
+
+```bash
+docker-compose exec backend python manage.py makemigrations
+```
+
+To apply pending migrations:
+
+```bash
+docker-compose exec backend python manage.py migrate
+```
+
+To show migration status:
+
+```bash
+docker-compose exec backend python manage.py showmigrations
+```
+
+### Django Shell
+
+To access the Django interactive shell:
+
+```bash
+docker-compose exec backend python manage.py shell
+```
+
+For the shell with IPython support (if installed):
+
+```bash
+docker-compose exec backend python manage.py shell_plus
+```
+
+### Testing
+
+To run tests:
+
+```bash
+docker-compose exec backend python manage.py test
+```
+
+To run tests with coverage:
+
+```bash
+docker-compose exec backend coverage run --source='.' manage.py test
+docker-compose exec backend coverage report
+```
+
+### Custom Management Commands
+
+To run custom management commands:
+
+```bash
+docker-compose exec backend python manage.py [command_name]
+```

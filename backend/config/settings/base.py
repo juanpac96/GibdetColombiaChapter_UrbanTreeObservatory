@@ -38,7 +38,9 @@ INSTALLED_APPS = [
     "leaflet",
     # Project apps
     "apps.accounts",
-    "apps.trees",
+    "apps.taxonomy",
+    "apps.biodiversity",
+    "apps.reports",
 ]
 
 MIDDLEWARE = [

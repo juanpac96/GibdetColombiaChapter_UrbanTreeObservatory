@@ -180,50 +180,52 @@ class Geog_coord_syst(Base):
 
 # Botanical taxonomy table
 class Taxonomy_details(Base):
-  '''
-  This table stores botanical taxonomy information related to species recorded 
-  in biodiversity studies. It inherits its properties from the `Base` class 
-  of the SQLAlchemy module. This table is linked to the `biodiversity_records` 
-  table via a foreign key relationship.
+    '''
+    Esta tabla almacena información taxonómica relacionada con especies registradas 
+    en estudios de biodiversidad. Se relaciona con la tabla `biodiversity_records`.
+    '''
+    __tablename__ = 'taxonomy_details'
 
-  The columns and data types in this table are:
+    id_taxonomy = Column(Integer, primary_key=True)
+    family = Column(String)
+    genus = Column(String)
+    specie = Column(String)
+    accept_scientific_name = Column(String)
+    gbif_id = Column(String)
+    lifeForm = Column(String)
+    establishmentMeans = Column(String)
+    iucn_category = Column(String)
+    identified_by = Column(String)
+    date_of_identification = Column(String)
 
-  id_taxonomy: Integer |Primary Key|
-  family: String
-  genus: String
-  specie: String
-  accept_scientific_name: String
-  identified_by: String
-  date_of_identification: String
-  '''
-  __tablename__ = 'taxonomy_details'
-  id_taxonomy = Column(Integer, primary_key=True)
-  family = Column(String)
-  genus = Column(String)
-  specie = Column(String)
-  accept_scientific_name = Column(String)
-  identified_by = Column(String)
-  date_of_identification = Column(String)
-  
-  # Relationship with biodiversity records
-  biodiversity_records = relationship("Biodiversity_records", back_populates="taxonomy")
+    # Relación con registros de biodiversidad
+    biodiversity_records = relationship("Biodiversity_records", back_populates="taxonomy")
 
-  list_columns = ['family', 'genus', 'specie', 'accept_scientific_name', 'identified_by', 'date_of_identification']
-  
-  def __init__(self, family, genus, specie, accept_scientific_name, identified_by, date_of_identification):
-    self.family = family
-    self.genus = genus
-    self.specie = specie
-    self.accept_scientific_name = accept_scientific_name
-    self.identified_by = identified_by
-    self.date_of_identification = date_of_identification
+    list_columns = [
+        'family', 'genus', 'specie', 'accept_scientific_name', 'gbif_id',
+        'lifeForm', 'establishmentMeans', 'iucn_category',
+        'identified_by', 'date_of_identification'
+    ]
 
-  def __repr__(self):
-    return "<taxonomy_details(" + ','.join([f"'{i}'" for i in self.list_columns]) + ")>"
+    def __init__(self, family, genus, specie, accept_scientific_name,
+                 gbif_id, lifeForm, establishmentMeans, iucn_category,
+                 identified_by, date_of_identification):
+        self.family = family
+        self.genus = genus
+        self.specie = specie
+        self.accept_scientific_name = accept_scientific_name
+        self.gbif_id = gbif_id
+        self.lifeForm = lifeForm
+        self.establishmentMeans = establishmentMeans
+        self.iucn_category = iucn_category
+        self.identified_by = identified_by
+        self.date_of_identification = date_of_identification
 
-  def __str__(self):
-    return self.accept_scientific_name
+    def __repr__(self):
+        return "<taxonomy_details(" + ','.join([f"'{i}'" for i in self.list_columns]) + ")>"
 
+    def __str__(self):
+        return self.accept_scientific_name
 
 
 # Biodiversity records table
@@ -309,15 +311,17 @@ class Measurements(Base):
   measurement_name = Column(String(25))
   measurement_value = Column(Float)
   measurement_method = Column(String)
+  measurement_unit = Column(String)
   measurement_date_event = Column(DateTime)
   record_code = Column(String, ForeignKey("biodiversity_records.code_record"))
   biodiversity = relationship("Biodiversity_records")
-  list_columns = ['measurement_name','measurement_value','measurement_method','measurement_date_event','record_code']
+  list_columns = ['measurement_name','measurement_value','measurement_method','measurement_unit','measurement_date_event','record_code']
 
-  def __init__(self,measurement_name,measurement_value,measurement_method,measurement_date_event,record_code):
+  def __init__(self,measurement_name,measurement_value,measurement_method,measurement_unit,measurement_date_event,record_code):
     self.measurement_name = measurement_name 
     self.measurement_value = measurement_value
     self.measurement_method = measurement_method
+    self.measurement_unit = measurement_unit
     self.measurement_date_event = measurement_date_event
     self.record_code = record_code
   def __repr__(self):
@@ -413,3 +417,64 @@ class Observations_details(Base):
     def __str__(self):
         return self.record_code
 
+# Table of observations from Functional Traits by spice
+class FunctionalTraitsStructure(Base):
+  '''
+  This table stores structural characteristics (canopy shape and color) 
+  associated with individual species grouped by their Plant Functional Type (PFT).
+  It includes a foreign key relation to FunctionalTraitsIndex.
+  '''
+  __tablename__ = 'functional_traits_structure'
+  id_structure = Column(Integer, primary_key=True)
+  pft_id = Column(Integer, ForeignKey('functional_traits_index.pft_id'))
+  taxonomy_id = Column(Integer, ForeignKey('taxonomy_details.id_taxonomy'))
+  taxonomy = relationship("Taxonomy_details", back_populates="structure_traits")
+  canopy_shape = Column(String)
+  color = Column(String)
+
+  # SQLAlchemy relationship to the parent
+  pft_index = relationship("FunctionalTraitsIndex", back_populates="structure_traits")
+
+  list_columns = ['pft_id', 'taxonomy_id', 'canopy_shape', 'color']
+
+  def __init__(self, pft_id, taxonomy_id, canopy_shape, color):
+    self.pft_id = pft_id
+    self.taxonomy_id  = taxonomy_id
+    self.canopy_shape = canopy_shape
+    self.color = color
+
+  def __repr__(self):
+    return "<functional_traits_structure(" + ','.join([f"'{i}'" for i in self.list_columns]) + ")>"
+
+  def __str__(self):
+    return f"{self.species_name} (PFT {self.pft_id}) – {self.canopy_shape}, {self.color}"
+  
+
+
+class FunctionalTraitsIndex(Base):
+  '''
+  This table stores trait values associated with different Plant Functional Types (PFTs).
+  It serves as the parent in the relationship, linking to multiple species in the structure table.
+  '''
+  __tablename__ = 'functional_traits_index'
+  id_trait = Column(Integer, primary_key=True)
+  pft_id = Column(Integer)  # Assumes 1 row per PFT
+  trait_name = Column(String)
+  min_value = Column(Float)
+  max_value = Column(Float)
+
+  structure_traits = relationship("FunctionalTraitsStructure", back_populates="pft_index", cascade="all, delete-orphan")
+
+  list_columns = ['pft_id', 'trait_name', 'min_value', 'max_value']
+
+  def __init__(self, pft_id, trait_name, min_value, max_value):
+    self.pft_id = pft_id
+    self.trait_name = trait_name
+    self.min_value = min_value
+    self.max_value = max_value
+
+  def __repr__(self):
+    return "<functional_traits_index(" + ','.join([f"'{i}'" for i in self.list_columns]) + ")>"
+
+  def __str__(self):
+    return f"PFT {self.pft_id} – {self.trait_name}: {self.min_value}–{self.max_value}"

@@ -109,11 +109,30 @@ def analyze_data_types(data, fields):
         result[field] = data_type
     return result
 
-def generate_text_report(analysis_results, output_file):
+def generate_text_report(analysis_results, column_lists, output_file):
     """Generate a plain text report from the analysis results."""
     with open(output_file, 'w', encoding='utf-8') as f:
         f.write("Urban Tree Observatory Data Exploration Report\n")
         f.write("=" * 50 + "\n\n")
+        
+        # First, list all files and their columns
+        f.write("CSV Files and Their Columns\n")
+        f.write("=" * 30 + "\n\n")
+        
+        for csv_file, columns in column_lists.items():
+            f.write(f"File: {csv_file}\n")
+            f.write("-" * 30 + "\n")
+            f.write(f"  Total columns: {len(columns)}\n")
+            f.write("  Column list:\n")
+            for col in columns:
+                f.write(f"    - {col}\n")
+            f.write("\n")
+        
+        f.write("\n" + "=" * 50 + "\n\n")
+        
+        # Then, the unique values analysis
+        f.write("Field Value Analysis\n")
+        f.write("=" * 30 + "\n\n")
         
         for csv_file, field_values in analysis_results.items():
             f.write(f"File: {csv_file}\n")
@@ -127,7 +146,7 @@ def generate_text_report(analysis_results, output_file):
             
             f.write("\n")
 
-def generate_html_report(analysis_results, data_types, row_counts, output_file):
+def generate_html_report(analysis_results, data_types, row_counts, column_lists, output_file):
     """Generate an HTML report from the analysis results."""
     html = """
     <!DOCTYPE html>
@@ -215,33 +234,152 @@ def generate_html_report(analysis_results, data_types, row_counts, output_file):
                 background-color: #e8f4f8;
                 border-radius: 5px;
             }
+            .columns-section {
+                margin-bottom: 20px;
+            }
+            .columns-table {
+                max-width: 800px;
+            }
+            .tag {
+                display: inline-block;
+                padding: 2px 6px;
+                margin: 2px;
+                border-radius: 3px;
+                background-color: #f39c12;
+                color: white;
+                font-size: 0.8em;
+            }
+            .nav-tabs {
+                display: flex;
+                margin-bottom: 20px;
+                border-bottom: 1px solid #ddd;
+                padding-left: 0;
+                list-style: none;
+            }
+            .nav-tabs li {
+                margin-bottom: -1px;
+            }
+            .nav-tabs a {
+                display: block;
+                padding: 10px 15px;
+                margin-right: 2px;
+                text-decoration: none;
+                color: #555;
+                border: 1px solid transparent;
+                border-radius: 4px 4px 0 0;
+            }
+            .nav-tabs a:hover {
+                border-color: #eee #eee #ddd;
+                background-color: #f5f5f5;
+            }
+            .nav-tabs .active a {
+                color: #555;
+                background-color: #fff;
+                border: 1px solid #ddd;
+                border-bottom-color: transparent;
+            }
         </style>
+        <script>
+            function showTab(tabId) {
+                // Hide all tabs
+                const tabs = document.querySelectorAll('.tab-content');
+                tabs.forEach(tab => tab.style.display = 'none');
+                
+                // Remove active class from all tab links
+                const tabLinks = document.querySelectorAll('.nav-tabs a');
+                tabLinks.forEach(link => link.parentElement.classList.remove('active'));
+                
+                // Show the selected tab
+                document.getElementById(tabId).style.display = 'block';
+                
+                // Add active class to selected tab link
+                document.querySelector(`[href="#${tabId}"]`).parentElement.classList.add('active');
+                
+                // Save active tab to localStorage
+                localStorage.setItem('activeTab', tabId);
+                
+                return false;
+            }
+            
+            window.onload = function() {
+                // Restore active tab from localStorage or default to first tab
+                const activeTab = localStorage.getItem('activeTab') || 'summary-tab';
+                showTab(activeTab);
+            }
+        </script>
     </head>
     <body>
         <h1>Urban Tree Observatory Data Exploration Report</h1>
-        <div class="summary">
+        
+        <ul class="nav-tabs">
+            <li><a href="#summary-tab" onclick="return showTab('summary-tab')">Summary</a></li>
+            <li><a href="#columns-tab" onclick="return showTab('columns-tab')">Columns</a></li>
+            <li><a href="#values-tab" onclick="return showTab('values-tab')">Field Values</a></li>
+        </ul>
+        
+        <div id="summary-tab" class="tab-content summary">
             <h2>Dataset Summary</h2>
     """
     
     # Add summary information
     html += "<table>"
-    html += "<tr><th>CSV File</th><th>Row Count</th></tr>"
+    html += "<tr><th>CSV File</th><th>Row Count</th><th>Column Count</th></tr>"
     for csv_file, count in row_counts.items():
-        html += f"<tr><td>{csv_file}</td><td>{count}</td></tr>"
+        column_count = len(column_lists.get(csv_file, []))
+        html += f"<tr><td>{csv_file}</td><td>{count}</td><td>{column_count}</td></tr>"
     html += "</table>"
     html += "</div>"
+    
+    # Add columns section
+    html += '<div id="columns-tab" class="tab-content columns-section">'
+    html += '<h2>CSV File Columns</h2>'
+    
+    for csv_file, columns in column_lists.items():
+        html += f'<div class="file-section">'
+        html += f'<h3>File: {csv_file} ({len(columns)} columns)</h3>'
+        
+        html += '<table class="columns-table">'
+        html += '<tr><th>#</th><th>Column Name</th><th>Data Type</th><th>Field Type</th></tr>'
+        
+        for i, column in enumerate(columns):
+            # Determine data type
+            data_type = data_types.get(csv_file, {}).get(column, "unknown")
+            type_class = f"type-{data_type}"
+            
+            # Determine field type
+            field_type = "Regular Field"
+            if column in TEXT_CHOICE_FIELDS.get(csv_file, []):
+                field_type = '<span class="tag">TextChoice</span>'
+            elif column in ADDITIONAL_FIELDS.get(csv_file, []):
+                field_type = '<span class="tag">Analyzed</span>'
+            
+            html += f'<tr><td>{i+1}</td><td>{column}</td><td><span class="data-type {type_class}">{data_type}</span></td><td>{field_type}</td></tr>'
+        
+        html += '</table>'
+        html += '</div>'
+    
+    html += '</div>'
+    
+    # Add values section
+    html += '<div id="values-tab" class="tab-content">'
+    html += '<h2>Field Value Analysis</h2>'
     
     # Add detailed information for each file
     for csv_file, field_values in analysis_results.items():
         html += f'<div class="file-section">'
-        html += f'<h2>File: {csv_file}</h2>'
+        html += f'<h3>File: {csv_file}</h3>'
         
         for field, values in field_values.items():
             data_type = data_types.get(csv_file, {}).get(field, "unknown")
             type_class = f"type-{data_type}"
             
+            # Determine field type
+            field_type = ""
+            if field in TEXT_CHOICE_FIELDS.get(csv_file, []):
+                field_type = ' <span class="tag">TextChoice</span>'
+            
             html += f'<div class="field-section">'
-            html += f'<h3>Field: {field} <span class="data-type {type_class}">{data_type}</span></h3>'
+            html += f'<h3>Field: {field} <span class="data-type {type_class}">{data_type}</span>{field_type}</h3>'
             
             html += '<table>'
             html += '<tr><th>Value</th><th>Occurrences</th></tr>'
@@ -254,6 +392,8 @@ def generate_html_report(analysis_results, data_types, row_counts, output_file):
         
         html += '</div>'
     
+    html += '</div>'  # Close values-tab
+    
     html += """
     </body>
     </html>
@@ -261,6 +401,20 @@ def generate_html_report(analysis_results, data_types, row_counts, output_file):
     
     with open(output_file, 'w', encoding='utf-8') as f:
         f.write(html)
+
+def get_csv_columns(file_path):
+    """Get the column names from a CSV file."""
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            reader = csv.reader(f)
+            header = next(reader)
+            return header
+    except FileNotFoundError:
+        print(f"File not found: {file_path}")
+        return []
+    except Exception as e:
+        print(f"Error reading header from {file_path}: {e}")
+        return []
 
 def main():
     parser = argparse.ArgumentParser(description='Explore CSV data for the Urban Tree Observatory project.')
@@ -274,33 +428,39 @@ def main():
     analysis_results = {}
     data_types_results = {}
     row_counts = {}
+    column_lists = {}
     
     # Process each CSV file
     for csv_file in TEXT_CHOICE_FIELDS.keys():
         file_path = os.path.join(args.data_dir, csv_file)
         print(f"Processing {file_path}...")
         
+        # Get column names
+        columns = get_csv_columns(file_path)
+        column_lists[csv_file] = columns
+        
         data = read_csv(file_path)
         row_counts[csv_file] = len(data)
         
         if data:
-            # Analyze fields that map to TextChoices
+            # Get field data types for ALL columns
+            all_columns_data_types = analyze_data_types(data, columns)
+            data_types_results[csv_file] = all_columns_data_types
+            
+            # Analyze fields that map to TextChoices and additional fields
             choice_fields = TEXT_CHOICE_FIELDS[csv_file]
             additional_fields = ADDITIONAL_FIELDS[csv_file]
-            all_fields = choice_fields + additional_fields
+            all_analyzed_fields = choice_fields + additional_fields
             
-            unique_values = extract_unique_values(data, all_fields)
+            unique_values = extract_unique_values(data, all_analyzed_fields)
             analysis_results[csv_file] = unique_values
-            
-            data_types = analyze_data_types(data, all_fields)
-            data_types_results[csv_file] = data_types
     
     # Generate reports
     text_report_path = os.path.join(args.output_dir, 'csv_exploration_report.txt')
     html_report_path = os.path.join(args.output_dir, 'csv_exploration_report.html')
     
-    generate_text_report(analysis_results, text_report_path)
-    generate_html_report(analysis_results, data_types_results, row_counts, html_report_path)
+    generate_text_report(analysis_results, column_lists, text_report_path)
+    generate_html_report(analysis_results, data_types_results, row_counts, column_lists, html_report_path)
     
     print(f"Reports generated at:")
     print(f"  - {text_report_path}")

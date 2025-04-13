@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 """
-Data exploration script for Urban Tree Observatory CSV files.
+Enhanced data exploration script for Urban Tree Observatory CSV files.
 
 This script analyzes CSV files from the Urban Tree Observatory dataset 
-and extracts unique values for fields that map to TextChoices in Django models.
-It generates both a text report and an HTML report for easy reference.
+and extracts key information needed for model updates and mapping strategies.
 
 Usage:
     python scripts/explore_csv_data.py --data-dir=/path/to/csv/files
@@ -12,6 +11,7 @@ Usage:
 Output:
     - csv_exploration_report.txt: Plain text report with unique values
     - csv_exploration_report.html: HTML report with more detailed information
+    - mapping_template.json: Template for value mappings
 """
 
 import os
@@ -20,11 +20,12 @@ import argparse
 import json
 from collections import defaultdict, Counter
 import datetime
+import re
 
 
 # Fields that map to TextChoices in Django models
 TEXT_CHOICE_FIELDS = {
-    "taxonomy_details.csv": ["origin", "iucn_status", "growth_habit"],
+    "taxonomy_details.csv": ["origin", "iucn_category", "establishmentMeans", "lifeForm"],
     "biodiversity_records.csv": [],
     "measurements.csv": ["measurement_name", "measurement_unit", "measurement_method"],
     "observations_details.csv": [
@@ -37,11 +38,34 @@ TEXT_CHOICE_FIELDS = {
 
 # Other interesting fields to analyze
 ADDITIONAL_FIELDS = {
-    "taxonomy_details.csv": ["family", "genus", "specie", "accept_scientific_name", "identified_by"],
-    "biodiversity_records.csv": ["common_name", "registered_by"],
-    "measurements.csv": [],
-    "observations_details.csv": ["accompanying_collectors"],
-    "place.csv": ["country", "department", "municipality", "populated_center", "site"]
+    "taxonomy_details.csv": ["family", "genus", "specie", "accept_scientific_name", "identified_by", "gbif_id"],
+    "biodiversity_records.csv": ["code_record", "common_name", "registered_by", "epsg_id", "place_id", "taxonomy_id"],
+    "measurements.csv": ["record_code"],
+    "observations_details.csv": ["record_code", "accompanying_collectors"],
+    "place.csv": ["country", "department", "municipality", "populated_center", "site", "code_site"]
+}
+
+# Fields to sample (show sample values rather than all unique values)
+SAMPLE_FIELDS = {
+    "biodiversity_records.csv": ["code_record", "place_id", "taxonomy_id"],
+    "measurements.csv": ["record_code"],
+    "observations_details.csv": ["record_code"],
+    "taxonomy_details.csv": ["gbif_id"],
+}
+
+# Fields to analyze for special patterns
+PATTERN_FIELDS = {
+    "biodiversity_records.csv": ["code_record"],
+    "measurements.csv": ["record_code"],
+    "observations_details.csv": ["record_code"],
+    "taxonomy_details.csv": ["specie", "accept_scientific_name", "gbif_id"],
+}
+
+# Fields to analyze for relationship mapping
+RELATIONSHIP_FIELDS = {
+    "biodiversity_records.csv": [("code_record", "taxonomy_id", "place_id")],
+    "measurements.csv": [("record_code",)],
+    "observations_details.csv": [("record_code",)],
 }
 
 def read_csv(file_path):
@@ -69,6 +93,275 @@ def extract_unique_values(data, fields):
         # Sort by frequency (most common first)
         sorted_values = sorted(value_counts.items(), key=lambda x: (-x[1], x[0]))
         result[field] = sorted_values
+    return result
+
+def sample_values(data, fields, sample_size=5):
+    """Extract sample values for specified fields."""
+    result = {}
+    for field in fields:
+        values = [row.get(field, '').strip() for row in data if row.get(field)]
+        # Remove empty values
+        values = [v for v in values if v]
+        # Get unique values
+        unique_values = list(set(values))
+        
+        # If more than twice our sample size, show first few and last few
+        if len(unique_values) > sample_size * 2:
+            first_samples = unique_values[:sample_size]
+            last_samples = unique_values[-sample_size:]
+            result[field] = {
+                "total_unique": len(unique_values),
+                "first_samples": first_samples,
+                "last_samples": last_samples,
+                "total_values": len(values)
+            }
+        else:
+            result[field] = {
+                "total_unique": len(unique_values),
+                "all_samples": unique_values[:sample_size*2],
+                "total_values": len(values)
+            }
+    return result
+
+def analyze_patterns(data, fields):
+    """Analyze fields for common patterns."""
+    result = {}
+    for field in fields:
+        values = [row.get(field, '').strip() for row in data if row.get(field)]
+        values = [v for v in values if v]
+        
+        if not values:
+            result[field] = {"pattern": "No values found"}
+            continue
+            
+        # Sample a subset for pattern analysis
+        sample = values[:100]
+        
+        # Common patterns to check
+        patterns = {
+            "numeric_only": all(v.isdigit() for v in sample),
+            "contains_digits": any(re.search(r'\d', v) for v in sample),
+            "contains_dash": any('-' in v for v in sample),
+            "contains_slash": any('/' in v for v in sample),
+            "contains_space": any(' ' in v for v in sample),
+            "contains_punctuation": any(re.search(r'[^\w\s]', v) for v in sample),
+            "starts_with_number": any(re.match(r'^\d', v) for v in sample),
+            "starts_with_letter": any(re.match(r'^[a-zA-Z]', v) for v in sample),
+        }
+        
+        # Add field-specific patterns
+        if field == "specie" or field == "accept_scientific_name":
+            patterns["contains_genus"] = any(re.search(r'^[A-Z][a-z]+ [a-z]+', v) for v in sample)
+            
+        if field == "gbif_id":
+            patterns["contains_url"] = any(re.search(r'http', v) for v in sample)
+            
+        if field == "code_record" or field == "record_code":
+            patterns["format_like_xx_yyyyy"] = any(re.search(r'^\d+_\d+$', v) for v in sample)
+            patterns["format_like_yyyyy_xx"] = any(re.search(r'^\d+_\d+$', v) for v in sample)
+            patterns["contains_f3"] = any('F3' in v.upper() for v in sample)
+            
+        # Check pattern consistency
+        for pattern_name, pattern_exists in patterns.items():
+            if pattern_exists:
+                # Check if ALL values follow the pattern
+                all_match = True
+                for v in sample:
+                    if pattern_name == "numeric_only" and not v.isdigit():
+                        all_match = False
+                        break
+                    elif pattern_name == "contains_digits" and not re.search(r'\d', v):
+                        all_match = False
+                        break
+                    elif pattern_name == "contains_dash" and '-' not in v:
+                        all_match = False
+                        break
+                    elif pattern_name == "contains_slash" and '/' not in v:
+                        all_match = False
+                        break
+                    elif pattern_name == "contains_space" and ' ' not in v:
+                        all_match = False
+                        break
+                    elif pattern_name == "contains_punctuation" and not re.search(r'[^\w\s]', v):
+                        all_match = False
+                        break
+                    elif pattern_name == "starts_with_number" and not re.match(r'^\d', v):
+                        all_match = False
+                        break
+                    elif pattern_name == "starts_with_letter" and not re.match(r'^[a-zA-Z]', v):
+                        all_match = False
+                        break
+                    elif pattern_name == "contains_genus" and not re.search(r'^[A-Z][a-z]+ [a-z]+', v):
+                        all_match = False
+                        break
+                    elif pattern_name == "contains_url" and not re.search(r'http', v):
+                        all_match = False
+                        break
+                    elif pattern_name == "format_like_xx_yyyyy" and not re.search(r'^\d+_\d+$', v):
+                        all_match = False
+                        break
+                    elif pattern_name == "format_like_yyyyy_xx" and not re.search(r'^\d+_\d+$', v):
+                        all_match = False
+                        break
+                    elif pattern_name == "contains_f3" and 'F3' not in v.upper():
+                        all_match = False
+                        break
+                
+                patterns[pattern_name] = "all" if all_match else "some"
+                
+        # Extract minimum and maximum lengths
+        lengths = [len(v) for v in sample]
+        min_length = min(lengths) if lengths else 0
+        max_length = max(lengths) if lengths else 0
+        
+        result[field] = {
+            "patterns": patterns,
+            "min_length": min_length,
+            "max_length": max_length,
+            "example_values": sample[:5]
+        }
+    return result
+
+def analyze_relationships(biodiversity_data, measurements_data, observations_data):
+    """Analyze relationships between code_record and record_code fields."""
+    result = {}
+    
+    # Extract code_record values from biodiversity records
+    bio_codes = set([row.get('code_record', '').strip() for row in biodiversity_data if row.get('code_record')])
+    
+    # Extract record_code values from measurements
+    meas_codes = set([row.get('record_code', '').strip() for row in measurements_data if row.get('record_code')])
+    
+    # Extract record_code values from observations
+    obs_codes = set([row.get('record_code', '').strip() for row in observations_data if row.get('record_code')])
+    
+    # Check overlap
+    bio_meas_overlap = len(bio_codes.intersection(meas_codes))
+    bio_obs_overlap = len(bio_codes.intersection(obs_codes))
+    meas_obs_overlap = len(meas_codes.intersection(obs_codes))
+    
+    # Look for patterns in relationships
+    meas_bio_examples = []
+    obs_bio_examples = []
+    
+    for meas_code in list(meas_codes)[:5]:
+        matches = [code for code in bio_codes if code in meas_code or meas_code in code]
+        if matches:
+            meas_bio_examples.append((meas_code, matches[0]))
+    
+    for obs_code in list(obs_codes)[:5]:
+        matches = [code for code in bio_codes if code in obs_code or obs_code in code]
+        if matches:
+            obs_bio_examples.append((obs_code, matches[0]))
+    
+    result["biodiversity_measurements_relationship"] = {
+        "biodiversity_records_count": len(bio_codes),
+        "measurements_records_count": len(meas_codes),
+        "overlap_count": bio_meas_overlap,
+        "overlap_percentage": round(bio_meas_overlap / len(bio_codes) * 100 if bio_codes else 0, 2),
+        "examples": meas_bio_examples
+    }
+    
+    result["biodiversity_observations_relationship"] = {
+        "biodiversity_records_count": len(bio_codes),
+        "observations_records_count": len(obs_codes),
+        "overlap_count": bio_obs_overlap,
+        "overlap_percentage": round(bio_obs_overlap / len(bio_codes) * 100 if bio_codes else 0, 2),
+        "examples": obs_bio_examples
+    }
+    
+    result["measurements_observations_relationship"] = {
+        "measurements_records_count": len(meas_codes),
+        "observations_records_count": len(obs_codes),
+        "overlap_count": meas_obs_overlap,
+        "overlap_percentage": round(meas_obs_overlap / len(meas_codes) * 100 if meas_codes else 0, 2)
+    }
+    
+    return result
+
+def analyze_species_names(data):
+    """Analyze species names to check for genus inclusion."""
+    result = {}
+    species_data = []
+    
+    for row in data:
+        species_name = row.get('specie', '').strip()
+        accepted_name = row.get('accept_scientific_name', '').strip()
+        genus = row.get('genus', '').strip()
+        
+        if species_name and genus:
+            # Check if species name starts with genus
+            starts_with_genus = species_name.startswith(genus)
+            
+            # If it doesn't start with genus, check if it contains genus followed by space
+            contains_genus = genus + ' ' in species_name if not starts_with_genus else False
+            
+            species_data.append({
+                'species_name': species_name,
+                'genus': genus,
+                'starts_with_genus': starts_with_genus,
+                'contains_genus': contains_genus,
+            })
+    
+    # Summarize findings
+    total = len(species_data)
+    starts_with_genus_count = sum(1 for item in species_data if item['starts_with_genus'])
+    contains_genus_count = sum(1 for item in species_data if item['contains_genus'])
+    
+    result["total_species"] = total
+    result["species_starting_with_genus"] = starts_with_genus_count
+    result["species_starting_with_genus_percentage"] = round(starts_with_genus_count / total * 100 if total else 0, 2)
+    result["species_containing_genus"] = contains_genus_count
+    result["species_containing_genus_percentage"] = round(contains_genus_count / total * 100 if total else 0, 2)
+    
+    # Examples where species doesn't include genus
+    no_genus_examples = [item for item in species_data if not item['starts_with_genus'] and not item['contains_genus']]
+    result["species_without_genus_examples"] = no_genus_examples[:5]
+    
+    return result
+
+def analyze_measurement_units(data):
+    """Analyze measurement names to infer units."""
+    result = {}
+    
+    measurement_types = {}
+    
+    for row in data:
+        name = row.get('measurement_name', '').strip()
+        method = row.get('measurement_method', '').strip()
+        
+        if name:
+            if name not in measurement_types:
+                measurement_types[name] = {'methods': Counter(), 'count': 0}
+            
+            measurement_types[name]['count'] += 1
+            if method:
+                measurement_types[name]['methods'][method] += 1
+    
+    # Analyze each measurement type
+    for name, info in measurement_types.items():
+        unit = "unknown"
+        
+        # Infer units based on measurement name
+        if 'volume' in name.lower() and 'm3' in name.lower():
+            unit = 'm3'
+        elif 'diameter' in name.lower() and 'cm' in name.lower():
+            unit = 'cm'
+        elif 'density' in name.lower() and 'g/cm3' in name.lower():
+            unit = 'g/cm3'
+        elif 'height' in name.lower() or 'crown' in name.lower() or 'canopy' in name.lower():
+            unit = 'm'
+        
+        # Find most common method
+        most_common_method = info['methods'].most_common(1)[0][0] if info['methods'] else "unknown"
+        
+        result[name] = {
+            'count': info['count'],
+            'inferred_unit': unit,
+            'most_common_method': most_common_method,
+            'methods': [{'method': method, 'count': count} for method, count in info['methods'].most_common()]
+        }
+    
     return result
 
 def analyze_data_types(data, fields):
@@ -109,7 +402,9 @@ def analyze_data_types(data, fields):
         result[field] = data_type
     return result
 
-def generate_text_report(analysis_results, column_lists, output_file):
+def generate_text_report(analysis_results, sample_results, pattern_results, 
+                        species_analysis, measurement_analysis, relationship_analysis,
+                        column_lists, output_file):
     """Generate a plain text report from the analysis results."""
     with open(output_file, 'w', encoding='utf-8') as f:
         f.write("Urban Tree Observatory Data Exploration Report\n")
@@ -130,6 +425,97 @@ def generate_text_report(analysis_results, column_lists, output_file):
         
         f.write("\n" + "=" * 50 + "\n\n")
         
+        # Write relationship analysis
+        f.write("Relationship Analysis\n")
+        f.write("=" * 30 + "\n\n")
+        
+        for rel_name, rel_info in relationship_analysis.items():
+            f.write(f"  {rel_name}:\n")
+            for key, value in rel_info.items():
+                if key == "examples":
+                    f.write(f"    {key}:\n")
+                    for ex in value:
+                        f.write(f"      - {ex[0]} -> {ex[1]}\n")
+                else:
+                    f.write(f"    {key}: {value}\n")
+            f.write("\n")
+        
+        # Write species name analysis
+        f.write("Species Name Analysis\n")
+        f.write("=" * 30 + "\n\n")
+        
+        for key, value in species_analysis.items():
+            if key == "species_without_genus_examples":
+                f.write(f"  {key}:\n")
+                for ex in value:
+                    f.write(f"    - Species: {ex['species_name']}, Genus: {ex['genus']}\n")
+            else:
+                f.write(f"  {key}: {value}\n")
+        f.write("\n")
+        
+        # Write measurement analysis
+        f.write("Measurement Analysis\n")
+        f.write("=" * 30 + "\n\n")
+        
+        for name, info in measurement_analysis.items():
+            f.write(f"  {name}:\n")
+            f.write(f"    count: {info['count']}\n")
+            f.write(f"    inferred_unit: {info['inferred_unit']}\n")
+            f.write(f"    most_common_method: {info['most_common_method']}\n")
+            f.write("    methods:\n")
+            for method_info in info['methods']:
+                f.write(f"      - {method_info['method']}: {method_info['count']}\n")
+            f.write("\n")
+        
+        # Write sampled values
+        f.write("Sampled Values Analysis\n")
+        f.write("=" * 30 + "\n\n")
+        
+        for csv_file, field_samples in sample_results.items():
+            f.write(f"File: {csv_file}\n")
+            f.write("-" * 30 + "\n\n")
+            
+            for field, sample_info in field_samples.items():
+                f.write(f"  Field: {field}\n")
+                f.write(f"    Total unique values: {sample_info['total_unique']}\n")
+                f.write(f"    Total values: {sample_info['total_values']}\n")
+                
+                if 'all_samples' in sample_info:
+                    f.write("    All samples:\n")
+                    for sample in sample_info['all_samples']:
+                        f.write(f"      - '{sample}'\n")
+                else:
+                    f.write("    First samples:\n")
+                    for sample in sample_info['first_samples']:
+                        f.write(f"      - '{sample}'\n")
+                    f.write("    Last samples:\n")
+                    for sample in sample_info['last_samples']:
+                        f.write(f"      - '{sample}'\n")
+                f.write("\n")
+        
+        # Write pattern analysis
+        f.write("Pattern Analysis\n")
+        f.write("=" * 30 + "\n\n")
+        
+        for csv_file, field_patterns in pattern_results.items():
+            f.write(f"File: {csv_file}\n")
+            f.write("-" * 30 + "\n\n")
+            
+            for field, pattern_info in field_patterns.items():
+                f.write(f"  Field: {field}\n")
+                if isinstance(pattern_info, dict) and 'patterns' in pattern_info:
+                    f.write(f"    Min length: {pattern_info['min_length']}\n")
+                    f.write(f"    Max length: {pattern_info['max_length']}\n")
+                    f.write("    Example values:\n")
+                    for ex in pattern_info['example_values']:
+                        f.write(f"      - '{ex}'\n")
+                    f.write("    Patterns:\n")
+                    for pattern, status in pattern_info['patterns'].items():
+                        f.write(f"      - {pattern}: {status}\n")
+                else:
+                    f.write(f"    {pattern_info}\n")
+                f.write("\n")
+        
         # Then, the unique values analysis
         f.write("Field Value Analysis\n")
         f.write("=" * 30 + "\n\n")
@@ -146,7 +532,9 @@ def generate_text_report(analysis_results, column_lists, output_file):
             
             f.write("\n")
 
-def generate_html_report(analysis_results, data_types, row_counts, column_lists, output_file):
+def generate_html_report(analysis_results, sample_results, pattern_results, 
+                        species_analysis, measurement_analysis, relationship_analysis,
+                        data_types, row_counts, column_lists, output_file):
     """Generate an HTML report from the analysis results."""
     html = """
     <!DOCTYPE html>
@@ -278,6 +666,23 @@ def generate_html_report(analysis_results, data_types, row_counts, column_lists,
                 border: 1px solid #ddd;
                 border-bottom-color: transparent;
             }
+            pre {
+                background-color: #f8f9fa;
+                border: 1px solid #eaecef;
+                border-radius: 3px;
+                padding: 10px;
+                overflow: auto;
+                font-family: monospace;
+            }
+            .pattern-all {
+                color: #27ae60;
+            }
+            .pattern-some {
+                color: #e67e22;
+            }
+            .pattern-none {
+                color: #7f8c8d;
+            }
         </style>
         <script>
             function showTab(tabId) {
@@ -313,27 +718,107 @@ def generate_html_report(analysis_results, data_types, row_counts, column_lists,
         
         <ul class="nav-tabs">
             <li><a href="#summary-tab" onclick="return showTab('summary-tab')">Summary</a></li>
+            <li><a href="#relationships-tab" onclick="return showTab('relationships-tab')">Relationships</a></li>
+            <li><a href="#species-tab" onclick="return showTab('species-tab')">Species Analysis</a></li>
+            <li><a href="#measurements-tab" onclick="return showTab('measurements-tab')">Measurements</a></li>
             <li><a href="#columns-tab" onclick="return showTab('columns-tab')">Columns</a></li>
+            <li><a href="#patterns-tab" onclick="return showTab('patterns-tab')">Patterns</a></li>
+            <li><a href="#samples-tab" onclick="return showTab('samples-tab')">Samples</a></li>
             <li><a href="#values-tab" onclick="return showTab('values-tab')">Field Values</a></li>
         </ul>
         
         <div id="summary-tab" class="tab-content summary">
             <h2>Dataset Summary</h2>
-    """
+            <table>
+                <tr><th>CSV File</th><th>Row Count</th><th>Column Count</th></tr>
+"""
     
     # Add summary information
-    html += "<table>"
-    html += "<tr><th>CSV File</th><th>Row Count</th><th>Column Count</th></tr>"
     for csv_file, count in row_counts.items():
         column_count = len(column_lists.get(csv_file, []))
         html += f"<tr><td>{csv_file}</td><td>{count}</td><td>{column_count}</td></tr>"
-    html += "</table>"
-    html += "</div>"
+    
+    html += """
+            </table>
+            
+            <h3>Key Findings</h3>
+            <ul>
+                <li>Species data in taxonomy CSV appears to include genus in the 'specie' field</li>
+                <li>Relationship codes between tables need mapping</li>
+                <li>Measurement units need to be inferred from field names</li>
+                <li>Various Spanish-language values need mapping to English TextChoices</li>
+            </ul>
+        </div>
+        
+        <div id="relationships-tab" class="tab-content">
+            <h2>Relationship Analysis</h2>
+    """
+    
+    # Add relationship analysis
+    for rel_name, rel_info in relationship_analysis.items():
+        html += f'<div class="file-section"><h3>{rel_name}</h3>'
+        html += '<table>'
+        
+        for key, value in rel_info.items():
+            if key == "examples":
+                html += f'<tr><td colspan="2"><h4>Mapping Examples:</h4></td></tr>'
+                for ex in value:
+                    html += f'<tr><td>{ex[0]}</td><td>{ex[1]}</td></tr>'
+            else:
+                html += f'<tr><td>{key}</td><td>{value}</td></tr>'
+        
+        html += '</table></div>'
+    
+    html += """
+        </div>
+        
+        <div id="species-tab" class="tab-content">
+            <h2>Species Name Analysis</h2>
+            <div class="file-section">
+    """
+    
+    # Add species analysis
+    html += '<table>'
+    for key, value in species_analysis.items():
+        if key == "species_without_genus_examples":
+            html += '<tr><td colspan="2"><h3>Species without genus examples:</h3></td></tr>'
+            for ex in value:
+                html += f'<tr><td>Species: {ex["species_name"]}</td><td>Genus: {ex["genus"]}</td></tr>'
+        else:
+            html += f'<tr><td>{key}</td><td>{value}</td></tr>'
+    html += '</table>'
+    
+    html += """
+            </div>
+        </div>
+        
+        <div id="measurements-tab" class="tab-content">
+            <h2>Measurement Analysis</h2>
+    """
+    
+    # Add measurement analysis
+    for name, info in measurement_analysis.items():
+        html += f'<div class="field-section"><h3>{name}</h3>'
+        html += '<table>'
+        html += f'<tr><td>Count</td><td>{info["count"]}</td></tr>'
+        html += f'<tr><td>Inferred Unit</td><td>{info["inferred_unit"]}</td></tr>'
+        html += f'<tr><td>Most Common Method</td><td>{info["most_common_method"]}</td></tr>'
+        html += '</table>'
+        
+        html += '<h4>Methods:</h4><table>'
+        html += '<tr><th>Method</th><th>Count</th></tr>'
+        for method_info in info['methods']:
+            html += f'<tr><td>{method_info["method"]}</td><td>{method_info["count"]}</td></tr>'
+        html += '</table></div>'
+    
+    html += """
+        </div>
+        
+        <div id="columns-tab" class="tab-content columns-section">
+            <h2>CSV File Columns</h2>
+    """
     
     # Add columns section
-    html += '<div id="columns-tab" class="tab-content columns-section">'
-    html += '<h2>CSV File Columns</h2>'
-    
     for csv_file, columns in column_lists.items():
         html += f'<div class="file-section">'
         html += f'<h3>File: {csv_file} ({len(columns)} columns)</h3>'
@@ -352,19 +837,111 @@ def generate_html_report(analysis_results, data_types, row_counts, column_lists,
                 field_type = '<span class="tag">TextChoice</span>'
             elif column in ADDITIONAL_FIELDS.get(csv_file, []):
                 field_type = '<span class="tag">Analyzed</span>'
+            elif column in SAMPLE_FIELDS.get(csv_file, []):
+                field_type = '<span class="tag">Sampled</span>'
+            elif column in PATTERN_FIELDS.get(csv_file, []):
+                field_type = '<span class="tag">Pattern</span>'
             
             html += f'<tr><td>{i+1}</td><td>{column}</td><td><span class="data-type {type_class}">{data_type}</span></td><td>{field_type}</td></tr>'
         
         html += '</table>'
         html += '</div>'
     
-    html += '</div>'
+    html += """
+        </div>
+        
+        <div id="patterns-tab" class="tab-content">
+            <h2>Pattern Analysis</h2>
+    """
+    
+    # Add pattern analysis
+    for csv_file, field_patterns in pattern_results.items():
+        html += f'<div class="file-section">'
+        html += f'<h3>File: {csv_file}</h3>'
+        
+        for field, pattern_info in field_patterns.items():
+            html += f'<div class="field-section">'
+            html += f'<h4>Field: {field}</h4>'
+            
+            if isinstance(pattern_info, dict) and 'patterns' in pattern_info:
+                html += f'<p>Min length: {pattern_info["min_length"]} | Max length: {pattern_info["max_length"]}</p>'
+                
+                html += '<h5>Example values:</h5>'
+                html += '<ul>'
+                for ex in pattern_info['example_values']:
+                    html += f'<li><code>{ex}</code></li>'
+                html += '</ul>'
+                
+                html += '<h5>Detected Patterns:</h5>'
+                html += '<table>'
+                html += '<tr><th>Pattern</th><th>Status</th></tr>'
+                for pattern, status in pattern_info['patterns'].items():
+                    status_class = f"pattern-{status}" if status in ["all", "some"] else ""
+                    html += f'<tr><td>{pattern}</td><td class="{status_class}">{status}</td></tr>'
+                html += '</table>'
+            else:
+                html += f'<p>{pattern_info}</p>'
+            
+            html += '</div>'
+        
+        html += '</div>'
+    
+    html += """
+        </div>
+        
+        <div id="samples-tab" class="tab-content">
+            <h2>Sample Values</h2>
+    """
+    
+    # Add sample values
+    for csv_file, field_samples in sample_results.items():
+        html += f'<div class="file-section">'
+        html += f'<h3>File: {csv_file}</h3>'
+        
+        for field, sample_info in field_samples.items():
+            html += f'<div class="field-section">'
+            html += f'<h4>Field: {field}</h4>'
+            html += f'<p>Total unique values: {sample_info["total_unique"]} | Total values: {sample_info["total_values"]}</p>'
+            
+            if 'all_samples' in sample_info:
+                html += '<h5>All Samples:</h5>'
+                html += '<ul>'
+                for sample in sample_info['all_samples']:
+                    html += f'<li><code>{sample}</code></li>'
+                html += '</ul>'
+            else:
+                html += '<div style="display: flex; gap: 20px;">'
+                
+                html += '<div style="flex: 1;">'
+                html += '<h5>First Samples:</h5>'
+                html += '<ul>'
+                for sample in sample_info['first_samples']:
+                    html += f'<li><code>{sample}</code></li>'
+                html += '</ul>'
+                html += '</div>'
+                
+                html += '<div style="flex: 1;">'
+                html += '<h5>Last Samples:</h5>'
+                html += '<ul>'
+                for sample in sample_info['last_samples']:
+                    html += f'<li><code>{sample}</code></li>'
+                html += '</ul>'
+                html += '</div>'
+                
+                html += '</div>'
+            
+            html += '</div>'
+        
+        html += '</div>'
+    
+    html += """
+        </div>
+        
+        <div id="values-tab" class="tab-content">
+            <h2>Field Value Analysis</h2>
+    """
     
     # Add values section
-    html += '<div id="values-tab" class="tab-content">'
-    html += '<h2>Field Value Analysis</h2>'
-    
-    # Add detailed information for each file
     for csv_file, field_values in analysis_results.items():
         html += f'<div class="file-section">'
         html += f'<h3>File: {csv_file}</h3>'
@@ -379,7 +956,7 @@ def generate_html_report(analysis_results, data_types, row_counts, column_lists,
                 field_type = ' <span class="tag">TextChoice</span>'
             
             html += f'<div class="field-section">'
-            html += f'<h3>Field: {field} <span class="data-type {type_class}">{data_type}</span>{field_type}</h3>'
+            html += f'<h4>Field: {field} <span class="data-type {type_class}">{data_type}</span>{field_type}</h4>'
             
             html += '<table>'
             html += '<tr><th>Value</th><th>Occurrences</th></tr>'
@@ -392,9 +969,8 @@ def generate_html_report(analysis_results, data_types, row_counts, column_lists,
         
         html += '</div>'
     
-    html += '</div>'  # Close values-tab
-    
     html += """
+        </div>
     </body>
     </html>
     """

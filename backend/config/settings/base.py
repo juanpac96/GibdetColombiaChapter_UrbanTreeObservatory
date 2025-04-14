@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     "django_filters",
     "leaflet",
     # Project apps
+    "apps.core",
     "apps.accounts",
     "apps.taxonomy",
     "apps.biodiversity",

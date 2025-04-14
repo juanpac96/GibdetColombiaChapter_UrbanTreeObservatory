@@ -44,9 +44,10 @@ class Place(models.Model):
 
 class BiodiversityRecord(models.Model):
     """Represents a record of biodiversity, including species, location,
-    common names, and other attributes."""
+    common name, and other attributes."""
 
     uuid = models.UUIDField(_("uuid"), default=uuid.uuid4, editable=False)
+    common_name = models.TextField(_("common name"), blank=True)
     species = models.ForeignKey(
         Species,
         on_delete=models.PROTECT,
@@ -59,7 +60,6 @@ class BiodiversityRecord(models.Model):
         related_name="biodiversity_records",
         verbose_name=_("place"),
     )
-    common_names = models.TextField(_("common names"), blank=True)
     location = gis_models.PointField(_("location"), srid=4326, geography=True)
     elevation_m = models.FloatField(_("elevation (m)"), null=True, blank=True)
     recorded_by = models.CharField(

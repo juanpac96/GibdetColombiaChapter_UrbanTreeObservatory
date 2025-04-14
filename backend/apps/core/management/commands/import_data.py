@@ -1,6 +1,7 @@
 import csv
 import io
 import logging
+import os
 import re
 import requests
 from datetime import datetime
@@ -102,38 +103,37 @@ class Command(BaseCommand):
         if not dry_run:
             self._process_biodiversity_records(biodiversity_data)
         
-        # Map to store biodiversity records with their related record codes
-        self.record_code_map = {}
-        self.matching_map = {}
+        # Maps to store biodiversity records with their related record codes
+        self.biodiversity_code_map = {}  # Maps from biodiversity code_record to BiodiversityRecord objects
+        self.numeric_to_record_map = {}  # Maps from numeric part of code to BiodiversityRecord objects
         
-        # Instead of using UUIDs for matching, we'll create a lookup map using record codes
-        # from the biodiversity_records.csv file
+        # Create lookup maps for matching records across CSV files
         if not dry_run:
-            # Process all biodiversity records and store them in our internal code_map
-            # This will be used to match record_codes in measurements and observations
-            for row in biodiversity_data:
+            # Process all biodiversity records and store them in our maps
+            # We'll build multiple maps to handle the different matching patterns
+            biodiversity_records = list(BiodiversityRecord.objects.all())
+            
+            # Loop through biodiversity_data to create mappings
+            for i, row in enumerate(biodiversity_data):
                 code_record = row.get('code_record', '').strip()
                 if code_record:
-                    normalized_code = self._normalize_code(code_record)
+                    # Get the biodiversity record from the database
+                    bio_record = biodiversity_records[i] if i < len(biodiversity_records) else None
+                    if not bio_record:
+                        continue
                     
-                    # Find the corresponding biodiversity record based on species, place, location
-                    species_name = row.get('taxonomy_scientific_name', '').strip()
-                    site_name = row.get('site', '').strip()
-                    lat = self._safe_float(row.get('latitude', 0))
-                    lon = self._safe_float(row.get('longitude', 0))
+                    # Store in our direct lookup
+                    self.biodiversity_code_map[code_record] = bio_record
                     
-                    # Look up biodiversity records with matching criteria
-                    matching_records = list(BiodiversityRecord.objects.all())
+                    # Extract code parts to help with matching
+                    num_part, f_part = self._extract_code_parts(code_record)
                     
-                    if matching_records:
-                        # Use the first matching record (we should have created one in _process_biodiversity_records)
-                        self.record_code_map[normalized_code] = matching_records[0]
-                        self.matching_map[normalized_code] = {
-                            'species_name': species_name,
-                            'site_name': site_name, 
-                            'coordinates': (lat, lon),
-                            'record': matching_records[0]
-                        }
+                    # Store in our numeric lookup (for observations matching)
+                    if num_part:
+                        self.numeric_to_record_map[num_part] = bio_record
+                        
+                    # For measurements, store by full code_record (we'll match directly)
+                    # For observations, we'll match based on numeric part
         
         # Process measurements
         self.stdout.write(self.style.NOTICE('Importing measurements...'))
@@ -183,22 +183,30 @@ class Command(BaseCommand):
             self.stdout.write(self.style.ERROR(f"Error reading {filepath}: {e}"))
             return []
 
-    def _normalize_code(self, code):
-        """Normalize record codes by removing spaces, dashes, and transforming underscores.
+    def _extract_code_parts(self, code):
+        """Extract numeric and format parts from a code.
         
         Examples:
-        - "100285 - F3" becomes "100285F3"
-        - "10028_F1" becomes "10028F1"
+        - "10001_F1" returns ("10001", "F1")
+        - "20272_F2" returns ("20272", "F2")
+        - "67689 - F3" returns ("67689", "F3")
+        - "27543_10001" returns ("27543", "10001")
         """
         if not code:
-            return ""
+            return ("", "")
         
-        # Replace spaces and hyphens
-        normalized = re.sub(r'[\s-]+', '', code)
-        # Replace underscores
-        normalized = normalized.replace('_', '')
-        
-        return normalized
+        # Handle formats like "10001_F1" or "20272_F2"
+        match = re.search(r'(\d+)[_\s-]+([F]\d+)', code)
+        if match:
+            return (match.group(1), match.group(2))
+            
+        # Handle formats like "27543_10001"
+        match = re.search(r'(\d+)[_\s-]+(\d+)', code)
+        if match:
+            return (match.group(1), match.group(2))
+            
+        # Default, just return the original code as first part
+        return (code, "")
 
     def _extract_gbif_id(self, gbif_value):
         """Extract numeric GBIF ID from various formats.
@@ -414,9 +422,8 @@ class Command(BaseCommand):
             if not code_record:
                 continue
             
-            # Standardize the code to handle different formats
-            # For example: "67689 - F3" vs "67689_F3"
-            normalized_code = self._normalize_code(code_record)
+            # We'll use the original code_record directly without normalizing
+            # This helps match with other records in their original format
             
             # Get related objects
             try:
@@ -548,46 +555,30 @@ class Command(BaseCommand):
             if not record_code:
                 continue
             
-            # Normalize record code to handle different formats
-            normalized_code = self._normalize_code(record_code)
-            
             try:
-                # Find the biodiversity record using our internal mapping
+                # Find the biodiversity record using our mapping
                 bio_record = None
                 
-                # First try exact match with normalized code
-                if normalized_code in self.record_code_map:
-                    bio_record = self.record_code_map[normalized_code]
+                # For measurements.csv, we match the record_code directly with biodiversity_records.csv code_record
+                # Example: "10001_F1" matches directly with "10001_F1"
+                if record_code in self.biodiversity_code_map:
+                    bio_record = self.biodiversity_code_map[record_code]
                 else:
-                    # Try matching with just the numeric part or F-code part
-                    # Extract the numeric part of the record code (e.g., "100285" from "100285 - F3")
-                    match_numeric = re.search(r'(\d+)', record_code)
-                    if match_numeric:
-                        numeric_part = match_numeric.group(1)
-                        # Look for any key in record_code_map that contains this numeric part
-                        for key, value in self.record_code_map.items():
-                            if numeric_part in key:
-                                bio_record = value
-                                # Cache this match for future lookups
-                                self.record_code_map[normalized_code] = bio_record
-                                break
-                    
-                    # If still not found, try extracting the F-code part (e.g., "F3" from "100285 - F3")
-                    if not bio_record:
-                        match_fcode = re.search(r'(F\d+)', record_code, re.IGNORECASE)
-                        if match_fcode:
-                            fcode_part = match_fcode.group(1).upper()
-                            # Look for any key that contains this F-code
-                            for key, value in self.record_code_map.items():
-                                if fcode_part in key.upper():
-                                    bio_record = value
-                                    # Cache this match for future lookups
-                                    self.record_code_map[normalized_code] = bio_record
-                                    break
+                    # If no direct match, try different formats (with/without spaces, etc.)
+                    for bio_code, bio_record_obj in self.biodiversity_code_map.items():
+                        # If codes match after normalization (removing spaces, etc.)
+                        if record_code.replace(' ', '').replace('-', '') == bio_code.replace(' ', '').replace('-', ''):
+                            bio_record = bio_record_obj
+                            # Cache for future lookups
+                            self.biodiversity_code_map[record_code] = bio_record
+                            break
                     
                     # If still not found, use the first biodiversity record as a fallback
                     if not bio_record:
                         bio_record = BiodiversityRecord.objects.first()
+                        self.stdout.write(self.style.WARNING(
+                            f"No biodiversity record match found for measurement record_code: {record_code}. Using fallback."
+                        ))
                 
                 if not bio_record:
                     self.stdout.write(self.style.WARNING(f"BiodiversityRecord not found for {record_code}"))
@@ -727,46 +718,35 @@ class Command(BaseCommand):
             if not record_code:
                 continue
             
-            # Normalize record code to handle different formats
-            normalized_code = self._normalize_code(record_code)
-            
             try:
-                # Find the biodiversity record using our internal mapping
+                # Find the biodiversity record using our mapping
                 bio_record = None
                 
-                # First try exact match with normalized code
-                if normalized_code in self.record_code_map:
-                    bio_record = self.record_code_map[normalized_code]
-                else:
-                    # Try matching with just the numeric part or F-code part
-                    # Extract the numeric part of the record code (e.g., "100285" from "100285 - F3")
-                    match_numeric = re.search(r'(\d+)', record_code)
-                    if match_numeric:
-                        numeric_part = match_numeric.group(1)
-                        # Look for any key in record_code_map that contains this numeric part
-                        for key, value in self.record_code_map.items():
-                            if numeric_part in key:
-                                bio_record = value
-                                # Cache this match for future lookups
-                                self.record_code_map[normalized_code] = bio_record
-                                break
-                    
-                    # If still not found, try extracting the F-code part (e.g., "F3" from "100285 - F3")
-                    if not bio_record:
-                        match_fcode = re.search(r'(F\d+)', record_code, re.IGNORECASE)
-                        if match_fcode:
-                            fcode_part = match_fcode.group(1).upper()
-                            # Look for any key that contains this F-code
-                            for key, value in self.record_code_map.items():
-                                if fcode_part in key.upper():
-                                    bio_record = value
-                                    # Cache this match for future lookups
-                                    self.record_code_map[normalized_code] = bio_record
-                                    break
-                    
-                    # If still not found, use the first biodiversity record as a fallback
-                    if not bio_record:
-                        bio_record = BiodiversityRecord.objects.first()
+                # For observations_details.csv, record_code format is like "27543_10001" 
+                # where the second part (10001) matches the first part of biodiversity_record code_record "10001_F1"
+                
+                # Extract parts from the observation record code
+                first_part, second_part = self._extract_code_parts(record_code)
+                
+                # Try to match using the second part of the observation code
+                # Example: from "27543_10001", use "10001" to match with biodiversity record starting with "10001_"
+                if second_part and second_part in self.numeric_to_record_map:
+                    bio_record = self.numeric_to_record_map[second_part]
+                
+                # If no match found by second part, try using the first part
+                if not bio_record and first_part in self.numeric_to_record_map:
+                    bio_record = self.numeric_to_record_map[first_part]
+                
+                # If still no match, check if full record_code matches any biodiversity record
+                if not bio_record and record_code in self.biodiversity_code_map:
+                    bio_record = self.biodiversity_code_map[record_code]
+                
+                # If still not found, use the first biodiversity record as a fallback
+                if not bio_record:
+                    bio_record = BiodiversityRecord.objects.first()
+                    self.stdout.write(self.style.WARNING(
+                        f"No biodiversity record match found for observation record_code: {record_code}. Using fallback."
+                    ))
                 
                 if not bio_record:
                     self.stdout.write(self.style.WARNING(f"BiodiversityRecord not found for {record_code}"))

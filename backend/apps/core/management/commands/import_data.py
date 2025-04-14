@@ -14,7 +14,7 @@ from apps.taxonomy.models import Family, Genus, Species
 from apps.biodiversity.models import Place, BiodiversityRecord
 from apps.reports.models import Measurement, Observation
 from apps.core.utils.mappings import (
-    get_mapped_value, ORIGIN_MAPPINGS, IUCN_STATUS_MAPPINGS, GROWTH_HABIT_MAPPINGS,
+    get_mapped_value, ORIGIN_MAPPINGS, IUCN_STATUS_MAPPINGS, LIFEFORM_MAPPINGS,
     MEASURED_ATTRIBUTE_MAPPINGS, MEASUREMENT_UNIT_MAPPINGS, MEASUREMENT_METHOD_MAPPINGS,
     REPRODUCTIVE_CONDITION_MAPPINGS, PHYTOSANITARY_STATUS_MAPPINGS, PHYSICAL_CONDITION_MAPPINGS,
     FOLIAGE_DENSITY_MAPPINGS, AESTHETIC_VALUE_MAPPINGS, GROWTH_PHASE_MAPPINGS
@@ -435,8 +435,8 @@ class Command(BaseCommand):
             life_form = row.get('lifeForm', '').strip()
             
             # Default values that will be updated from observations
-            origin = Species.Origin.UNKNOWN
-            growth_habit = Species.GrowthHabit.UNKNOWN
+            origin = Species.Origin.NOT_IDENTIFIED
+            life_form = Species.LifeForm.OTHER
             
             # Create or update the species
             try:
@@ -447,7 +447,7 @@ class Command(BaseCommand):
                         'genus': genus,
                         'origin': origin,
                         'iucn_status': iucn_status,
-                        'growth_habit': growth_habit,
+                        'life_form': life_form,
                         'identified_by': identified_by,
                         'gbif_id': gbif_id,
                         'common_name': common_name,
@@ -662,7 +662,7 @@ class Command(BaseCommand):
                 
                 location = Point(lon, lat, srid=4326)
                 elevation = self._safe_float(row.get('elevation_m'))
-                common_names = row.get('common_name', '').strip()
+                common_name = row.get('common_name', '').strip()
                 recorded_by = row.get('registered_by', 'Cortolima').strip()
                 
                 # Parse date if available
@@ -984,9 +984,9 @@ class Command(BaseCommand):
                         origin = get_mapped_value(
                             origin_value, 
                             ORIGIN_MAPPINGS, 
-                            Species.Origin.UNKNOWN
+                            Species.Origin.NOT_IDENTIFIED
                         )
-                        if origin != Species.Origin.UNKNOWN and species.origin == Species.Origin.UNKNOWN:
+                        if origin != Species.Origin.NOT_IDENTIFIED and species.origin == Species.Origin.NOT_IDENTIFIED:
                             species_updates['origin'] = origin
                             updated = True
                     
@@ -1003,15 +1003,15 @@ class Command(BaseCommand):
                             updated = True
                     
                     # Growth habit
-                    growth_habit_value = row.get('growth_habit', '').strip()
-                    if growth_habit_value:
-                        growth_habit = get_mapped_value(
-                            growth_habit_value, 
-                            GROWTH_HABIT_MAPPINGS, 
-                            Species.GrowthHabit.UNKNOWN
+                    life_form_value = row.get('life_form', '').strip()
+                    if life_form_value:
+                        life_form = get_mapped_value(
+                            life_form_value, 
+                            LIFEFORM_MAPPINGS, 
+                            Species.LifeForm.OTHER
                         )
-                        if growth_habit != Species.GrowthHabit.UNKNOWN and species.growth_habit == Species.GrowthHabit.UNKNOWN:
-                            species_updates['growth_habit'] = growth_habit
+                        if life_form != Species.LifeForm.OTHER and species.life_form == Species.LifeForm.OTHER:
+                            species_updates['life_form'] = life_form
                             updated = True
                     
                     # If updates needed, add to batch
@@ -1021,7 +1021,7 @@ class Command(BaseCommand):
                                     (f"common_name='{common_name}', " if common_name in species_updates else "") + \
                                     (f"origin='{origin}', " if 'origin' in species_updates else "") + \
                                     (f"iucn_status='{iucn_status}', " if 'iucn_status' in species_updates else "") + \
-                                    (f"growth_habit='{growth_habit}'" if 'growth_habit' in species_updates else "")
+                                    (f"life_form='{life_form}'" if 'life_form' in species_updates else "")
                         self.report_data['species_updates'].append(update_msg)
                 
                 # Process observation attributes efficiently

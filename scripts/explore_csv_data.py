@@ -31,7 +31,7 @@ TEXT_CHOICE_FIELDS = {
     "observations_details.csv": [
         "reproductive_condition", "phytosanitary_status", "physical_condition",
         "foliage_density", "aesthetic_value", "growth_phase", "origin", 
-        "iucn_status", "growth_habit"
+        "iucn_status", "life_form"
     ],
     "place.csv": []
 }

@@ -37,6 +37,19 @@ services:
       db:
         condition: service_healthy
 
+  # Database reset service - use this to reset the database
+  db-reset:
+    image: nickblah/postgis:latest
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      - POSTGRES_DB=urban_tree_db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    command: bash -c "rm -rf /var/lib/postgresql/data/* && exit"
+    profiles:
+      - reset
+
   # Angular frontend
   frontend:
     build: ./frontend

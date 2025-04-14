@@ -1,193 +1,189 @@
 import uuid
 
-from django.contrib.auth.models import User
-from django.contrib.gis.db import models
+from django.db import models
 from django.utils.translation import gettext_lazy as _
 
-from apps.trees.models import Tree
+from apps.biodiversity.models import BiodiversityRecord
 
 
-class Report(models.Model):
-    """Citizen report for tree issues or observations"""
+class Measurement(models.Model):
+    """Records quantifiable attributes like trunk height or total height for trees.
 
-    uuid = models.UUIDField(_("UUID"), default=uuid.uuid4, editable=False)
+    Stores numeric data collected through defined methodologies with
+    tracking of measurement dates and techniques."""
 
-    # User information
-    reporter = models.ForeignKey(
-        User,
-        on_delete=models.SET_NULL,
-        null=True,
-        related_name="tree_reports",
-        verbose_name=_("Reporter"),
-    )
-    # For anonymous reporting
-    reporter_name = models.CharField(_("Reporter Name"), max_length=100, blank=True)
-    reporter_email = models.EmailField(_("Reporter Email"), blank=True)
-    reporter_phone = models.CharField(_("Reporter Phone"), max_length=20, blank=True)
+    class MeasuredAttribute(models.TextChoices):
+        TRUNK_HEIGHT = "TH", _("trunk height")
+        TOTAL_HEIGHT = "HT", _("total height")
+        CROWN_DIAMETER = "CD", _("crown diameter")
+        DIAMETER_BH = "DBH", _("diameter at breast height")
+        VOLUME = "VO", _("volume")
+        WOOD_DENSITY = "WD", _("wood density")
+        OTHER = "OT", _("other")
+        NOT_REPORTED = "NO", _("not reported")
 
-    # Tree information
-    tree = models.ForeignKey(
-        Tree,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="reports",
-        verbose_name=_("Tree"),
-    )
-    # If the tree is not in the database or the user doesn't know which tree
-    location = models.PointField(
-        _("Location"), srid=4326, geography=True, null=True, blank=True
-    )
-    address = models.CharField(_("Address"), max_length=255, blank=True)
+    class MeasurementUnit(models.TextChoices):
+        METERS = "m", _("meters")
+        CUBIC_METERS = "m3", _("cubic meters")
+        CENTIMETERS = "cm", _("centimeters")
+        MILLIMETERS = "mm", _("millimeters")
+        GRAMS_PER_CUBIC_CM = "g/cm3", _("grams per cubic centimeter")
+        OTHER = "OT", _("other")
+        NOT_REPORTED = "NO", _("not reported")
 
-    # Report details
-    class ReportType(models.TextChoices):
-        HAZARD = "hazard", _("Hazardous Condition")
-        DAMAGE = "damage", _("Tree Damage")
-        DISEASE = "disease", _("Disease or Pests")
-        ILLEGAL_ACTIVITY = "illegal_activity", _("Illegal Activity")
-        MAINTENANCE = "maintenance", _("Needs Maintenance")
-        REQUEST = "request", _("Planting Request")
-        REMOVAL = "removal", _("Removal Request")
-        OBSERVATION = "observation", _("General Observation")
-        OTHER = "other", _("Other")
+    class MeasurementMethod(models.TextChoices):
+        OPTICAL_ESTIMATION = "OE", _("optical estimation")
+        VOLUME_EQUATION = "VE", _("volume equation")
+        DIAMETER_TAPE = "DT", _("diameter tape")
+        WOOD_DENSITY_DB = "WD", _("wood density database")
+        OTHER = "OT", _("other")
+        NOT_REPORTED = "NO", _("not reported")
 
-    report_type = models.CharField(_("Report Type"), max_length=30, choices=ReportType)
-    title = models.CharField(_("Title"), max_length=100)
-    description = models.TextField(_("Description"))
-
-    # Priority and status
-    class PriorityLevel(models.TextChoices):
-        LOW = "low", _("Low")
-        MEDIUM = "medium", _("Medium")
-        HIGH = "high", _("High")
-        URGENT = "urgent", _("Urgent")
-
-    priority = models.CharField(
-        _("Priority"), max_length=10, choices=PriorityLevel, default="medium"
-    )
-
-    class ReportStatus(models.TextChoices):
-        NEW = "new", _("New")
-        UNDER_REVIEW = "under_review", _("Under Review")
-        ASSIGNED = "assigned", _("Assigned")
-        IN_PROGRESS = "in_progress", _("In Progress")
-        RESOLVED = "resolved", _("Resolved")
-        CLOSED = "closed", _("Closed")
-        REJECTED = "rejected", _("Rejected")
-
-    status = models.CharField(
-        _("Status"), max_length=20, choices=ReportStatus, default="new"
-    )
-
-    # Timestamps
-    created_at = models.DateTimeField(_("Reported At"), auto_now_add=True)
-    updated_at = models.DateTimeField(_("Updated At"), auto_now=True)
-    closed_at = models.DateTimeField(_("Closed At"), null=True, blank=True)
-
-    # Media attachments
-    # Using separate model for multiple images
-
-    # Admin fields
-    assigned_to = models.ForeignKey(
-        User,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="assigned_reports",
-        verbose_name=_("Assigned To"),
-    )
-    admin_notes = models.TextField(_("Admin Notes"), blank=True)
-
-    class Meta:
-        verbose_name = _("Report")
-        verbose_name_plural = _("Reports")
-        ordering = ["-created_at"]
-
-    def __str__(self):
-        return f"{self.get_report_type_display()} - {self.title}"
-
-
-class ReportImage(models.Model):
-    """Images attached to reports"""
-
-    report = models.ForeignKey(
-        Report,
+    uuid = models.UUIDField(_("uuid"), default=uuid.uuid4, editable=False)
+    biodiversity_record = models.ForeignKey(
+        BiodiversityRecord,
         on_delete=models.CASCADE,
-        related_name="images",
-        verbose_name=_("Report"),
+        related_name="measurements",
+        verbose_name=_("biodiversity record"),
     )
-    image = models.ImageField(_("Image"), upload_to="reports/%Y/%m/%d/")
-    caption = models.CharField(_("Caption"), max_length=255, blank=True)
-    uploaded_at = models.DateTimeField(_("Uploaded At"), auto_now_add=True)
+    attribute = models.CharField(
+        _("measured attribute"), max_length=3, choices=MeasuredAttribute
+    )
+    other_attribute = models.CharField(
+        _("other attribute specification"), max_length=50, blank=True
+    )
+    value = models.FloatField(_("measurement value"))
+    unit = models.CharField(
+        _("measurement unit"), max_length=5, choices=MeasurementUnit
+    )
+    other_unit = models.CharField(
+        _("other unit specification"), max_length=20, blank=True
+    )
+    method = models.CharField(
+        _("measurement method"), max_length=2, choices=MeasurementMethod
+    )
+    other_method = models.CharField(
+        _("other method specification"), max_length=50, blank=True
+    )
+    notes = models.TextField(_("notes"), blank=True)
+    date = models.DateField(_("measurement date"), null=True, blank=True)
+    created_at = models.DateTimeField(_("created at"), auto_now_add=True)
+    updated_at = models.DateTimeField(_("updated at"), auto_now=True)
 
     class Meta:
-        verbose_name = _("Report Image")
-        verbose_name_plural = _("Report Images")
-        ordering = ["uploaded_at"]
+        verbose_name = _("measurement")
+        verbose_name_plural = _("measurements")
+        ordering = ["biodiversity_record", "created_at"]
 
     def __str__(self):
-        return f"Image for {self.report}"
+        date_str = f" on {self.date}" if self.date else ""
+        return f"{self.get_attribute_display()} measurement for {self.biodiversity_record}{date_str}"
 
 
-class Intervention(models.Model):
-    """Interventions performed in response to reports"""
+class Observation(models.Model):
+    """Captures qualitative assessments of tree conditions and characteristics.
 
-    uuid = models.UUIDField(_("UUID"), default=uuid.uuid4, editable=False)
+    Documents subjective evaluations including aesthetic value, health status,
+    and reproductive phases that complement objective measurements."""
 
-    report = models.ForeignKey(
-        Report,
+    class ReproductiveCondition(models.TextChoices):
+        FLOWERING = "FL", _("flowering")
+        FRUITING = "FR", _("fruiting")
+        STERILE = "ST", _("sterile")
+        NOT_REPORTED = "NO", _("not reported")
+
+    class PhytosanitaryStatus(models.TextChoices):
+        HEALTHY = "HE", _("healthy")
+        SICK = "SI", _("sick")
+        CRITICALLY_SICK = "CR", _("critically sick")
+        DEAD = "DE", _("dead")
+        NOT_REPORTED = "NO", _("not reported")
+
+    class PhysicalCondition(models.TextChoices):
+        GOOD = "GO", _("good")
+        FAIR = "FA", _("fair")
+        POOR = "PO", _("poor")
+        NOT_REPORTED = "NO", _("not reported")
+
+    class FoliageDensity(models.TextChoices):
+        DENSE = "DE", _("dense")
+        MEDIUM = "ME", _("medium")
+        SPARSE = "SP", _("sparse")
+        NOT_REPORTED = "NO", _("not reported")
+
+    class AestheticValue(models.TextChoices):
+        ESSENTIAL = "ES", _("essential")
+        EMBLEMATIC = "EM", _("emblematic")
+        DESIRABLE = "DE", _("desirable")
+        INDIFFERENT = "IN", _("indifferent")
+        UNACCEPTABLE = "UN", _("unacceptable")
+        NOT_REPORTED = "NO", _("not reported")
+
+    class GrowthPhase(models.TextChoices):
+        F1 = "F1", _("F1")
+        F2 = "F2", _("F2")
+        F3 = "F3", _("F3")
+        NOT_REPORTED = "NO", _("not reported")
+
+    uuid = models.UUIDField(_("uuid"), default=uuid.uuid4, editable=False)
+    biodiversity_record = models.ForeignKey(
+        BiodiversityRecord,
         on_delete=models.CASCADE,
-        related_name="interventions",
-        verbose_name=_("Report"),
+        related_name="observations",
+        verbose_name=_("biodiversity record"),
     )
-
-    # Intervention details
-    class InterventionType(models.TextChoices):
-        INSPECTION = "inspection", _("Inspection")
-        MAINTENANCE = "maintenance", _("Maintenance")
-        PRUNING = "pruning", _("Pruning")
-        TREATMENT = "treatment", _("Treatment")
-        REMOVAL = "removal", _("Removal")
-        PLANTING = "planting", _("Planting")
-        OTHER = "other", _("Other")
-
-    intervention_type = models.CharField(
-        _("Intervention Type"), max_length=20, choices=InterventionType
+    reproductive_condition = models.CharField(
+        _("reproductive condition"),
+        max_length=2,
+        choices=ReproductiveCondition,
+        default=ReproductiveCondition.NOT_REPORTED,
     )
-
-    # Actions taken
-    performed_by = models.ForeignKey(
-        User,
-        on_delete=models.SET_NULL,
-        null=True,
-        related_name="performed_interventions",
-        verbose_name=_("Performed By"),
+    phytosanitary_status = models.CharField(
+        _("phytosanitary status"),
+        max_length=2,
+        choices=PhytosanitaryStatus,
+        default=PhytosanitaryStatus.NOT_REPORTED,
     )
-    date_performed = models.DateField(_("Date Performed"))
-    description = models.TextField(_("Description"))
-    cost = models.DecimalField(
-        _("Cost"), max_digits=10, decimal_places=2, null=True, blank=True
+    physical_condition = models.CharField(
+        _("physical condition"),
+        max_length=2,
+        choices=PhysicalCondition,
+        default=PhysicalCondition.NOT_REPORTED,
     )
-
-    # Outcome
-    class ReportOutcome(models.TextChoices):
-        SUCCESSFUL = "successful", _("Successful")
-        PARTIAL = "partial", _("Partially Successful")
-        UNSUCCESSFUL = "unsuccessful", _("Unsuccessful")
-        NEEDS_FOLLOWUP = "needs_followup", _("Needs Follow-up")
-
-    outcome = models.CharField(_("Outcome"), max_length=20, choices=ReportOutcome)
-    followup_notes = models.TextField(_("Follow-up Notes"), blank=True)
-
-    # Timestamps
-    created_at = models.DateTimeField(_("Created At"), auto_now_add=True)
-    updated_at = models.DateTimeField(_("Updated At"), auto_now=True)
+    foliage_density = models.CharField(
+        _("foliage density"),
+        max_length=2,
+        choices=FoliageDensity,
+        default=FoliageDensity.NOT_REPORTED,
+    )
+    aesthetic_value = models.CharField(
+        _("aesthetic value"),
+        max_length=2,
+        choices=AestheticValue,
+        default=AestheticValue.NOT_REPORTED,
+    )
+    growth_phase = models.CharField(
+        _("growth phase"),
+        max_length=2,
+        choices=GrowthPhase,
+        default=GrowthPhase.NOT_REPORTED,
+    )
+    notes = models.TextField(_("notes"), blank=True)
+    recorded_by = models.CharField(
+        _("recorded by"), max_length=50, default="Cortolima", blank=True
+    )
+    accompanying_collectors = models.TextField(
+        _("accompanying collectors"), blank=True, default="No reportado"
+    )
+    date = models.DateField(_("observation date"), null=True, blank=True)
+    created_at = models.DateTimeField(_("created at"), auto_now_add=True)
+    updated_at = models.DateTimeField(_("updated at"), auto_now=True)
 
     class Meta:
-        verbose_name = _("Intervention")
-        verbose_name_plural = _("Interventions")
-        ordering = ["-date_performed"]
+        verbose_name = _("observation")
+        verbose_name_plural = _("observations")
+        ordering = ["biodiversity_record", "created_at"]
 
     def __str__(self):
-        return f"{self.intervention_type} on {self.date_performed} for {self.report}"
+        date_str = f" on {self.date}" if self.date else ""
+        return f"Observation for {self.biodiversity_record}{date_str}"

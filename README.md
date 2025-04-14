@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-The Urban Tree Observatory is a data-driven platform for monitoring and conserving urban trees in Ibagué, Colombia. The project centralizes tree data, enables citizen reporting, and tracks conservation efforts.
+The Urban Tree Observatory is a data-driven platform for monitoring and conserving urban trees in Ibagué, Colombia. The project centralizes tree data and tracks conservation efforts.
 
 ## Development Environment Setup
 
@@ -17,7 +17,7 @@ The Urban Tree Observatory is a data-driven platform for monitoring and conservi
 
    ```bash
    git clone https://github.com/OmdenaAI/GibdetColombiaChapter_UrbanTreeObservatory
-   cd urban-tree-observatory
+   cd GibdetColombiaChapter_UrbanTreeObservatory
    ```
 
 2. Start the development environment:
@@ -33,18 +33,29 @@ The Urban Tree Observatory is a data-driven platform for monitoring and conservi
    - PostgreSQL database: localhost:5432
    - PgAdmin: <http://localhost:5050/>
 
+### Setting up PgAdmin
+
+To connect to the database through PgAdmin:
+
+1. Go to <http://localhost:5050/browser/>
+2. Login with:
+   - Email: <admin@omdena.com>
+   - Password: admin
+3. Right-click on "Servers" and select "Register > Server"
+4. In the General tab, name it "Local PostgreSQL"
+5. In the Connection tab, enter:
+   - Host: db
+   - Port: 5432
+   - Database: urban_tree_db
+   - Username: postgres
+   - Password: postgres
+
 ### First-Time Setup
 
 After starting the containers for the first time, you'll need to create a superuser:
 
 ```bash
 docker-compose exec backend python manage.py createsuperuser
-```
-
-You can also load initial data fixtures:
-
-```bash
-docker-compose exec backend python manage.py loaddata species
 ```
 
 ## Project Structure
@@ -54,11 +65,10 @@ docker-compose exec backend python manage.py loaddata species
 - `backend/` - Django project
   - `config/` - Django project settings
   - `apps/` - Django apps
-    - `core/` - Shared utilities
     - `accounts/` - User management
-    - `trees/` - Tree data management with GIS
-    - `reports/` - Citizen reporting system
-    - `analysis/` - Environmental impact analysis
+    - `taxonomy/` - Family, genus, and species management
+    - `biodiversity/` - Tree data management with GIS
+    - `observations/` - Tree measurements and observations
 
 ### Frontend (Angular)
 
@@ -99,7 +109,3 @@ The API documentation is available at:
 
 - Swagger UI: <http://localhost:8000/api/v1/swagger/>
 - ReDoc: <http://localhost:8000/api/v1/redoc/>
-
-## Deployment
-
-For production deployment, see the instructions in `docs/deployment/`.

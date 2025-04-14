@@ -124,30 +124,30 @@ class Command(BaseCommand):
         
         # Create lookup maps for matching records across CSV files
         if not dry_run:
-            # Process all biodiversity records and store them in our maps
-            # We'll build maps for the specific matching patterns
-            biodiversity_records = list(BiodiversityRecord.objects.all())
+            # Get all biodiversity records with their original_code values
+            # This is much more efficient since we're using the original_code field directly
+            biodiversity_records = list(BiodiversityRecord.objects.all().select_related('species'))
             
-            # Loop through biodiversity_data to create mappings
-            for i, row in enumerate(biodiversity_data):
-                code_record = row.get('code_record', '').strip()
-                if code_record:
-                    # Get the biodiversity record from the database
-                    bio_record = biodiversity_records[i] if i < len(biodiversity_records) else None
-                    if not bio_record:
-                        continue
+            # Build efficient lookup maps for faster matching
+            for bio_record in biodiversity_records:
+                if bio_record.original_code:
+                    # Store in our direct lookup with the exact code_record
+                    self.biodiversity_code_map[bio_record.original_code] = bio_record
                     
-                    # Store in our direct lookup with the exact code_record for direct matching
-                    self.biodiversity_code_map[code_record] = bio_record
-                    
-                    # Also store with normalized code (no spaces/dashes) for more flexible matching
-                    normalized_code = code_record.replace(' ', '').replace('-', '')
-                    if normalized_code != code_record:
+                    # Also store with normalized code (no spaces/dashes) for flexible matching
+                    normalized_code = bio_record.original_code.replace(' ', '').replace('-', '')
+                    if normalized_code != bio_record.original_code:
                         self.biodiversity_code_map[normalized_code] = bio_record
-                        
-                    # Record only the first 5 mappings in the logs to avoid overwhelming output
-                    if i < 5:
-                        self.stdout.write(f"Mapped biodiversity record '{code_record}' to database ID {bio_record.id}")
+                    
+                    # Extract code parts to help with observations matching
+                    bio_first_part, bio_second_part = self._extract_code_parts(bio_record.original_code)
+                    if bio_first_part:
+                        # Create a mapping from first part to biodiversity record for observation matching
+                        if 'first_part_map' not in self.biodiversity_code_map:
+                            self.biodiversity_code_map['first_part_map'] = {}
+                        self.biodiversity_code_map['first_part_map'][bio_first_part] = bio_record
+            
+            self.stdout.write(f"Built efficient lookup maps for {len(biodiversity_records)} biodiversity records")
         
         # Process measurements
         self.stdout.write(self.style.NOTICE('Importing measurements...'))
@@ -672,6 +672,7 @@ class Command(BaseCommand):
                             'elevation_m': elevation,
                             'recorded_by': recorded_by,
                             'date': date,
+                            'original_code': code_record,  # Store the original code for faster matching
                         }
                     )
                     
@@ -703,7 +704,7 @@ class Command(BaseCommand):
 
     @transaction.atomic
     def _process_measurements(self, data):
-        """Process measurements and create Measurement records."""
+        """Process measurements and create Measurement records using batch operations."""
         measurements_created = 0
         record_not_found = 0
         
@@ -714,31 +715,54 @@ class Command(BaseCommand):
             if not any(field in row for row in data[:5]):  # Check first 5 rows
                 self.stdout.write(self.style.WARNING(f"Required field '{field}' not found in measurements data"))
         
+        # Create a batch of measurements for better performance
+        measurements_to_create = []
+        batch_size = 500  # Process in batches of 500 records
+        
+        # Define attribute mapping outside the loop for better performance
+        attribute_map = {
+            'total_height': Measurement.MeasuredAttribute.TOTAL_HEIGHT,
+            'crown_diameter': Measurement.MeasuredAttribute.CROWN_DIAMETER,
+            'diameter_bh_cm': Measurement.MeasuredAttribute.DIAMETER_BH,
+            'volume_m3': Measurement.MeasuredAttribute.VOLUME,
+            'density_g_cm3': Measurement.MeasuredAttribute.WOOD_DENSITY,
+        }
+        
+        # Special method mappings
+        special_method_map = {
+            "Wood Density Database": Measurement.MeasurementMethod.WOOD_DENSITY_DB,
+            "Estimación optica": Measurement.MeasurementMethod.OPTICAL_ESTIMATION,
+            "Ecuación de volumen": Measurement.MeasurementMethod.VOLUME_EQUATION,
+            "Cinta diametrica": Measurement.MeasurementMethod.DIAMETER_TAPE,
+        }
+        
+        # Measurement fields for checking
+        measurement_fields = [
+            'total_height', 'crown_diameter', 'diameter_bh_cm', 
+            'volume_m3', 'density_g_cm3'
+        ]
+        
+        self.stdout.write(f"Processing {len(data)} measurement records in batches of {batch_size}")
+        
         for row in data:
             record_code = row.get('record_code', '').strip()
             if not record_code:
                 continue
             
             try:
-                # Find the biodiversity record using our mapping - with strict matching only
+                # Find the biodiversity record using our optimized mapping
                 bio_record = None
                 
-                # For measurements.csv, we match the record_code directly with biodiversity_records.csv code_record
-                # Example: "10001_F1" matches directly with "10001_F1"
+                # Direct match with biodiversity record code
                 if record_code in self.biodiversity_code_map:
                     bio_record = self.biodiversity_code_map[record_code]
                 else:
-                    # If no direct match, try normalized comparison (handle spaces, dashes, etc.)
+                    # Try normalized comparison
                     normalized_record_code = record_code.replace(' ', '').replace('-', '')
-                    for bio_code, bio_record_obj in self.biodiversity_code_map.items():
-                        normalized_bio_code = bio_code.replace(' ', '').replace('-', '')
-                        if normalized_record_code == normalized_bio_code:
-                            bio_record = bio_record_obj
-                            # Cache for future lookups
-                            self.biodiversity_code_map[record_code] = bio_record
-                            break
-                    
-                # If no match found, skip this record - no fallbacks
+                    if normalized_record_code in self.biodiversity_code_map:
+                        bio_record = self.biodiversity_code_map[normalized_record_code]
+                
+                # If no match found, skip this record
                 if not bio_record:
                     error_msg = f"No biodiversity record match found for measurement record_code: {record_code}. Skipping."
                     self.stdout.write(self.style.WARNING(error_msg))
@@ -746,24 +770,21 @@ class Command(BaseCommand):
                     record_not_found += 1
                     continue
                 
-                # Extract measurement data
+                # Extract measurement data efficiently
                 measurement_name = row.get('measurement_name', '').strip()
                 
-                # Handle different field formats for measurements
+                # Handle different field formats
                 if not measurement_name:
                     # Check if one of the specific measurement fields is populated
-                    measurement_fields = [
-                        'total_height', 'crown_diameter', 'diameter_bh_cm', 
-                        'volume_m3', 'density_g_cm3'
-                    ]
-                    
+                    measurement_value = None
                     for field in measurement_fields:
                         value = self._safe_float(row.get(field))
                         if value is not None:
                             measurement_name = field
                             measurement_value = value
                             break
-                    else:
+                    
+                    if measurement_value is None:
                         error_msg = f"No measurement data found for {record_code}, skipping"
                         self.stdout.write(self.style.WARNING(error_msg))
                         self.report_data['measurements']['skipped'].append(error_msg)
@@ -794,47 +815,32 @@ class Command(BaseCommand):
                     else:
                         measurement_unit = 'unknown'
                 
-                # Map the measurement attributes to our model choices
-                attribute_map = {
-                    'total_height': Measurement.MeasuredAttribute.TOTAL_HEIGHT,
-                    'crown_diameter': Measurement.MeasuredAttribute.CROWN_DIAMETER,
-                    'diameter_bh_cm': Measurement.MeasuredAttribute.DIAMETER_BH,
-                    'volume_m3': Measurement.MeasuredAttribute.VOLUME,
-                    'density_g_cm3': Measurement.MeasuredAttribute.WOOD_DENSITY,
-                }
-                
-                # Set the attribute directly if it matches known fields, otherwise use mapping utility
-                if measurement_name in attribute_map:
-                    attribute = attribute_map[measurement_name]
-                else:
-                    attribute = get_mapped_value(
+                # Map attribute - efficient lookup
+                attribute = attribute_map.get(
+                    measurement_name, 
+                    get_mapped_value(
                         measurement_name, 
                         MEASURED_ATTRIBUTE_MAPPINGS, 
                         Measurement.MeasuredAttribute.OTHER
                     )
+                )
                 
-                # Map units and method
+                # Map units and method efficiently
                 measurement_unit_enum = get_mapped_value(
                     measurement_unit, 
                     MEASUREMENT_UNIT_MAPPINGS, 
                     Measurement.MeasurementUnit.OTHER
                 )
                 
-                measurement_method_enum = get_mapped_value(
-                    method, 
-                    MEASUREMENT_METHOD_MAPPINGS, 
-                    Measurement.MeasurementMethod.OTHER
+                # Check special methods first
+                measurement_method_enum = special_method_map.get(
+                    method,
+                    get_mapped_value(
+                        method, 
+                        MEASUREMENT_METHOD_MAPPINGS, 
+                        Measurement.MeasurementMethod.OTHER
+                    )
                 )
-                
-                # Handle special method values
-                if method == "Wood Density Database":
-                    measurement_method_enum = Measurement.MeasurementMethod.WOOD_DENSITY_DB
-                elif method == "Estimación optica":
-                    measurement_method_enum = Measurement.MeasurementMethod.OPTICAL_ESTIMATION
-                elif method == "Ecuación de volumen":
-                    measurement_method_enum = Measurement.MeasurementMethod.VOLUME_EQUATION
-                elif method == "Cinta diametrica":
-                    measurement_method_enum = Measurement.MeasurementMethod.DIAMETER_TAPE
                 
                 # Parse date
                 date_str = row.get('measurement_date_event')
@@ -845,34 +851,53 @@ class Command(BaseCommand):
                 other_unit = measurement_unit if measurement_unit_enum == Measurement.MeasurementUnit.OTHER else ''
                 other_method = method if measurement_method_enum == Measurement.MeasurementMethod.OTHER else ''
                 
-                # Create the measurement
-                try:
-                    measurement = Measurement.objects.create(
-                        biodiversity_record=bio_record,
-                        attribute=attribute,
-                        other_attribute=other_attribute,
-                        value=measurement_value,
-                        unit=measurement_unit_enum,
-                        other_unit=other_unit,
-                        method=measurement_method_enum,
-                        other_method=other_method,
-                        date=date,
-                    )
-                    
-                    measurements_created += 1
-                    self.report_data['measurements']['created'].append(
-                        f"Measurement for {record_code}: {attribute} = {measurement_value} {measurement_unit_enum}"
-                    )
+                # Create a measurement object for batch creation
+                measurements_to_create.append(Measurement(
+                    biodiversity_record=bio_record,
+                    attribute=attribute,
+                    other_attribute=other_attribute,
+                    value=measurement_value,
+                    unit=measurement_unit_enum,
+                    other_unit=other_unit,
+                    method=measurement_method_enum,
+                    other_method=other_method,
+                    date=date,
+                    original_code=record_code,  # Store original code for future reference
+                ))
                 
-                except Exception as e:
-                    error_msg = f"Error creating measurement for {record_code}: {e}"
-                    self.stdout.write(self.style.ERROR(error_msg))
-                    self.report_data['measurements']['skipped'].append(error_msg)
+                # Track for report
+                self.report_data['measurements']['created'].append(
+                    f"Measurement for {record_code}: {attribute} = {measurement_value} {measurement_unit_enum}"
+                )
+                
+                # If we've reached batch size, create in bulk
+                if len(measurements_to_create) >= batch_size:
+                    try:
+                        # Bulk create measurements
+                        Measurement.objects.bulk_create(measurements_to_create)
+                        measurements_created += len(measurements_to_create)
+                        self.stdout.write(f"Created batch of {len(measurements_to_create)} measurements")
+                        measurements_to_create = []  # Reset batch
+                    except Exception as e:
+                        error_msg = f"Error bulk creating measurements batch: {e}"
+                        self.stdout.write(self.style.ERROR(error_msg))
+                        # Continue with the next batch instead of failing entirely
+                        measurements_to_create = []
                 
             except Exception as e:
                 error_msg = f"Error processing measurement for {record_code}: {e}"
                 self.stdout.write(self.style.ERROR(error_msg))
                 self.report_data['measurements']['skipped'].append(error_msg)
+        
+        # Create any remaining measurements in the batch
+        if measurements_to_create:
+            try:
+                Measurement.objects.bulk_create(measurements_to_create)
+                measurements_created += len(measurements_to_create)
+                self.stdout.write(f"Created final batch of {len(measurements_to_create)} measurements")
+            except Exception as e:
+                error_msg = f"Error bulk creating final measurements batch: {e}"
+                self.stdout.write(self.style.ERROR(error_msg))
         
         self.stdout.write(self.style.SUCCESS(
             f"Measurements import complete: {measurements_created} created, {record_not_found} skipped due to missing biodiversity record."
@@ -880,47 +905,64 @@ class Command(BaseCommand):
 
     @transaction.atomic
     def _process_observations(self, data):
-        """Process observations and create Observation records."""
+        """Process observations and create Observation records using batch operations."""
         observations_created = 0
         record_not_found = 0
         species_updated = 0
         
+        # Create a batch of observations for better performance
+        observations_to_create = []
+        species_to_update = []
+        batch_size = 500  # Process in batches of 500 records
+        
+        # Pre-define special case mappings for better performance
+        special_phytosanitary_map = {
+            "Critico": Observation.PhytosanitaryStatus.CRITICALLY_SICK,
+            "Crítico": Observation.PhytosanitaryStatus.CRITICALLY_SICK,
+        }
+        
+        self.stdout.write(f"Processing {len(data)} observation records in batches of {batch_size}")
+        
+        # Pre-compute the first_part mapping from biodiversity records for efficient lookups
+        bio_first_part_map = {}
+        
+        # Build efficient lookup using biodiversity original_code field
+        if 'first_part_map' not in self.biodiversity_code_map:
+            self.biodiversity_code_map['first_part_map'] = {}
+            
+            # Only need to do this once - build mapping from first parts to records
+            for bio_record in BiodiversityRecord.objects.filter(original_code__isnull=False):
+                if bio_record.original_code:
+                    bio_first_part, bio_second_part = self._extract_code_parts(bio_record.original_code)
+                    if bio_first_part:
+                        self.biodiversity_code_map['first_part_map'][bio_first_part] = bio_record
+        
+        # Main processing loop
         for row in data:
             record_code = row.get('record_code', '').strip()
             if not record_code:
                 continue
             
             try:
-                # Find the biodiversity record using our mapping - with strict matching only
+                # Find the biodiversity record using efficient mapping
                 bio_record = None
                 
-                # For observations_details.csv, record_code format is like "27543_10001" 
-                # where the second part (10001) matches the first part of biodiversity_record code_record "10001_F1"
-                
-                # Extract parts from the observation record code
+                # Extract parts from the observation record code - this is the key matching pattern
                 first_part, second_part = self._extract_code_parts(record_code)
                 
-                # To follow the exact pattern specified, for observations the rule is:
-                # 27543_10001 MATCHES biodiversity_record code_record = 10001_F1
-                # This means the SECOND part of observation code matches FIRST part of biodiversity code
-                if second_part:
-                    # Look through all biodiversity records to find a matching pattern
-                    for bio_code, bio_record_obj in self.biodiversity_code_map.items():
-                        # Only process original biodiversity codes (not normalized versions)
-                        if "_" in bio_code or " - " in bio_code or "-" in bio_code:
-                            bio_first_part, bio_second_part = self._extract_code_parts(bio_code)
-                            # Match the SECOND part of observation with FIRST part of biodiversity code
-                            if bio_first_part == second_part:
-                                bio_record = bio_record_obj
-                                # Log only the first 5 successful matches to avoid overwhelming output
-                                if observations_created < 5:
-                                    self.stdout.write(
-                                        f"Matched observation record '{record_code}' (second part '{second_part}') "
-                                        f"with biodiversity record '{bio_code}' (first part '{bio_first_part}')"
-                                    )
-                                break
+                # For observations, the rule is:
+                # 27543_10001 MATCHES biodiversity_record where 10001 is the first part of the code_record
+                if second_part and second_part in self.biodiversity_code_map.get('first_part_map', {}):
+                    bio_record = self.biodiversity_code_map['first_part_map'][second_part]
+                    
+                    # Log only a few successful matches to avoid overwhelming output
+                    if observations_created < 5:
+                        self.stdout.write(
+                            f"Matched observation record '{record_code}' (second part '{second_part}') "
+                            f"with biodiversity record ID {bio_record.id}"
+                        )
                 
-                # If not found, skip this record - NO FALLBACKS
+                # If not found, skip this record
                 if not bio_record:
                     error_msg = f"No biodiversity record match found for observation record_code: {record_code}. Skipping."
                     self.stdout.write(self.style.WARNING(error_msg))
@@ -928,18 +970,19 @@ class Command(BaseCommand):
                     record_not_found += 1
                     continue
                 
-                # Update the species with more detailed information
+                # Handle species updates (we'll collect these for batch update)
                 if bio_record.species:
                     updated = False
                     species = bio_record.species
+                    species_updates = {}
                     
-                    # Common name (moved from record to species)
+                    # Common name
                     common_name = row.get('common_name', '').strip()
                     if common_name and not species.common_name:
-                        species.common_name = common_name
+                        species_updates['common_name'] = common_name
                         updated = True
                     
-                    # Update species with additional info using our utility function
+                    # Origin
                     origin_value = row.get('origin', '').strip()
                     if origin_value:
                         origin = get_mapped_value(
@@ -948,9 +991,10 @@ class Command(BaseCommand):
                             Species.Origin.UNKNOWN
                         )
                         if origin != Species.Origin.UNKNOWN and species.origin == Species.Origin.UNKNOWN:
-                            species.origin = origin
+                            species_updates['origin'] = origin
                             updated = True
                     
+                    # IUCN status
                     iucn_value = row.get('iucn_status', '').strip()
                     if iucn_value:
                         iucn_status = get_mapped_value(
@@ -959,9 +1003,10 @@ class Command(BaseCommand):
                             Species.IUCNStatus.NOT_EVALUATED
                         )
                         if iucn_status != Species.IUCNStatus.NOT_EVALUATED and species.iucn_status == Species.IUCNStatus.NOT_EVALUATED:
-                            species.iucn_status = iucn_status
+                            species_updates['iucn_status'] = iucn_status
                             updated = True
                     
+                    # Growth habit
                     growth_habit_value = row.get('growth_habit', '').strip()
                     if growth_habit_value:
                         growth_habit = get_mapped_value(
@@ -970,21 +1015,22 @@ class Command(BaseCommand):
                             Species.GrowthHabit.UNKNOWN
                         )
                         if growth_habit != Species.GrowthHabit.UNKNOWN and species.growth_habit == Species.GrowthHabit.UNKNOWN:
-                            species.growth_habit = growth_habit
+                            species_updates['growth_habit'] = growth_habit
                             updated = True
                     
+                    # If updates needed, add to batch
                     if updated:
-                        species.save()
-                        species_updated += 1
-                        self.report_data['species_updates'].append(
-                            f"Species {species.accepted_scientific_name} updated with: " + 
-                            (f"common_name='{common_name}', " if common_name else "") +
-                            (f"origin='{origin}', " if origin != Species.Origin.UNKNOWN else "") +
-                            (f"iucn_status='{iucn_status}', " if iucn_status != Species.IUCNStatus.NOT_EVALUATED else "") +
-                            (f"growth_habit='{growth_habit}'" if growth_habit != Species.GrowthHabit.UNKNOWN else "")
-                        )
+                        species_to_update.append((species, species_updates))
+                        update_msg = f"Species {species.accepted_scientific_name} updated with: " + \
+                                    (f"common_name='{common_name}', " if common_name in species_updates else "") + \
+                                    (f"origin='{origin}', " if 'origin' in species_updates else "") + \
+                                    (f"iucn_status='{iucn_status}', " if 'iucn_status' in species_updates else "") + \
+                                    (f"growth_habit='{growth_habit}'" if 'growth_habit' in species_updates else "")
+                        self.report_data['species_updates'].append(update_msg)
                 
-                # Extract observation data using our utility functions
+                # Process observation attributes efficiently
+                
+                # Map observation values using efficient lookups
                 reproductive_cond = get_mapped_value(
                     row.get('reproductive_condition', ''), 
                     REPRODUCTIVE_CONDITION_MAPPINGS, 
@@ -992,16 +1038,17 @@ class Command(BaseCommand):
                 )
                 
                 phytosanitary_value = row.get('phytosanitary_status', '').strip()
-                phytosanitary = get_mapped_value(
+                # Check special mapping first
+                phytosanitary = special_phytosanitary_map.get(
                     phytosanitary_value, 
-                    PHYTOSANITARY_STATUS_MAPPINGS, 
-                    Observation.PhytosanitaryStatus.NOT_REPORTED
+                    get_mapped_value(
+                        phytosanitary_value, 
+                        PHYTOSANITARY_STATUS_MAPPINGS, 
+                        Observation.PhytosanitaryStatus.NOT_REPORTED
+                    )
                 )
                 
-                # Handle special case for "Critico" -> CRITICALLY_SICK
-                if phytosanitary_value in ["Critico", "Crítico"]:
-                    phytosanitary = Observation.PhytosanitaryStatus.CRITICALLY_SICK
-                
+                # Other mappings
                 physical_condition = get_mapped_value(
                     row.get('physical_condition', ''), 
                     PHYSICAL_CONDITION_MAPPINGS, 
@@ -1031,9 +1078,7 @@ class Command(BaseCommand):
                 use = row.get('use', '').strip()
                 
                 # Determine is_standing based on phytosanitary status
-                is_standing = True
-                if phytosanitary == Observation.PhytosanitaryStatus.DEAD:
-                    is_standing = False
+                is_standing = phytosanitary != Observation.PhytosanitaryStatus.DEAD
                 
                 notes = (
                     row.get('biological_record_comments', '').strip() or 
@@ -1042,44 +1087,77 @@ class Command(BaseCommand):
                 
                 # Parse date if available
                 date_str = row.get('observation_date_event') or row.get('date_event')
-                date = self._parse_date(date_str) if date_str else None
+                date = self._parse_date(date_str) if date_str else bio_record.date
                 
-                # Use the record's values as defaults
-                if not date and bio_record.date:
-                    date = bio_record.date
+                # Create an observation object for batch creation
+                observations_to_create.append(Observation(
+                    biodiversity_record=bio_record,
+                    accompanying_collectors=accompanying_collectors,
+                    use=use,
+                    is_standing=is_standing,
+                    reproductive_condition=reproductive_cond,
+                    phytosanitary_status=phytosanitary,
+                    physical_condition=physical_condition,
+                    foliage_density=foliage_density,
+                    aesthetic_value=aesthetic_value,
+                    growth_phase=growth_phase,
+                    notes=notes,
+                    recorded_by=bio_record.recorded_by,
+                    date=date,
+                    original_code=record_code,  # Store original code for future reference
+                ))
                 
-                # Create the observation
-                try:
-                    observation = Observation.objects.create(
-                        biodiversity_record=bio_record,
-                        accompanying_collectors=accompanying_collectors,
-                        use=use,
-                        is_standing=is_standing,
-                        reproductive_condition=reproductive_cond,
-                        phytosanitary_status=phytosanitary,
-                        physical_condition=physical_condition,
-                        foliage_density=foliage_density,
-                        aesthetic_value=aesthetic_value,
-                        growth_phase=growth_phase,
-                        notes=notes,
-                        recorded_by=bio_record.recorded_by,
-                        date=date,
-                    )
-                    
-                    observations_created += 1
-                    self.report_data['observations']['created'].append(
-                        f"Observation for {record_code}: physical condition={physical_condition}, phytosanitary={phytosanitary}"
-                    )
+                # Track for report
+                self.report_data['observations']['created'].append(
+                    f"Observation for {record_code}: physical condition={physical_condition}, phytosanitary={phytosanitary}"
+                )
                 
-                except Exception as e:
-                    error_msg = f"Error creating observation for {record_code}: {e}"
-                    self.stdout.write(self.style.ERROR(error_msg))
-                    self.report_data['observations']['skipped'].append(error_msg)
+                # If we've reached batch size, create in bulk
+                if len(observations_to_create) >= batch_size:
+                    try:
+                        # Bulk create observations
+                        Observation.objects.bulk_create(observations_to_create)
+                        observations_created += len(observations_to_create)
+                        self.stdout.write(f"Created batch of {len(observations_to_create)} observations")
+                        observations_to_create = []  # Reset batch
+                        
+                        # Process species updates in this batch
+                        for species, updates in species_to_update:
+                            for field, value in updates.items():
+                                setattr(species, field, value)
+                            species.save()
+                        species_updated += len(species_to_update)
+                        species_to_update = []  # Reset batch
+                        
+                    except Exception as e:
+                        error_msg = f"Error bulk creating observations batch: {e}"
+                        self.stdout.write(self.style.ERROR(error_msg))
+                        # Continue with the next batch instead of failing entirely
+                        observations_to_create = []
+                        species_to_update = []
                 
             except Exception as e:
                 error_msg = f"Error processing observation for {record_code}: {e}"
                 self.stdout.write(self.style.ERROR(error_msg))
                 self.report_data['observations']['skipped'].append(error_msg)
+        
+        # Create any remaining observations in the batch
+        if observations_to_create:
+            try:
+                Observation.objects.bulk_create(observations_to_create)
+                observations_created += len(observations_to_create)
+                self.stdout.write(f"Created final batch of {len(observations_to_create)} observations")
+                
+                # Process remaining species updates
+                for species, updates in species_to_update:
+                    for field, value in updates.items():
+                        setattr(species, field, value)
+                    species.save()
+                species_updated += len(species_to_update)
+                
+            except Exception as e:
+                error_msg = f"Error bulk creating final observations batch: {e}"
+                self.stdout.write(self.style.ERROR(error_msg))
         
         self.stdout.write(self.style.SUCCESS(
             f"Observations import complete: {observations_created} created, {record_not_found} skipped due to missing biodiversity record, "

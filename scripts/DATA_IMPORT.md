@@ -237,3 +237,41 @@ The fallback logic we implemented is causing issues.
     - Added support for datetime formats with time components
 
   These changes should ensure data integrity by only creating relationships between properly matched records. The detailed report will help you investigate any skipped records so you can address any data issues.
+
+## Performance Improvements
+
+  1. Added indexed original_code fields to BiodiversityRecord, Measurement, and Observation models, allowing efficient lookups.
+  2. Implemented batch processing for both measurements and observations:
+    - Using bulk_create to create records in batches of 500
+    - Reduces database round trips and transaction overhead
+    - Handles errors gracefully at the batch level
+  3. Optimized matching logic:
+    - Leveraging database indexes for improved query performance
+    - Creating pre-computed dictionaries for direct lookups
+    - Matching now follows the exact pattern as specified
+    - No more expensive loops through all biodiversity records
+  4. Added efficient mapping dictionaries:
+    - Pre-computed attribute mappings
+    - Special case handling outside main loops
+  5. Reduced database queries:
+    - Using select_related to pre-fetch related objects
+    - Processing species updates in batches
+  6. Improved date parsing:
+    - Added support for datetime formats with fallback options
+  7. Better reporting and debugging:
+    - Limited log output for common operations
+    - Enhanced error reporting
+    - Sample of mappings in final report
+
+  These changes should significantly speed up the import process while maintaining the strict data integrity requirements you specified. The script now:
+
+  1. Uses the proper records matching logic
+  2. Does not use fallbacks when no matches are found
+  3. Stores original codes in the database for future reference
+  4. Processes data in batches for improved performance
+
+## Command
+
+```bash
+docker compose exec backend python manage.py import_data --local-dir=scripts/data/csv
+```

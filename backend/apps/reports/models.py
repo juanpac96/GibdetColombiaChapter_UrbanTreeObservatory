@@ -71,6 +71,7 @@ class Measurement(models.Model):
     date = models.DateField(_("measurement date"), null=True, blank=True)
     created_at = models.DateTimeField(_("created at"), auto_now_add=True)
     updated_at = models.DateTimeField(_("updated at"), auto_now=True)
+    original_code = models.CharField(max_length=50, null=True, blank=True, db_index=True)
 
     class Meta:
         verbose_name = _("measurement")
@@ -186,6 +187,7 @@ class Observation(models.Model):
     recorded_by = models.CharField(
         _("recorded by"), max_length=50, default="Cortolima", blank=True
     )
+    original_code = models.CharField(max_length=50, null=True, blank=True, db_index=True)
 
     class Meta:
         verbose_name = _("observation")

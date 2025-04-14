@@ -15,7 +15,7 @@ class Measurement(models.Model):
     class MeasuredAttribute(models.TextChoices):
         TRUNK_HEIGHT = "TH", _("trunk height")
         TOTAL_HEIGHT = "HT", _("total height")
-        CANOPY_DIAMETER = "CD", _("canopy diameter")
+        CROWN_DIAMETER = "CD", _("crown diameter")
         DIAMETER_BH = "DBH", _("diameter at breast height")
         VOLUME = "VO", _("volume")
         WOOD_DENSITY = "WD", _("wood density")
@@ -97,6 +97,7 @@ class Observation(models.Model):
     class PhytosanitaryStatus(models.TextChoices):
         HEALTHY = "HE", _("healthy")
         SICK = "SI", _("sick")
+        CRITICALLY_SICK = "CR", _("critically sick")
         DEAD = "DE", _("dead")
         NOT_REPORTED = "NO", _("not reported")
 

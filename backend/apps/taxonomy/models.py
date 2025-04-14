@@ -84,12 +84,13 @@ class Species(models.Model):
     )
     accepted_scientific_name = models.CharField(
         _("accepted scientific name"),
-        max_length=50,
+        max_length=150,
         unique=True,
         help_text=_(
             "scientific genus and species name with optional reference to whom named it"
         ),
     )
+    common_name = models.TextField(_("common names"), blank=True)
     origin = models.CharField(
         _("origin"),
         max_length=2,
@@ -108,6 +109,12 @@ class Species(models.Model):
         choices=GrowthHabit,
         default=GrowthHabit.UNKNOWN,
     )
+    gbif_id = models.CharField(
+        max_length=20, 
+        blank=True, 
+        null=True, 
+        help_text="GBIF species identifier"
+    )
     identified_by = models.CharField(
         _("identified by"), max_length=255, default="Cortolima", blank=True
     )
@@ -122,3 +129,9 @@ class Species(models.Model):
 
     def __str__(self):
         return self.scientific_name
+
+    @property
+    def gbif_url(self):
+        if self.gbif_id and self.gbif_id != "No identificado":
+            return f"https://www.gbif.org/species/{self.gbif_id}"
+        return None

@@ -59,7 +59,6 @@ class BiodiversityRecord(models.Model):
         related_name="biodiversity_records",
         verbose_name=_("place"),
     )
-    common_names = models.TextField(_("common names"), blank=True)
     location = gis_models.PointField(_("location"), srid=4326, geography=True)
     elevation_m = models.FloatField(_("elevation (m)"), null=True, blank=True)
     recorded_by = models.CharField(

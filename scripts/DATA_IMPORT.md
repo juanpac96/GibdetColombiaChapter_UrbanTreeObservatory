@@ -6,12 +6,12 @@
 
 The taxonomy_details.csv has unexpected fields that need to be addressed:
 
-| CSV Field | Issue | Action Required |
-|-----------|-------|----------------|
-| **gbif_id** | Points to a resource on gbif.org (e.g., gbif.org/species/2977854) or contains "No identificado" | **ACTION:** Add a URL field to the Species model or store only the numeric ID and build the URL in a property method |
-| **lifeForm** | New field not in current model | **ACTION:** Explore this data in the exploration script. Don't update models yet |
-| **establishmentMeans** | New field not in current model | **ACTION:** Explore this data in the exploration script. Don't update models yet |
-| **iucn_category** | Similar to existing field | **ACTION:** Map to existing field `iucn_status` (IUCNStatus enum) |
+| CSV Field | Issue | Action Required | Status |
+|-----------|-------|-----------------|--------|
+| **gbif_id** | Points to a resource on gbif.org (e.g., gbif.org/species/2977854) or contains "No identificado" | **ACTION:** Add a URL field to the Species model or store only the numeric ID and build the URL in a property method | **Done**  |
+| **lifeForm** | New field not in current model | **ACTION:** Explore this data in the exploration script. Don't update models yet | **In Progress** |
+| **establishmentMeans** | New field not in current model | **ACTION:** Explore this data in the exploration script. Don't update models yet | **In Progress** |
+| **iucn_category** | Similar to existing field | **ACTION:** Map to existing field `iucn_status` (IUCNStatus enum) | **In Progress** |
 
 #### Proposed Model Changes
 
@@ -29,6 +29,21 @@ class Species(models.Model):
             return f"https://gbif.org/species/{self.gbif_id}"
         return None
 ```
+
+UPDATED: The gbif_id field has been added to the Species model. The property method for generating the GBIF URL is also implemented. We will need to extract the numeric ID from the gbif_id field in the CSV and store it in the model.
+
+Patterns for gbif_id: gbif.org/species/10503673 -- 10503673 is the ID we need to store.
+
+#### GBIF ID Analysis
+
+The following records do not follow the pattern and ought to be handled during the import process:
+
+| GBIF ID Value    | Number of Occurrences |
+|------------------|-----------------------|
+| No identificado  | 99                    |
+| 26758            | 1                     |
+| 5235             | 1                     |
+| 7914             | 1                     |
 
 ### Species Information
 
@@ -51,13 +66,27 @@ Naming inconsistencies:
   - In measurements: called "record_code" with same pattern
   - In observations: called "record_code" with pattern "646_99899" (first part is autoincrement, second part is unique identifier)
 
+#### Record Code Patterns
+
+| Value | Occurrences | Notes |
+|-------|------------:|-------|
+| 100285 - F3 | 1 | Common pattern with space-hyphen-space |
+| 10028_F1 | 1 | Common pattern with underscore |
+| 67689 - F3 | 2 | Only non-unique value in dataset |
+| 1000_F1 | 1 | 4-digit code with underscore |
+
+### Place ID Mapping
+
 - Use "place_id" to find the related place in the place CSV.
-- Convert latitude/longitude fields to a Point object (epsg_id appears to be "4326").
+
+### Latitude/Longitude Mapping
+
+- Convert latitude/longitude fields to a Point object (epsg_id is "4326" in all instances, which matches our default system).
 
 ### Foreign Keys
 
-- place_id maps to the unnamed first column in place (index in original pandas dataframe).
-  - Could use the site field for extra validation when mapping.
+- place_id maps to the unnamed first column in place CSV (index in original pandas dataframe).
+  - We could use the site field for extra validation in the import script when mapping since it contains the site name (duplicated from the place CSV).
 
 ## Measurement Data Issues
 
@@ -66,7 +95,7 @@ Naming inconsistencies:
 Our model's TextChoices need to map to field names in the CSV:
 
 - "total_height" → MeasuredAttribute.TOTAL_HEIGHT
-- "crown_diameter" → Consider changing our model's "canopy_diameter" to "crown_diameter"
+- "crown_diameter" → Consider changing our model's "canopy_diameter" to "crown_diameter" (DONE)
 - "diameter_bh_cm" → MeasuredAttribute.DIAMETER_BH
 - "volume_m3" → MeasuredAttribute.VOLUME
 - "density_g_cm3" → MeasuredAttribute.WOOD_DENSITY
@@ -87,7 +116,7 @@ Spanish terms need mapping:
 Need to map:
 
 - Reproductive conditions: Mostly "No reportado" (Not reported)
-- Phytosanitary status: "Sano" (Healthy), "Enfermo" (Sick), "Muerto" (Dead), "Critico" (Critical) - add "Critical" as a choice
+- Phytosanitary status: "Sano" (Healthy), "Enfermo" (Sick), "Muerto" (Dead), "Critico" (Critical) - add "Critical" as a choice (DONE)
 - Physical condition: "Bueno" (Good), "Regular" (Fair), "Malo" (Poor)
 - Foliage density: "Denso" (Dense), "Medio" (Medium), "Ralo" (Sparse)
 - Aesthetic value: "Deseable" (Desirable), "Indiferente" (Indifferent), etc.
@@ -103,12 +132,13 @@ Need to map:
 
 ## Model Updates Needed
 
-- Add gbif_id field to Species model.
-- Add "Critical" value to PhytosanitaryStatus.
-- No need to add "Sparse" to FoliageDensity (already exists).
-- Move common_name from BiodiversityRecord to Species model (common_name is specific to species).
+- Add gbif_id field to Species model. (DONE)
+- Add "Critical" value to PhytosanitaryStatus. (DONE)
+- Move common_name from BiodiversityRecord to Species model (common_name is specific to species). (DONE)
 
-## Mapping Strategy
+NOTE. These changes still require creating migrations and updating the database.
+
+## Mapping Strategy for Spansih Terms and Import Strategy for Units
 
 - Expand mappings for Spanish terms to English choices.
 - Infer measurement units from field names:

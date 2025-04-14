@@ -1071,8 +1071,8 @@ def main():
     measurement_analysis = analyze_measurement_units(measurements_data) if measurements_data else {}
     
     # Generate reports
-    text_report_path = os.path.join(args.output_dir, 'report_backups', 'csv_exploration_report.txt')
-    html_report_path = os.path.join(args.output_dir, 'report_backups', 'csv_exploration_report.html')
+    text_report_path = os.path.join(args.output_dir, 'reports', 'csv_exploration_report.txt')
+    html_report_path = os.path.join(args.output_dir, 'reports', 'csv_exploration_report.html')
     
     # Ensure report directory exists
     os.makedirs(os.path.dirname(text_report_path), exist_ok=True)
@@ -1115,7 +1115,7 @@ def main():
                     field_name = f"{csv_file.split('.')[0]}_{field}".upper()
                     mapping_template[field_name] = {value: "" for value in values}
     
-    mapping_template_path = os.path.join(args.output_dir, 'report_backups', 'mapping_template.json')
+    mapping_template_path = os.path.join(args.output_dir, 'reports', 'mapping_template.json')
     with open(mapping_template_path, 'w', encoding='utf-8') as f:
         json.dump(mapping_template, f, ensure_ascii=False, indent=2)
     

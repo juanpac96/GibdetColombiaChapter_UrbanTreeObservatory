@@ -9,7 +9,7 @@ This directory contains utility scripts for the Urban Tree Observatory project.
 This script analyzes CSV files to identify unique values for fields that map to TextChoices in Django models, helping you understand your data before importing it.
 
 ```bash
-python scripts/explore_csv_data.py --data-dir=/path/to/csv/files [--output-dir=./reports]
+python scripts/explore_csv_data.pypython scripts/explore_csv_data.py --data-dir=/path/to/csv/files [--output-dir=./reports]
 ```
 
 #### Output

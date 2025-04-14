@@ -60,10 +60,26 @@ class Command(BaseCommand):
             action='store_true',
             help='Run without making any changes to the database'
         )
+        parser.add_argument(
+            '--report-file',
+            default='import_report.txt',
+            help='File to save the detailed import report'
+        )
 
     def handle(self, *args, **options):
         local_dir = options.get('local_dir')
         dry_run = options.get('dry_run', False)
+        report_file = options.get('report_file', 'import_report.txt')
+        
+        # Initialize report tracking data
+        self.report_data = {
+            'taxonomy': {'created': [], 'updated': [], 'skipped': []},
+            'places': {'created': [], 'updated': [], 'skipped': []},
+            'biodiversity': {'created': [], 'updated': [], 'skipped': []},
+            'measurements': {'created': [], 'skipped': []},
+            'observations': {'created': [], 'skipped': []},
+            'species_updates': [],
+        }
         
         if dry_run:
             self.stdout.write(self.style.WARNING('DRY RUN MODE - No changes will be made to the database'))
@@ -155,7 +171,97 @@ class Command(BaseCommand):
         if not dry_run:
             self._process_observations(observations_data)
         
+        # Generate and save the report
+        if not dry_run:
+            self._save_report(report_file)
+            self.stdout.write(self.style.SUCCESS(f'Detailed import report saved to {report_file}'))
+        else:
+            self.stdout.write(self.style.WARNING('Dry run completed, no report generated'))
+        
         self.stdout.write(self.style.SUCCESS('Data import completed!'))
+    
+    def _save_report(self, report_file):
+        """Save a detailed report of the import process to a text file."""
+        with open(report_file, 'w') as f:
+            # Write header
+            f.write("=" * 80 + "\n")
+            f.write(f"URBAN TREE OBSERVATORY DATA IMPORT REPORT\n")
+            f.write(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+            f.write("=" * 80 + "\n\n")
+            
+            # Write taxonomy summary
+            f.write("TAXONOMY IMPORT\n")
+            f.write("-" * 80 + "\n")
+            f.write(f"Families created: {len(self.report_data['taxonomy']['created'])}\n")
+            f.write(f"Species updated: {len(self.report_data['taxonomy']['updated'])}\n")
+            f.write(f"Records skipped: {len(self.report_data['taxonomy']['skipped'])}\n\n")
+            
+            if self.report_data['taxonomy']['skipped']:
+                f.write("SKIPPED TAXONOMY RECORDS:\n")
+                for item in self.report_data['taxonomy']['skipped']:
+                    f.write(f"- {item}\n")
+                f.write("\n")
+            
+            # Write places summary
+            f.write("PLACES IMPORT\n")
+            f.write("-" * 80 + "\n")
+            f.write(f"Places created: {len(self.report_data['places']['created'])}\n")
+            f.write(f"Places updated: {len(self.report_data['places']['updated'])}\n")
+            f.write(f"Places skipped: {len(self.report_data['places']['skipped'])}\n\n")
+            
+            if self.report_data['places']['skipped']:
+                f.write("SKIPPED PLACE RECORDS:\n")
+                for item in self.report_data['places']['skipped']:
+                    f.write(f"- {item}\n")
+                f.write("\n")
+            
+            # Write biodiversity summary
+            f.write("BIODIVERSITY RECORDS IMPORT\n")
+            f.write("-" * 80 + "\n")
+            f.write(f"Records created: {len(self.report_data['biodiversity']['created'])}\n")
+            f.write(f"Records updated: {len(self.report_data['biodiversity']['updated'])}\n")
+            f.write(f"Records skipped: {len(self.report_data['biodiversity']['skipped'])}\n\n")
+            
+            if self.report_data['biodiversity']['skipped']:
+                f.write("SKIPPED BIODIVERSITY RECORDS:\n")
+                for item in self.report_data['biodiversity']['skipped']:
+                    f.write(f"- {item}\n")
+                f.write("\n")
+            
+            # Write code mappings
+            f.write("RECORD CODE MAPPINGS\n")
+            f.write("-" * 80 + "\n")
+            f.write(f"Total biodiversity record mappings: {len(self.biodiversity_code_map)}\n")
+            f.write(f"Total numeric part mappings: {len(self.numeric_to_record_map)}\n\n")
+            
+            # Write measurements summary
+            f.write("MEASUREMENTS IMPORT\n")
+            f.write("-" * 80 + "\n")
+            f.write(f"Measurements created: {len(self.report_data['measurements']['created'])}\n")
+            f.write(f"Measurements skipped: {len(self.report_data['measurements']['skipped'])}\n\n")
+            
+            if self.report_data['measurements']['skipped']:
+                f.write("SKIPPED MEASUREMENT RECORDS:\n")
+                for item in self.report_data['measurements']['skipped']:
+                    f.write(f"- {item}\n")
+                f.write("\n")
+            
+            # Write observations summary
+            f.write("OBSERVATIONS IMPORT\n")
+            f.write("-" * 80 + "\n")
+            f.write(f"Observations created: {len(self.report_data['observations']['created'])}\n")
+            f.write(f"Observations skipped: {len(self.report_data['observations']['skipped'])}\n")
+            f.write(f"Species updated: {len(self.report_data['species_updates'])}\n\n")
+            
+            if self.report_data['observations']['skipped']:
+                f.write("SKIPPED OBSERVATION RECORDS:\n")
+                for item in self.report_data['observations']['skipped']:
+                    f.write(f"- {item}\n")
+                f.write("\n")
+            
+            # Write footer
+            f.write("=" * 80 + "\n")
+            f.write("END OF REPORT\n")
     
     def _fetch_csv(self, url):
         """Fetch CSV file from a URL and return a list of dictionaries."""
@@ -258,15 +364,19 @@ class Command(BaseCommand):
             # Create Family
             family_name = row.get('family', '').strip()
             if not family_name:
+                # Track skipped records due to missing family
+                self.report_data['taxonomy']['skipped'].append(f"Missing family name in row: {row}")
                 continue
                 
             family, family_created = Family.objects.get_or_create(name=family_name)
             if family_created:
                 families_created += 1
+                self.report_data['taxonomy']['created'].append(f"Family: {family_name}")
             
             # Create Genus
             genus_name = row.get('genus', '').strip()
             if not genus_name:
+                self.report_data['taxonomy']['skipped'].append(f"Missing genus name in row: {row}")
                 continue
                 
             genus, genus_created = Genus.objects.get_or_create(
@@ -282,6 +392,9 @@ class Command(BaseCommand):
             identified_by = row.get('identified_by', 'Cortolima').strip()
             
             if not full_species_name or not accepted_name:
+                self.report_data['taxonomy']['skipped'].append(
+                    f"Missing species name or accepted name in row: {row}"
+                )
                 continue
             
             # Extract species name without genus for the name field
@@ -321,16 +434,26 @@ class Command(BaseCommand):
                         'growth_habit': growth_habit,
                         'identified_by': identified_by,
                         'gbif_id': gbif_id,
+                        'common_name': common_name,
                     }
                 )
                 
                 if created:
                     species_created += 1
+                    self.report_data['taxonomy']['created'].append(
+                        f"Species: {accepted_name} (GBIF ID: {gbif_id})"
+                    )
                 else:
                     species_updated += 1
+                    self.report_data['taxonomy']['updated'].append(
+                        f"Species: {accepted_name} (GBIF ID: {gbif_id})"
+                    )
                     
             except Exception as e:
                 self.stdout.write(self.style.ERROR(f"Error creating species {accepted_name}: {e}"))
+                self.report_data['taxonomy']['skipped'].append(
+                    f"Error creating species {accepted_name}: {e}"
+                )
         
         self.stdout.write(self.style.SUCCESS(
             f"Taxonomy import complete: {families_created} families created, "
@@ -358,6 +481,7 @@ class Command(BaseCommand):
         if default_created:
             places_created += 1
             self.stdout.write(self.style.SUCCESS(f"Created default place: {default_place}"))
+            self.report_data['places']['created'].append(f"Default place: {default_place}")
         
         for row in data:
             row_id = row.get('Unnamed: 0', None)  # This is the implicit ID column
@@ -369,6 +493,7 @@ class Command(BaseCommand):
                         row_id = row.get(first_key)
                 
                 if not row_id:
+                    self.report_data['places']['skipped'].append(f"Missing row ID in: {row}")
                     continue
                 
             country = row.get('country', 'Colombia').strip()
@@ -379,6 +504,7 @@ class Command(BaseCommand):
             site = row.get('site', '').strip()
             if not site:
                 site = f"Site {row_id}"
+                self.stdout.write(self.style.WARNING(f"Generated site name '{site}' for row ID {row_id}"))
             
             populated_center = row.get('populated_center', '').strip()
             zone = self._safe_int(row.get('zone', None))
@@ -399,11 +525,19 @@ class Command(BaseCommand):
                 
                 if created:
                     places_created += 1
+                    self.report_data['places']['created'].append(
+                        f"Place ID {row_id}: {site} (in {municipality}, {department})"
+                    )
                 else:
                     places_updated += 1
+                    self.report_data['places']['updated'].append(
+                        f"Place ID {row_id}: {site} (in {municipality}, {department})"
+                    )
                     
             except Exception as e:
-                self.stdout.write(self.style.ERROR(f"Error creating/updating place {site}: {e}"))
+                error_msg = f"Error creating/updating place {site}: {e}"
+                self.stdout.write(self.style.ERROR(error_msg))
+                self.report_data['places']['skipped'].append(error_msg)
         
         self.stdout.write(self.style.SUCCESS(
             f"Places import complete: {places_created} created, {places_updated} updated."
@@ -420,6 +554,7 @@ class Command(BaseCommand):
         for row in data:
             code_record = row.get('code_record', '').strip()
             if not code_record:
+                self.report_data['biodiversity']['skipped'].append(f"Missing code_record in row: {row}")
                 continue
             
             # We'll use the original code_record directly without normalizing
@@ -430,7 +565,9 @@ class Command(BaseCommand):
                 # Find the Species via the taxonomy ID
                 taxonomy_id = row.get('taxonomy_id')
                 if not taxonomy_id:
-                    self.stdout.write(self.style.WARNING(f"Missing taxonomy ID for record {code_record}, skipping"))
+                    error_msg = f"Missing taxonomy ID for record {code_record}, skipping"
+                    self.stdout.write(self.style.WARNING(error_msg))
+                    self.report_data['biodiversity']['skipped'].append(error_msg)
                     taxonomy_not_found += 1
                     continue
                 
@@ -448,19 +585,25 @@ class Command(BaseCommand):
                         species = Species.objects.all().first()
                         
                         if species is None:
-                            self.stdout.write(self.style.WARNING(f"No species found in database, skipping record {code_record}"))
+                            error_msg = f"No species found in database, skipping record {code_record}"
+                            self.stdout.write(self.style.WARNING(error_msg))
+                            self.report_data['biodiversity']['skipped'].append(error_msg)
                             taxonomy_not_found += 1
                             continue
                             
                 except Exception as e:
-                    self.stdout.write(self.style.ERROR(f"Error finding species for {code_record}: {e}"))
+                    error_msg = f"Error finding species for {code_record}: {e}"
+                    self.stdout.write(self.style.ERROR(error_msg))
+                    self.report_data['biodiversity']['skipped'].append(error_msg)
                     taxonomy_not_found += 1
                     continue
                 
                 # Find the Place via the place_id
                 place_id = row.get('place_id')
                 if not place_id:
-                    self.stdout.write(self.style.WARNING(f"Missing place ID for record {code_record}, skipping"))
+                    error_msg = f"Missing place ID for record {code_record}, skipping"
+                    self.stdout.write(self.style.WARNING(error_msg))
+                    self.report_data['biodiversity']['skipped'].append(error_msg)
                     place_not_found += 1
                     continue
                 
@@ -478,12 +621,16 @@ class Command(BaseCommand):
                         place = Place.objects.all().first()
                         
                         if not place:
-                            self.stdout.write(self.style.WARNING(f"No places found in database, skipping record {code_record}"))
+                            error_msg = f"No places found in database, skipping record {code_record}"
+                            self.stdout.write(self.style.WARNING(error_msg))
+                            self.report_data['biodiversity']['skipped'].append(error_msg)
                             place_not_found += 1
                             continue
                 
                 except Exception as e:
-                    self.stdout.write(self.style.ERROR(f"Error finding place for {code_record}: {e}"))
+                    error_msg = f"Error finding place for {code_record}: {e}"
+                    self.stdout.write(self.style.ERROR(error_msg))
+                    self.report_data['biodiversity']['skipped'].append(error_msg)
                     place_not_found += 1
                     continue
                 
@@ -492,9 +639,8 @@ class Command(BaseCommand):
                 lon = self._safe_float(row.get('longitude', 0))
                 
                 if not lat or not lon:
-                    self.stdout.write(self.style.WARNING(
-                        f"Invalid coordinates for {code_record}: lat={lat}, lon={lon}, using (0,0)"
-                    ))
+                    warning_msg = f"Invalid coordinates for {code_record}: lat={lat}, lon={lon}, using (0,0)"
+                    self.stdout.write(self.style.WARNING(warning_msg))
                     lat = 0
                     lon = 0
                 
@@ -508,7 +654,7 @@ class Command(BaseCommand):
                 date = self._parse_date(date_str) if date_str else None
                 
                 # Create the biodiversity record with auto-generated UUID
-                # We use the normalized_code only for matching records, not as the UUID
+                # We use the code_record directly for matching records, not as the UUID
                 try:
                     bio_record, created = BiodiversityRecord.objects.update_or_create(
                         species=species,
@@ -523,14 +669,24 @@ class Command(BaseCommand):
                     
                     if created:
                         records_created += 1
+                        self.report_data['biodiversity']['created'].append(
+                            f"Record '{code_record}': {species.accepted_scientific_name} at {place.site}, coordinates: ({lat}, {lon})"
+                        )
                     else:
                         records_updated += 1
+                        self.report_data['biodiversity']['updated'].append(
+                            f"Record '{code_record}': {species.accepted_scientific_name} at {place.site}, coordinates: ({lat}, {lon})"
+                        )
                 
                 except Exception as e:
-                    self.stdout.write(self.style.ERROR(f"Error creating/updating biodiversity record {code_record}: {e}"))
+                    error_msg = f"Error creating/updating biodiversity record {code_record}: {e}"
+                    self.stdout.write(self.style.ERROR(error_msg))
+                    self.report_data['biodiversity']['skipped'].append(error_msg)
                     
             except Exception as e:
-                self.stdout.write(self.style.ERROR(f"Error processing biodiversity record {code_record}: {e}"))
+                error_msg = f"Error processing biodiversity record {code_record}: {e}"
+                self.stdout.write(self.style.ERROR(error_msg))
+                self.report_data['biodiversity']['skipped'].append(error_msg)
         
         self.stdout.write(self.style.SUCCESS(
             f"Biodiversity records import complete: {records_created} created, {records_updated} updated, "
@@ -603,13 +759,17 @@ class Command(BaseCommand):
                             measurement_value = value
                             break
                     else:
-                        self.stdout.write(self.style.WARNING(f"No measurement data found for {record_code}, skipping"))
+                        error_msg = f"No measurement data found for {record_code}, skipping"
+                        self.stdout.write(self.style.WARNING(error_msg))
+                        self.report_data['measurements']['skipped'].append(error_msg)
                         continue
                 else:
                     measurement_value = self._safe_float(row.get('measurement_value'))
                 
                 if measurement_value is None:
-                    self.stdout.write(self.style.WARNING(f"Missing measurement value for {record_code}, skipping"))
+                    error_msg = f"Missing measurement value for {record_code}, skipping"
+                    self.stdout.write(self.style.WARNING(error_msg))
+                    self.report_data['measurements']['skipped'].append(error_msg)
                     continue
                 
                 # Extract method information
@@ -695,12 +855,19 @@ class Command(BaseCommand):
                     )
                     
                     measurements_created += 1
+                    self.report_data['measurements']['created'].append(
+                        f"Measurement for {record_code}: {attribute} = {measurement_value} {measurement_unit_enum}"
+                    )
                 
                 except Exception as e:
-                    self.stdout.write(self.style.ERROR(f"Error creating measurement for {record_code}: {e}"))
+                    error_msg = f"Error creating measurement for {record_code}: {e}"
+                    self.stdout.write(self.style.ERROR(error_msg))
+                    self.report_data['measurements']['skipped'].append(error_msg)
                 
             except Exception as e:
-                self.stdout.write(self.style.ERROR(f"Error processing measurement for {record_code}: {e}"))
+                error_msg = f"Error processing measurement for {record_code}: {e}"
+                self.stdout.write(self.style.ERROR(error_msg))
+                self.report_data['measurements']['skipped'].append(error_msg)
         
         self.stdout.write(self.style.SUCCESS(
             f"Measurements import complete: {measurements_created} created, {record_not_found} skipped due to missing biodiversity record."
@@ -801,6 +968,13 @@ class Command(BaseCommand):
                     if updated:
                         species.save()
                         species_updated += 1
+                        self.report_data['species_updates'].append(
+                            f"Species {species.accepted_scientific_name} updated with: " + 
+                            (f"common_name='{common_name}', " if common_name else "") +
+                            (f"origin='{origin}', " if origin != Species.Origin.UNKNOWN else "") +
+                            (f"iucn_status='{iucn_status}', " if iucn_status != Species.IUCNStatus.NOT_EVALUATED else "") +
+                            (f"growth_habit='{growth_habit}'" if growth_habit != Species.GrowthHabit.UNKNOWN else "")
+                        )
                 
                 # Extract observation data using our utility functions
                 reproductive_cond = get_mapped_value(
@@ -885,12 +1059,19 @@ class Command(BaseCommand):
                     )
                     
                     observations_created += 1
+                    self.report_data['observations']['created'].append(
+                        f"Observation for {record_code}: physical condition={physical_condition}, phytosanitary={phytosanitary}"
+                    )
                 
                 except Exception as e:
-                    self.stdout.write(self.style.ERROR(f"Error creating observation for {record_code}: {e}"))
+                    error_msg = f"Error creating observation for {record_code}: {e}"
+                    self.stdout.write(self.style.ERROR(error_msg))
+                    self.report_data['observations']['skipped'].append(error_msg)
                 
             except Exception as e:
-                self.stdout.write(self.style.ERROR(f"Error processing observation for {record_code}: {e}"))
+                error_msg = f"Error processing observation for {record_code}: {e}"
+                self.stdout.write(self.style.ERROR(error_msg))
+                self.report_data['observations']['skipped'].append(error_msg)
         
         self.stdout.write(self.style.SUCCESS(
             f"Observations import complete: {observations_created} created, {record_not_found} skipped due to missing biodiversity record, "

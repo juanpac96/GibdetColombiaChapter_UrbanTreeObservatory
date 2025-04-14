@@ -88,16 +88,20 @@ class Place(UniqueMixin, Base):
   department = Column(String, nullable=False)
   municipality = Column(String,  nullable=False)
   populated_center = Column(String)
+  zone = Column(Integer)
+  subzone = Column(Integer)
   site = Column(String)
   code_site = Column(String, unique=True)
-  list_columns = ['country','department','municipality','populated_center','site','code_site']
+  list_columns = ['country','department','municipality','populated_center','zone','subzone','site','code_site']
 
 
-  def __init__(self,country,department,municipality,populated_center,site,code_site):
+  def __init__(self,country,department,municipality,populated_center,zone,subzone,site,code_site):
     self.country = country
     self.department = department
     self.municipality = municipality
     self.populated_center = populated_center
+    self.zone = self.zone
+    self.subzone = self.subzone
     self.site = site
     self.code_site =code_site
 
@@ -426,7 +430,7 @@ class FunctionalTraitsStructure(Base):
   '''
   __tablename__ = 'functional_traits_structure'
   id_structure = Column(Integer, primary_key=True)
-  pft_id = Column(Integer, ForeignKey('functional_traits_index.pft_id'))
+  id_pft = Column(Integer, ForeignKey('functional_traits_index.pft_id'))
   taxonomy_id = Column(Integer, ForeignKey('taxonomy_details.id_taxonomy'))
   taxonomy = relationship("Taxonomy_details", back_populates="structure_traits")
   canopy_shape = Column(String)
@@ -435,10 +439,10 @@ class FunctionalTraitsStructure(Base):
   # SQLAlchemy relationship to the parent
   pft_index = relationship("FunctionalTraitsIndex", back_populates="structure_traits")
 
-  list_columns = ['pft_id', 'taxonomy_id', 'canopy_shape', 'color']
+  list_columns = ['id_pft', 'taxonomy_id', 'canopy_shape', 'color']
 
-  def __init__(self, pft_id, taxonomy_id, canopy_shape, color):
-    self.pft_id = pft_id
+  def __init__(self, id_pft, taxonomy_id, canopy_shape, color):
+    self.id_pft = id_pft
     self.taxonomy_id  = taxonomy_id
     self.canopy_shape = canopy_shape
     self.color = color

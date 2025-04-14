@@ -69,7 +69,3 @@ docker-compose.yml
 # Windows
 Thumbs.db
 ehthumbs.db
-
-# Data import files
-scripts/data/csv/
-import_report.txt

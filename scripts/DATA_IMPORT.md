@@ -155,3 +155,70 @@ NOTE. These changes still require creating migrations and updating the database.
 4. Measurements and observations
 
 The data structure is more complex than anticipated, with different naming conventions than our current models. We need to update our mappings and possibly models to accommodate these differences.
+
+## Matching Logic
+
+### File: measurements.csv
+
+#### Field: record_code
+
+10001_F1 MATCHES biodiversity_record code_record = 10001_F1
+20272_F2 MATCHES biodiversity_record code_record = 20272_F2
+67689 - F3  MATCHES biodiversity_record code_record = 67689 - F3
+
+### File: observations_details.csv
+
+#### Field: record_code in observations_details.csv
+
+27543_10001 MATCHES biodiversity_record code_record = 10001_F1
+34888_20272 MATCHES biodiversity_record code_record = 20272_F2
+97133_67689 MATCHES biodiversity_record code_record = 67689 - F3
+
+### File: biodiversity_records.csv
+
+#### Field: code_record in biodiversity_records.csv
+
+Examples:
+
+10001_F1
+33915_F2
+67689 - F3
+
+#### Field: place_id
+
+place_id MATCHES first (unnamed) column in place.csv
+
+## Import Run Notes
+
+The fallback logic we implemented is causing issues.
+
+  When processing measurements and observations, we look for matching biodiversity records using the record codes from the CSV files. However, our current matching logic isn't working correctly for many records, resulting in the fallback being used excessively.
+
+  Here's the current fallback logic in our code:
+
+  1. For measurements.csv:
+    - We try to match record_code (like "10001_F1") directly with a biodiversity record's code_record
+    - If no match is found, we try normalizing both codes (removing spaces/dashes) and compare again
+    - If still no match, we use BiodiversityRecord.objects.first() as a fallback (using the first record found)
+  2. For observations_details.csv:
+    - We try to match using first or second part of record_code (like "27543_10001") with biodiversity record codes
+    - If no match is found, we try the full code
+    - If still no match, we use BiodiversityRecord.objects.first() as a fallback
+
+  The problem is that our numeric part matching logic isn't working correctly. For example, with observation code "100489_33867", we're not correctly matching it to the corresponding biodiversity record.
+
+  The fallback to the first biodiversity record is problematic because:
+
+  1. It creates incorrect relationships (all unmatched records link to the same biodiversity record)
+  2. It doesn't capture the true error (that we couldn't find a match)
+  3. It might create duplicated or meaningless measurements/observations
+
+  We should improve this by:
+
+  1. Better understanding the pattern between observation codes and biodiversity codes
+  2. Potentially making the fallback optional or disabled by default
+  3. Providing more detailed logs about why matching failed
+  4. Creating a more comprehensive mapping between record codes
+
+  This high number of fallbacks suggests our record matching logic needs to be revisited to better handle the specific patterns in your data files.
+  

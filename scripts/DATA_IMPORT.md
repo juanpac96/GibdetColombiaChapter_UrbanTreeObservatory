@@ -221,4 +221,19 @@ The fallback logic we implemented is causing issues.
   4. Creating a more comprehensive mapping between record codes
 
   This high number of fallbacks suggests our record matching logic needs to be revisited to better handle the specific patterns in your data files.
-  
+
+### Changes Made
+
+  1. Removed all fallback logic - We no longer use BiodiversityRecord.objects.first() as a fallback. Records that can't be properly matched will be skipped and logged in the
+  report.
+  2. Implemented strict matching patterns:
+    - For measurements: Match record_code directly with biodiversity_record code_record (with some normalization for spaces/dashes)
+    - For observations: Match the SECOND part of the observation record_code with the FIRST part of the biodiversity record code_record
+  3. Enhanced error reporting:
+    - Detailed logs of skipped records
+    - Sample of successful mappings in the report
+    - Limited output of debug info to avoid overwhelming logs
+  4. Fixed date parsing:
+    - Added support for datetime formats with time components
+
+  These changes should ensure data integrity by only creating relationships between properly matched records. The detailed report will help you investigate any skipped records so you can address any data issues.

@@ -33,6 +33,23 @@ The Urban Tree Observatory is a data-driven platform for monitoring and conservi
    - PostgreSQL database: localhost:5432
    - PgAdmin: <http://localhost:5050/>
 
+### Setting up PgAdmin
+
+To connect to the database through PgAdmin:
+
+1. Go to <http://localhost:5050/browser/>
+2. Login with:
+   - Email: <admin@omdena.com>
+   - Password: admin
+3. Right-click on "Servers" and select "Register > Server"
+4. In the General tab, name it "Local PostgreSQL"
+5. In the Connection tab, enter:
+   - Host: db
+   - Port: 5432
+   - Database: urban_tree_db
+   - Username: postgres
+   - Password: postgres
+
 ### First-Time Setup
 
 After starting the containers for the first time, you'll need to create a superuser:

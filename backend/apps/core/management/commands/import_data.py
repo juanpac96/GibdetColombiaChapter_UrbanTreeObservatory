@@ -128,6 +128,9 @@ class Command(BaseCommand):
             # This is much more efficient since we're using the original_code field directly
             biodiversity_records = list(BiodiversityRecord.objects.all().select_related('species'))
             
+            # Initialize a separate dictionary for first part mapping to avoid mixing types
+            self.first_part_map = {}
+            
             # Build efficient lookup maps for faster matching
             for bio_record in biodiversity_records:
                 if bio_record.original_code:
@@ -142,12 +145,10 @@ class Command(BaseCommand):
                     # Extract code parts to help with observations matching
                     bio_first_part, bio_second_part = self._extract_code_parts(bio_record.original_code)
                     if bio_first_part:
-                        # Create a mapping from first part to biodiversity record for observation matching
-                        if 'first_part_map' not in self.biodiversity_code_map:
-                            self.biodiversity_code_map['first_part_map'] = {}
-                        self.biodiversity_code_map['first_part_map'][bio_first_part] = bio_record
+                        # Store in separate first_part_map for observation matching
+                        self.first_part_map[bio_first_part] = bio_record
             
-            self.stdout.write(f"Built efficient lookup maps for {len(biodiversity_records)} biodiversity records")
+            self.stdout.write(f"Built efficient lookup maps for {len(biodiversity_records)} biodiversity records with {len(self.first_part_map)} first-part mappings")
         
         # Process measurements
         self.stdout.write(self.style.NOTICE('Importing measurements...'))
@@ -229,13 +230,20 @@ class Command(BaseCommand):
             # Write code mappings
             f.write("RECORD CODE MAPPINGS\n")
             f.write("-" * 80 + "\n")
-            f.write(f"Total biodiversity record mappings: {len(self.biodiversity_code_map)}\n\n")
+            mapping_count = len(self.biodiversity_code_map)
+            first_part_mapping_count = len(self.first_part_map)
+            f.write(f"Total biodiversity record mappings: {mapping_count}\n")
+            f.write(f"Total first-part mappings for observations: {first_part_mapping_count}\n\n")
             
             # Show a sample of the mappings (at most 20)
             f.write("SAMPLE OF BIODIVERSITY RECORD MAPPINGS:\n")
             sample_count = 0
             for code, record in self.biodiversity_code_map.items():
-                if sample_count < 20 and "_" in code:  # Only show original format codes, not normalized ones
+                # Skip special keys like 'first_part_map' and ensure it's a BiodiversityRecord object
+                if (sample_count < 20 and "_" in code and 
+                    code != 'first_part_map' and 
+                    hasattr(record, 'id') and 
+                    hasattr(record, 'species')):
                     f.write(f"- '{code}' -> Record ID {record.id} ({record.species.accepted_scientific_name})\n")
                     sample_count += 1
             f.write("\n")
@@ -923,19 +931,7 @@ class Command(BaseCommand):
         
         self.stdout.write(f"Processing {len(data)} observation records in batches of {batch_size}")
         
-        # Pre-compute the first_part mapping from biodiversity records for efficient lookups
-        bio_first_part_map = {}
-        
-        # Build efficient lookup using biodiversity original_code field
-        if 'first_part_map' not in self.biodiversity_code_map:
-            self.biodiversity_code_map['first_part_map'] = {}
-            
-            # Only need to do this once - build mapping from first parts to records
-            for bio_record in BiodiversityRecord.objects.filter(original_code__isnull=False):
-                if bio_record.original_code:
-                    bio_first_part, bio_second_part = self._extract_code_parts(bio_record.original_code)
-                    if bio_first_part:
-                        self.biodiversity_code_map['first_part_map'][bio_first_part] = bio_record
+        # The first_part_map was already built during initialization, no need to rebuild it here
         
         # Main processing loop
         for row in data:
@@ -952,8 +948,8 @@ class Command(BaseCommand):
                 
                 # For observations, the rule is:
                 # 27543_10001 MATCHES biodiversity_record where 10001 is the first part of the code_record
-                if second_part and second_part in self.biodiversity_code_map.get('first_part_map', {}):
-                    bio_record = self.biodiversity_code_map['first_part_map'][second_part]
+                if second_part and second_part in self.first_part_map:
+                    bio_record = self.first_part_map[second_part]
                     
                     # Log only a few successful matches to avoid overwhelming output
                     if observations_created < 5:

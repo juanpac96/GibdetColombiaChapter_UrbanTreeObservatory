@@ -182,12 +182,32 @@ class Geog_coord_syst(Base):
   def __str__(self):
     return self.epsg
 
+
+
+
 # Botanical taxonomy table
 class Taxonomy_details(Base):
     '''
-    Esta tabla almacena información taxonómica relacionada con especies registradas 
-    en estudios de biodiversidad. Se relaciona con la tabla `biodiversity_records`.
+    This table stores taxonomic information for plant species recorded in biodiversity datasets.
+    It includes classification details, scientific naming, identification authority, conservation status,
+    and optionally, the Plant Functional Type (PFT) used in ecological analyses.
+
+    Columns:
+    - id_taxonomy: Integer (Primary Key)
+    - family: String
+    - genus: String
+    - specie: String
+    - accept_scientific_name: String
+    - gbif_id: String
+    - lifeForm: String
+    - establishmentMeans: String
+    - pft_id: Integer (Functional classification for the species)
+    - specie_functional_group: Integer
+    - iucn_category: String
+    - identified_by: String
+    - date_of_identification: String (consider Date if consistent)
     '''
+
     __tablename__ = 'taxonomy_details'
 
     id_taxonomy = Column(Integer, primary_key=True)
@@ -198,22 +218,23 @@ class Taxonomy_details(Base):
     gbif_id = Column(String)
     lifeForm = Column(String)
     establishmentMeans = Column(String)
+    use = Column(String)
     iucn_category = Column(String)
     identified_by = Column(String)
     date_of_identification = Column(String)
 
-    # Relación con registros de biodiversidad
     biodiversity_records = relationship("Biodiversity_records", back_populates="taxonomy")
+    structure_traits = relationship("FunctionalTraitsStructure", back_populates="taxonomy")
 
     list_columns = [
         'family', 'genus', 'specie', 'accept_scientific_name', 'gbif_id',
-        'lifeForm', 'establishmentMeans', 'iucn_category',
-        'identified_by', 'date_of_identification'
+        'lifeForm', 'establishmentMeans', 'use',
+        'iucn_category', 'identified_by', 'date_of_identification'
     ]
 
     def __init__(self, family, genus, specie, accept_scientific_name,
-                 gbif_id, lifeForm, establishmentMeans, iucn_category,
-                 identified_by, date_of_identification):
+                 gbif_id, lifeForm, establishmentMeans, use,
+                 iucn_category, identified_by, date_of_identification):
         self.family = family
         self.genus = genus
         self.specie = specie
@@ -221,15 +242,97 @@ class Taxonomy_details(Base):
         self.gbif_id = gbif_id
         self.lifeForm = lifeForm
         self.establishmentMeans = establishmentMeans
+        self.use = use
         self.iucn_category = iucn_category
         self.identified_by = identified_by
         self.date_of_identification = date_of_identification
 
     def __repr__(self):
-        return "<taxonomy_details(" + ','.join([f"'{i}'" for i in self.list_columns]) + ")>"
+        return f"<TaxonomyDetails({self.accept_scientific_name})>"
 
     def __str__(self):
         return self.accept_scientific_name
+
+
+
+# Functional traits assigned per species
+class FunctionalTraitsStructure(Base):
+    '''
+    This table stores both structural and functional trait data for plant species,
+    grouped under Plant Functional Types (PFTs). It includes references to species taxonomy.
+
+    Structural traits include observable features like canopy shape and color.
+    Functional traits are quantitative measures such as height, shade index, or carbon capture.
+
+    Columns:
+    - id_structure: Integer (Primary Key)
+    - pft_id: Integer
+    - taxonomy_id: Integer (ForeignKey to taxonomy_details.id_taxonomy)
+    - canopy_shape: String
+    - color: String
+    - carbon_sequestration_min/max: Float
+    - shade_index_min/max: Float
+    - canopy_diameter_min/max: Float
+    - height_max_min/max: Float
+    '''
+    __tablename__ = 'functional_traits_structure'
+
+    id_structure = Column(Integer, primary_key=True)
+    pft_id = Column(Integer)
+    taxonomy_id = Column(Integer, ForeignKey("taxonomy_details.id_taxonomy"))
+    taxonomy = relationship("Taxonomy_details", back_populates="structure_traits")
+
+    # Structural traits
+    canopy_shape = Column(String)
+    color = Column(String)
+
+    # Functional trait ranges
+    carbon_sequestration_min = Column(Float)
+    carbon_sequestration_max = Column(Float)
+
+    shade_index_min = Column(Float)
+    shade_index_max = Column(Float)
+
+    canopy_diameter_min = Column(Float)
+    canopy_diameter_max = Column(Float)
+
+    height_max_min = Column(Float)
+    height_max_max = Column(Float)
+
+    
+
+    list_columns = [
+        'pft_id', 'taxonomy_id', 'canopy_shape', 'color',
+        'carbon_sequestration_min', 'carbon_sequestration_max',
+        'shade_index_min', 'shade_index_max',
+        'canopy_diameter_min', 'canopy_diameter_max',
+        'height_max_min', 'height_max_max'
+    ]
+
+    def __init__(self, pft_id, taxonomy_id, canopy_shape, color,
+                 carbon_sequestration_min, carbon_sequestration_max,
+                 shade_index_min, shade_index_max,
+                 canopy_diameter_min, canopy_diameter_max,
+                 height_max_min, height_max_max):
+        self.pft_id = pft_id
+        self.taxonomy_id = taxonomy_id
+        self.canopy_shape = canopy_shape
+        self.color = color
+        self.carbon_sequestration_min = carbon_sequestration_min
+        self.carbon_sequestration_max = carbon_sequestration_max
+        self.shade_index_min = shade_index_min
+        self.shade_index_max = shade_index_max
+        self.canopy_diameter_min = canopy_diameter_min
+        self.canopy_diameter_max = canopy_diameter_max
+        self.height_max_min = height_max_min
+        self.height_max_max = height_max_max
+
+    def __repr__(self):
+        return f"<FunctionalTraitsStructure(taxonomy_id={self.taxonomy_id}, pft={self.pft_id})>"
+
+    def __str__(self):
+        return f"Species Taxonomy ID {self.taxonomy_id} – PFT {self.pft_id}"
+
 
 
 # Biodiversity records table
@@ -377,7 +480,6 @@ class Observations_details(Base):
     observations = Column(String)
     phytosanitary_status = Column(String)
     accompanying_collectors = Column(String)
-    use = Column(String)
     physical_condition = Column(String)  
     foliage_density = Column(String)  
     aesthetic_value = Column(String)  
@@ -389,12 +491,12 @@ class Observations_details(Base):
     # Updated list of column names
     list_columns = [
         'record_code', 'biological_record_comments', 'reproductive_condition', 'observations',
-        'phytosanitary_status', 'accompanying_collectors', 'use',
+        'phytosanitary_status', 'accompanying_collectors',
         'physical_condition', 'foliage_density', 'aesthetic_value', 'growth_phase'
     ]
 
     def __init__(self, record_code, biological_record_comments, reproductive_condition, observations, 
-                 phytosanitary_status, accompanying_collectors, use, 
+                 phytosanitary_status, accompanying_collectors,
                  physical_condition=None, foliage_density=None, aesthetic_value=None, growth_phase=None):
         self.record_code = record_code
         self.biological_record_comments = biological_record_comments
@@ -402,7 +504,6 @@ class Observations_details(Base):
         self.observations = observations
         self.phytosanitary_status = phytosanitary_status
         self.accompanying_collectors = accompanying_collectors
-        self.use = use
         self.physical_condition = physical_condition
         self.foliage_density = foliage_density
         self.aesthetic_value = aesthetic_value
@@ -415,64 +516,6 @@ class Observations_details(Base):
     def __str__(self):
         return self.record_code
 
-# Table of observations from Functional Traits by spice
-class FunctionalTraitsStructure(Base):
-  '''
-  This table stores structural characteristics (canopy shape and color) 
-  associated with individual species grouped by their Plant Functional Type (PFT).
-  It includes a foreign key relation to FunctionalTraitsIndex.
-  '''
-  __tablename__ = 'functional_traits_structure'
-  id_structure = Column(Integer, primary_key=True)
-  id_pft = Column(Integer, ForeignKey('functional_traits_index.pft_id'))
-  taxonomy_id = Column(Integer, ForeignKey('taxonomy_details.id_taxonomy'))
-  taxonomy = relationship("Taxonomy_details", back_populates="structure_traits")
-  canopy_shape = Column(String)
-  color = Column(String)
-
-  # SQLAlchemy relationship to the parent
-  pft_index = relationship("FunctionalTraitsIndex", back_populates="structure_traits")
-
-  list_columns = ['id_pft', 'taxonomy_id', 'canopy_shape', 'color']
-
-  def __init__(self, id_pft, taxonomy_id, canopy_shape, color):
-    self.id_pft = id_pft
-    self.taxonomy_id  = taxonomy_id
-    self.canopy_shape = canopy_shape
-    self.color = color
-
-  def __repr__(self):
-    return "<functional_traits_structure(" + ','.join([f"'{i}'" for i in self.list_columns]) + ")>"
-
-  def __str__(self):
-    return f"{self.species_name} (PFT {self.pft_id}) – {self.canopy_shape}, {self.color}"
   
 
 
-class FunctionalTraitsIndex(Base):
-  '''
-  This table stores trait values associated with different Plant Functional Types (PFTs).
-  It serves as the parent in the relationship, linking to multiple species in the structure table.
-  '''
-  __tablename__ = 'functional_traits_index'
-  id_trait = Column(Integer, primary_key=True)
-  pft_id = Column(Integer)  # Assumes 1 row per PFT
-  trait_name = Column(String)
-  min_value = Column(Float)
-  max_value = Column(Float)
-
-  structure_traits = relationship("FunctionalTraitsStructure", back_populates="pft_index", cascade="all, delete-orphan")
-
-  list_columns = ['pft_id', 'trait_name', 'min_value', 'max_value']
-
-  def __init__(self, pft_id, trait_name, min_value, max_value):
-    self.pft_id = pft_id
-    self.trait_name = trait_name
-    self.min_value = min_value
-    self.max_value = max_value
-
-  def __repr__(self):
-    return "<functional_traits_index(" + ','.join([f"'{i}'" for i in self.list_columns]) + ")>"
-
-  def __str__(self):
-    return f"PFT {self.pft_id} – {self.trait_name}: {self.min_value}–{self.max_value}"

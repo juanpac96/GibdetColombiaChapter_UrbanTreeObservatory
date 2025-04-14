@@ -1097,12 +1097,13 @@ class Command(BaseCommand):
             return None
 
     def _parse_date(self, date_str):
-        """Parse date string in various formats."""
+        """Parse date string in various formats, including datetime formats."""
         if not date_str or date_str.strip() == '':
             return None
             
-        # Try common date formats
+        # Try common date and datetime formats
         formats = [
+            # Date formats
             '%Y-%m-%d',  # 2022-01-01
             '%d/%m/%Y',  # 01/01/2022
             '%d-%m-%Y',  # 01-01-2022
@@ -1110,15 +1111,36 @@ class Command(BaseCommand):
             '%m/%d/%Y',  # 01/01/2022 (US format)
             '%d %b %Y',  # 01 Jan 2022
             '%d %B %Y',  # 01 January 2022
+            
+            # Datetime formats
+            '%Y-%m-%d %H:%M:%S',     # 2022-01-01 13:45:30
+            '%Y-%m-%d %H:%M',        # 2022-01-01 13:45
+            '%d/%m/%Y %H:%M:%S',     # 01/01/2022 13:45:30
+            '%d/%m/%Y %H:%M',        # 01/01/2022 13:45
+            '%Y/%m/%d %H:%M:%S',     # 2022/01/01 13:45:30
+            '%Y/%m/%d %H:%M',        # 2022/01/01 13:45
+            '%m/%d/%Y %H:%M:%S',     # 01/01/2022 13:45:30 (US format)
+            '%m/%d/%Y %H:%M',        # 01/01/2022 13:45 (US format)
+            '%Y-%m-%dT%H:%M:%S',     # ISO format: 2022-01-01T13:45:30
+            '%Y-%m-%dT%H:%M:%S.%f',  # ISO format with microseconds: 2022-01-01T13:45:30.123456
         ]
         
         date_str = date_str.strip()
         
         for fmt in formats:
             try:
+                # For both date and datetime formats, return only the date part
                 return datetime.strptime(date_str, fmt).date()
             except ValueError:
                 continue
+        
+        # Try to handle special cases like timestamps or other formats
+        try:
+            # Try to parse as a timestamp if it's all digits
+            if date_str.isdigit():
+                return datetime.fromtimestamp(float(date_str)).date()
+        except (ValueError, OverflowError):
+            pass
                 
         # If no format matches, log warning and return None
         self.stdout.write(self.style.WARNING(f"Could not parse date: {date_str}"))

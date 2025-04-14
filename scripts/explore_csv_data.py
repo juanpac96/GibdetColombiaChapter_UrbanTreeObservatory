@@ -534,7 +534,7 @@ def generate_text_report(analysis_results, sample_results, pattern_results,
 
 def generate_html_report(analysis_results, sample_results, pattern_results, 
                         species_analysis, measurement_analysis, relationship_analysis,
-                        data_types, row_counts, column_lists, output_file):
+                        data_types_results, row_counts, column_lists, output_file):
     """Generate an HTML report from the analysis results."""
     html = """
     <!DOCTYPE html>
@@ -828,7 +828,7 @@ def generate_html_report(analysis_results, sample_results, pattern_results,
         
         for i, column in enumerate(columns):
             # Determine data type
-            data_type = data_types.get(csv_file, {}).get(column, "unknown")
+            data_type = data_types_results.get(csv_file, {}).get(column, "unknown")
             type_class = f"type-{data_type}"
             
             # Determine field type
@@ -947,7 +947,7 @@ def generate_html_report(analysis_results, sample_results, pattern_results,
         html += f'<h3>File: {csv_file}</h3>'
         
         for field, values in field_values.items():
-            data_type = data_types.get(csv_file, {}).get(field, "unknown")
+            data_type = data_types_results.get(csv_file, {}).get(field, "unknown")
             type_class = f"type-{data_type}"
             
             # Determine field type
@@ -1002,9 +1002,17 @@ def main():
     os.makedirs(args.output_dir, exist_ok=True)
     
     analysis_results = {}
+    sample_results = {}
+    pattern_results = {}
     data_types_results = {}
     row_counts = {}
     column_lists = {}
+    
+    # Data to store for relationship analysis
+    biodiversity_data = []
+    measurements_data = []
+    observations_data = []
+    taxonomy_data = []
     
     # Process each CSV file
     for csv_file in TEXT_CHOICE_FIELDS.keys():
@@ -1018,6 +1026,16 @@ def main():
         data = read_csv(file_path)
         row_counts[csv_file] = len(data)
         
+        # Store data for relationship analysis
+        if csv_file == "biodiversity_records.csv":
+            biodiversity_data = data
+        elif csv_file == "measurements.csv":
+            measurements_data = data
+        elif csv_file == "observations_details.csv":
+            observations_data = data
+        elif csv_file == "taxonomy_details.csv":
+            taxonomy_data = data
+        
         if data:
             # Get field data types for ALL columns
             all_columns_data_types = analyze_data_types(data, columns)
@@ -1030,13 +1048,58 @@ def main():
             
             unique_values = extract_unique_values(data, all_analyzed_fields)
             analysis_results[csv_file] = unique_values
+            
+            # Sample fields
+            if csv_file in SAMPLE_FIELDS:
+                sample_fields = SAMPLE_FIELDS[csv_file]
+                samples = sample_values(data, sample_fields)
+                sample_results[csv_file] = samples
+            
+            # Pattern analysis
+            if csv_file in PATTERN_FIELDS:
+                pattern_fields = PATTERN_FIELDS[csv_file]
+                patterns = analyze_patterns(data, pattern_fields)
+                pattern_results[csv_file] = patterns
+    
+    # Perform relationship analysis
+    relationship_analysis = analyze_relationships(biodiversity_data, measurements_data, observations_data)
+    
+    # Perform species analysis (if taxonomy data exists)
+    species_analysis = analyze_species_names(taxonomy_data) if taxonomy_data else {}
+    
+    # Perform measurement analysis
+    measurement_analysis = analyze_measurement_units(measurements_data) if measurements_data else {}
     
     # Generate reports
-    text_report_path = os.path.join(args.output_dir, 'csv_exploration_report.txt')
-    html_report_path = os.path.join(args.output_dir, 'csv_exploration_report.html')
+    text_report_path = os.path.join(args.output_dir, 'report_backups', 'csv_exploration_report.txt')
+    html_report_path = os.path.join(args.output_dir, 'report_backups', 'csv_exploration_report.html')
     
-    generate_text_report(analysis_results, column_lists, text_report_path)
-    generate_html_report(analysis_results, data_types_results, row_counts, column_lists, html_report_path)
+    # Ensure report directory exists
+    os.makedirs(os.path.dirname(text_report_path), exist_ok=True)
+    
+    generate_text_report(
+        analysis_results, 
+        sample_results, 
+        pattern_results, 
+        species_analysis, 
+        measurement_analysis, 
+        relationship_analysis,
+        column_lists, 
+        text_report_path
+    )
+    
+    generate_html_report(
+        analysis_results, 
+        sample_results, 
+        pattern_results, 
+        species_analysis, 
+        measurement_analysis, 
+        relationship_analysis,
+        data_types_results, 
+        row_counts, 
+        column_lists, 
+        html_report_path
+    )
     
     print(f"Reports generated at:")
     print(f"  - {text_report_path}")
@@ -1052,7 +1115,7 @@ def main():
                     field_name = f"{csv_file.split('.')[0]}_{field}".upper()
                     mapping_template[field_name] = {value: "" for value in values}
     
-    mapping_template_path = os.path.join(args.output_dir, 'mapping_template.json')
+    mapping_template_path = os.path.join(args.output_dir, 'report_backups', 'mapping_template.json')
     with open(mapping_template_path, 'w', encoding='utf-8') as f:
         json.dump(mapping_template, f, ensure_ascii=False, indent=2)
     

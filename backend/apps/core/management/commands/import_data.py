@@ -121,12 +121,11 @@ class Command(BaseCommand):
         
         # Maps to store biodiversity records with their related record codes
         self.biodiversity_code_map = {}  # Maps from biodiversity code_record to BiodiversityRecord objects
-        self.numeric_to_record_map = {}  # Maps from numeric part of code to BiodiversityRecord objects
         
         # Create lookup maps for matching records across CSV files
         if not dry_run:
             # Process all biodiversity records and store them in our maps
-            # We'll build multiple maps to handle the different matching patterns
+            # We'll build maps for the specific matching patterns
             biodiversity_records = list(BiodiversityRecord.objects.all())
             
             # Loop through biodiversity_data to create mappings
@@ -138,18 +137,17 @@ class Command(BaseCommand):
                     if not bio_record:
                         continue
                     
-                    # Store in our direct lookup
+                    # Store in our direct lookup with the exact code_record for direct matching
                     self.biodiversity_code_map[code_record] = bio_record
                     
-                    # Extract code parts to help with matching
-                    num_part, f_part = self._extract_code_parts(code_record)
-                    
-                    # Store in our numeric lookup (for observations matching)
-                    if num_part:
-                        self.numeric_to_record_map[num_part] = bio_record
+                    # Also store with normalized code (no spaces/dashes) for more flexible matching
+                    normalized_code = code_record.replace(' ', '').replace('-', '')
+                    if normalized_code != code_record:
+                        self.biodiversity_code_map[normalized_code] = bio_record
                         
-                    # For measurements, store by full code_record (we'll match directly)
-                    # For observations, we'll match based on numeric part
+                    # Record only the first 5 mappings in the logs to avoid overwhelming output
+                    if i < 5:
+                        self.stdout.write(f"Mapped biodiversity record '{code_record}' to database ID {bio_record.id}")
         
         # Process measurements
         self.stdout.write(self.style.NOTICE('Importing measurements...'))
@@ -231,8 +229,16 @@ class Command(BaseCommand):
             # Write code mappings
             f.write("RECORD CODE MAPPINGS\n")
             f.write("-" * 80 + "\n")
-            f.write(f"Total biodiversity record mappings: {len(self.biodiversity_code_map)}\n")
-            f.write(f"Total numeric part mappings: {len(self.numeric_to_record_map)}\n\n")
+            f.write(f"Total biodiversity record mappings: {len(self.biodiversity_code_map)}\n\n")
+            
+            # Show a sample of the mappings (at most 20)
+            f.write("SAMPLE OF BIODIVERSITY RECORD MAPPINGS:\n")
+            sample_count = 0
+            for code, record in self.biodiversity_code_map.items():
+                if sample_count < 20 and "_" in code:  # Only show original format codes, not normalized ones
+                    f.write(f"- '{code}' -> Record ID {record.id} ({record.species.accepted_scientific_name})\n")
+                    sample_count += 1
+            f.write("\n")
             
             # Write measurements summary
             f.write("MEASUREMENTS IMPORT\n")
@@ -301,18 +307,20 @@ class Command(BaseCommand):
         if not code:
             return ("", "")
         
-        # Handle formats like "10001_F1" or "20272_F2"
-        match = re.search(r'(\d+)[_\s-]+([F]\d+)', code)
+        # Handle biodiversity record formats like "10001_F1" or "67689 - F3"
+        # This matches formats: NUMBER [_/space/-] F NUMBER
+        match = re.search(r'(\d+)[_\s-]+([Ff]\d+)', code)
         if match:
             return (match.group(1), match.group(2))
             
-        # Handle formats like "27543_10001"
+        # Handle observation record formats like "27543_10001"
+        # This matches formats: NUMBER [_/space/-] NUMBER
         match = re.search(r'(\d+)[_\s-]+(\d+)', code)
         if match:
             return (match.group(1), match.group(2))
             
-        # Default, just return the original code as first part
-        return (code, "")
+        # If no pattern matches, return empty parts
+        return ("", "")
 
     def _extract_gbif_id(self, gbif_value):
         """Extract numeric GBIF ID from various formats.
@@ -712,7 +720,7 @@ class Command(BaseCommand):
                 continue
             
             try:
-                # Find the biodiversity record using our mapping
+                # Find the biodiversity record using our mapping - with strict matching only
                 bio_record = None
                 
                 # For measurements.csv, we match the record_code directly with biodiversity_records.csv code_record
@@ -720,24 +728,21 @@ class Command(BaseCommand):
                 if record_code in self.biodiversity_code_map:
                     bio_record = self.biodiversity_code_map[record_code]
                 else:
-                    # If no direct match, try different formats (with/without spaces, etc.)
+                    # If no direct match, try normalized comparison (handle spaces, dashes, etc.)
+                    normalized_record_code = record_code.replace(' ', '').replace('-', '')
                     for bio_code, bio_record_obj in self.biodiversity_code_map.items():
-                        # If codes match after normalization (removing spaces, etc.)
-                        if record_code.replace(' ', '').replace('-', '') == bio_code.replace(' ', '').replace('-', ''):
+                        normalized_bio_code = bio_code.replace(' ', '').replace('-', '')
+                        if normalized_record_code == normalized_bio_code:
                             bio_record = bio_record_obj
                             # Cache for future lookups
                             self.biodiversity_code_map[record_code] = bio_record
                             break
                     
-                    # If still not found, use the first biodiversity record as a fallback
-                    if not bio_record:
-                        bio_record = BiodiversityRecord.objects.first()
-                        self.stdout.write(self.style.WARNING(
-                            f"No biodiversity record match found for measurement record_code: {record_code}. Using fallback."
-                        ))
-                
+                # If no match found, skip this record - no fallbacks
                 if not bio_record:
-                    self.stdout.write(self.style.WARNING(f"BiodiversityRecord not found for {record_code}"))
+                    error_msg = f"No biodiversity record match found for measurement record_code: {record_code}. Skipping."
+                    self.stdout.write(self.style.WARNING(error_msg))
+                    self.report_data['measurements']['skipped'].append(error_msg)
                     record_not_found += 1
                     continue
                 
@@ -886,7 +891,7 @@ class Command(BaseCommand):
                 continue
             
             try:
-                # Find the biodiversity record using our mapping
+                # Find the biodiversity record using our mapping - with strict matching only
                 bio_record = None
                 
                 # For observations_details.csv, record_code format is like "27543_10001" 
@@ -895,28 +900,31 @@ class Command(BaseCommand):
                 # Extract parts from the observation record code
                 first_part, second_part = self._extract_code_parts(record_code)
                 
-                # Try to match using the second part of the observation code
-                # Example: from "27543_10001", use "10001" to match with biodiversity record starting with "10001_"
-                if second_part and second_part in self.numeric_to_record_map:
-                    bio_record = self.numeric_to_record_map[second_part]
+                # To follow the exact pattern specified, for observations the rule is:
+                # 27543_10001 MATCHES biodiversity_record code_record = 10001_F1
+                # This means the SECOND part of observation code matches FIRST part of biodiversity code
+                if second_part:
+                    # Look through all biodiversity records to find a matching pattern
+                    for bio_code, bio_record_obj in self.biodiversity_code_map.items():
+                        # Only process original biodiversity codes (not normalized versions)
+                        if "_" in bio_code or " - " in bio_code or "-" in bio_code:
+                            bio_first_part, bio_second_part = self._extract_code_parts(bio_code)
+                            # Match the SECOND part of observation with FIRST part of biodiversity code
+                            if bio_first_part == second_part:
+                                bio_record = bio_record_obj
+                                # Log only the first 5 successful matches to avoid overwhelming output
+                                if observations_created < 5:
+                                    self.stdout.write(
+                                        f"Matched observation record '{record_code}' (second part '{second_part}') "
+                                        f"with biodiversity record '{bio_code}' (first part '{bio_first_part}')"
+                                    )
+                                break
                 
-                # If no match found by second part, try using the first part
-                if not bio_record and first_part in self.numeric_to_record_map:
-                    bio_record = self.numeric_to_record_map[first_part]
-                
-                # If still no match, check if full record_code matches any biodiversity record
-                if not bio_record and record_code in self.biodiversity_code_map:
-                    bio_record = self.biodiversity_code_map[record_code]
-                
-                # If still not found, use the first biodiversity record as a fallback
+                # If not found, skip this record - NO FALLBACKS
                 if not bio_record:
-                    bio_record = BiodiversityRecord.objects.first()
-                    self.stdout.write(self.style.WARNING(
-                        f"No biodiversity record match found for observation record_code: {record_code}. Using fallback."
-                    ))
-                
-                if not bio_record:
-                    self.stdout.write(self.style.WARNING(f"BiodiversityRecord not found for {record_code}"))
+                    error_msg = f"No biodiversity record match found for observation record_code: {record_code}. Skipping."
+                    self.stdout.write(self.style.WARNING(error_msg))
+                    self.report_data['observations']['skipped'].append(error_msg)
                     record_not_found += 1
                     continue
                 

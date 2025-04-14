@@ -67,7 +67,7 @@ docker-compose exec backend python manage.py createsuperuser
   - `apps/` - Django apps
     - `accounts/` - User management
     - `taxonomy/` - Family, genus, and species management
-    - `trees/` - Tree data management with GIS
+    - `biodiversity/` - Tree data management with GIS
     - `observations/` - Tree measurements and observations
 
 ### Frontend (Angular)
@@ -109,7 +109,3 @@ The API documentation is available at:
 
 - Swagger UI: <http://localhost:8000/api/v1/swagger/>
 - ReDoc: <http://localhost:8000/api/v1/redoc/>
-
-## Deployment
-
-For production deployment, see the instructions in `docs/deployment/`.

@@ -32,11 +32,9 @@ class Measurement(models.Model):
         NOT_REPORTED = "NO", _("not reported")
 
     class MeasurementMethod(models.TextChoices):
-        DIRECT = "DI", _("direct")
-        INDIRECT = "IN", _("indirect")
         OPTICAL_ESTIMATION = "OE", _("optical estimation")
-        DIAMETER_TAPE = "DT", _("diameter tape")
         VOLUME_EQUATION = "VE", _("volume equation")
+        DIAMETER_TAPE = "DT", _("diameter tape")
         WOOD_DENSITY_DB = "WD", _("wood density database")
         OTHER = "OT", _("other")
         NOT_REPORTED = "NO", _("not reported")
@@ -71,7 +69,6 @@ class Measurement(models.Model):
     date = models.DateField(_("measurement date"), null=True, blank=True)
     created_at = models.DateTimeField(_("created at"), auto_now_add=True)
     updated_at = models.DateTimeField(_("updated at"), auto_now=True)
-    original_code = models.CharField(max_length=50, null=True, blank=True, db_index=True)
 
     class Meta:
         verbose_name = _("measurement")
@@ -135,15 +132,6 @@ class Observation(models.Model):
         related_name="observations",
         verbose_name=_("biodiversity record"),
     )
-    accompanying_collectors = models.TextField(
-        _("accompanying collectors"), blank=True, default="No reportado"
-    )
-    use = models.URLField(_("use"), blank=True, help_text=_("reference URL for use"))
-    is_standing = models.BooleanField(
-        _("is standing"),
-        default=True,
-        help_text=_("whether the tree is alive and standing"),
-    )
     reproductive_condition = models.CharField(
         _("reproductive condition"),
         max_length=2,
@@ -181,13 +169,15 @@ class Observation(models.Model):
         default=GrowthPhase.NOT_REPORTED,
     )
     notes = models.TextField(_("notes"), blank=True)
-    date = models.DateField(_("observation date"), null=True, blank=True)
-    created_at = models.DateTimeField(_("created at"), auto_now_add=True)
-    updated_at = models.DateTimeField(_("updated at"), auto_now=True)
     recorded_by = models.CharField(
         _("recorded by"), max_length=50, default="Cortolima", blank=True
     )
-    original_code = models.CharField(max_length=50, null=True, blank=True, db_index=True)
+    accompanying_collectors = models.TextField(
+        _("accompanying collectors"), blank=True, default="No reportado"
+    )
+    date = models.DateField(_("observation date"), null=True, blank=True)
+    created_at = models.DateTimeField(_("created at"), auto_now_add=True)
+    updated_at = models.DateTimeField(_("updated at"), auto_now=True)
 
     class Meta:
         verbose_name = _("observation")

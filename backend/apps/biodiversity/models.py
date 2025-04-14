@@ -44,9 +44,10 @@ class Place(models.Model):
 
 class BiodiversityRecord(models.Model):
     """Represents a record of biodiversity, including species, location,
-    common names, and other attributes."""
+    common name, and other attributes."""
 
     uuid = models.UUIDField(_("uuid"), default=uuid.uuid4, editable=False)
+    common_name = models.TextField(_("common name"), blank=True)
     species = models.ForeignKey(
         Species,
         on_delete=models.PROTECT,
@@ -67,7 +68,6 @@ class BiodiversityRecord(models.Model):
     date = models.DateField(_("recorded date"), null=True, blank=True)
     created_at = models.DateTimeField(_("created at"), auto_now_add=True)
     updated_at = models.DateTimeField(_("updated at"), auto_now=True)
-    original_code = models.CharField(max_length=50, null=True, blank=True, db_index=True)
 
     class Meta:
         verbose_name = _("biodiversity record")

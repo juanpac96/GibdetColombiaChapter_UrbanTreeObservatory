@@ -44,8 +44,8 @@ GROWTH_HABIT_MAPPINGS = {
 MEASURED_ATTRIBUTE_MAPPINGS = {
     'Altura de fuste': Measurement.MeasuredAttribute.TRUNK_HEIGHT,
     'Altura total': Measurement.MeasuredAttribute.TOTAL_HEIGHT,
-    'Diámetro de copa': Measurement.MeasuredAttribute.CANOPY_DIAMETER,
-    'Diametro de copa': Measurement.MeasuredAttribute.CANOPY_DIAMETER,
+    'Diámetro de copa': Measurement.MeasuredAttribute.CROWN_DIAMETER,
+    'Diametro de copa': Measurement.MeasuredAttribute.CROWN_DIAMETER,
     'DAP': Measurement.MeasuredAttribute.DIAMETER_BH,
     'Volumen': Measurement.MeasuredAttribute.VOLUME,
     'Densidad de madera': Measurement.MeasuredAttribute.WOOD_DENSITY,

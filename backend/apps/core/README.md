@@ -90,14 +90,14 @@ The command expects the following CSV files:
    - growth_phase: Growth phase (e.g., "F1", "F2", "F3")
    - origin: Origin (e.g., "Exótica", "Nativa")
    - iucn_status: IUCN conservation status
-   - growth_habit: Growth habit (e.g., "Árbol", "Palmera")
+   - life_form: Growth habit (e.g., "Árbol", "Palmera")
 
 #### Language Mapping
 
 The command automatically maps Spanish terms in the CSV files to English choices in the Django models. For example:
 
 - "Sano" → `PhytosanitaryStatus.HEALTHY`
-- "Árbol" → `GrowthHabit.TREE`
+- "Árbol" → `LifeForm.TREE`
 - "Floración" → `ReproductiveCondition.FLOWERING`
 
 These mappings are defined in `apps/core/utils/mappings.py` and can be extended as needed.

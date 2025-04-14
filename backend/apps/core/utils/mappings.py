@@ -9,8 +9,6 @@ ORIGIN_MAPPINGS = {
     'Exótica': Species.Origin.EXOTIC,
     'Exotica': Species.Origin.EXOTIC,
     'Nativa': Species.Origin.NATIVE,
-    'Desconocido': Species.Origin.UNKNOWN,
-    'Desconocida': Species.Origin.UNKNOWN,
     # Add more mappings as needed
 }
 
@@ -30,13 +28,13 @@ IUCN_STATUS_MAPPINGS = {
     # Add more mappings as needed
 }
 
-GROWTH_HABIT_MAPPINGS = {
-    'Árbol': Species.GrowthHabit.TREE,
-    'Arbol': Species.GrowthHabit.TREE,
-    'Palmera': Species.GrowthHabit.PALM_TREE,
-    'Arbusto': Species.GrowthHabit.SHRUB,
-    'Desconocido': Species.GrowthHabit.UNKNOWN,
-    'Desconocida': Species.GrowthHabit.UNKNOWN,
+LIFEFORM_MAPPINGS = {
+    'Árbol': Species.LifeForm.TREE,
+    'Arbol': Species.LifeForm.TREE,
+    'Palmera': Species.LifeForm.PALM_TREE,
+    'Arbusto': Species.LifeForm.SHRUB,
+    'Otro': Species.LifeForm.OTHER,
+    'Otra': Species.LifeForm.OTHER,
     # Add more mappings as needed
 }
 
@@ -78,8 +76,6 @@ MEASUREMENT_UNIT_MAPPINGS = {
 }
 
 MEASUREMENT_METHOD_MAPPINGS = {
-    'Directa': Measurement.MeasurementMethod.DIRECT,
-    'Indirecta': Measurement.MeasurementMethod.INDIRECT,
     'Estimación óptica': Measurement.MeasurementMethod.OPTICAL_ESTIMATION,
     'Estimacion optica': Measurement.MeasurementMethod.OPTICAL_ESTIMATION,
     'Cinta diamétrica': Measurement.MeasurementMethod.DIAMETER_TAPE,

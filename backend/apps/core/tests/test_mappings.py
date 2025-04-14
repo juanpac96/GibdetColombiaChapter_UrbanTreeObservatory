@@ -6,7 +6,7 @@ from django.test import TestCase
 from apps.taxonomy.models import Species
 from apps.reports.models import Measurement, Observation
 from apps.core.utils.mappings import (
-    get_mapped_value, ORIGIN_MAPPINGS, IUCN_STATUS_MAPPINGS, GROWTH_HABIT_MAPPINGS,
+    get_mapped_value, ORIGIN_MAPPINGS, IUCN_STATUS_MAPPINGS, LIFEFORM_MAPPINGS,
     MEASURED_ATTRIBUTE_MAPPINGS, MEASUREMENT_UNIT_MAPPINGS, MEASUREMENT_METHOD_MAPPINGS,
     REPRODUCTIVE_CONDITION_MAPPINGS, PHYTOSANITARY_STATUS_MAPPINGS
 )
@@ -57,11 +57,11 @@ class MappingUtilsTestCase(TestCase):
             Species.IUCNStatus.VULNERABLE
         )
 
-    def test_growth_habit_mappings(self):
+    def test_life_form_mappings(self):
         """Test that growth habit mappings work correctly."""
         self.assertEqual(
-            get_mapped_value('Árbol', GROWTH_HABIT_MAPPINGS),
-            Species.GrowthHabit.TREE
+            get_mapped_value('Árbol', LIFEFORM_MAPPINGS),
+            Species.LifeForm.TREE
         )
 
     def test_measured_attribute_mappings(self):
@@ -76,13 +76,6 @@ class MappingUtilsTestCase(TestCase):
         self.assertEqual(
             get_mapped_value('m', MEASUREMENT_UNIT_MAPPINGS),
             Measurement.MeasurementUnit.METERS
-        )
-
-    def test_measurement_method_mappings(self):
-        """Test that measurement method mappings work correctly."""
-        self.assertEqual(
-            get_mapped_value('Directa', MEASUREMENT_METHOD_MAPPINGS),
-            Measurement.MeasurementMethod.DIRECT
         )
 
     def test_reproductive_condition_mappings(self):

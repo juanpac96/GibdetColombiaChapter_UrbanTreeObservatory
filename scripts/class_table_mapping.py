@@ -382,9 +382,7 @@ class Observations_details(Base):
     foliage_density = Column(String)  
     aesthetic_value = Column(String)  
     growth_phase = Column(String)  
-    origin = Column(String)  # New column
-    iucn_status = Column(String)  # New column
-    growth_habit = Column(String)  # New column
+
 
     biodiversity = relationship("Biodiversity_records")
 
@@ -392,14 +390,12 @@ class Observations_details(Base):
     list_columns = [
         'record_code', 'biological_record_comments', 'reproductive_condition', 'observations',
         'phytosanitary_status', 'accompanying_collectors', 'use',
-        'physical_condition', 'foliage_density', 'aesthetic_value', 'growth_phase',
-        'origin', 'iucn_status', 'growth_habit'
+        'physical_condition', 'foliage_density', 'aesthetic_value', 'growth_phase'
     ]
 
     def __init__(self, record_code, biological_record_comments, reproductive_condition, observations, 
                  phytosanitary_status, accompanying_collectors, use, 
-                 physical_condition=None, foliage_density=None, aesthetic_value=None, growth_phase=None,
-                 origin=None, iucn_status=None, growth_habit=None):
+                 physical_condition=None, foliage_density=None, aesthetic_value=None, growth_phase=None):
         self.record_code = record_code
         self.biological_record_comments = biological_record_comments
         self.reproductive_condition = reproductive_condition
@@ -411,12 +407,10 @@ class Observations_details(Base):
         self.foliage_density = foliage_density
         self.aesthetic_value = aesthetic_value
         self.growth_phase = growth_phase
-        self.origin = origin
-        self.iucn_status = iucn_status
-        self.growth_habit = growth_habit
+
 
     def __repr__(self):
-        return f"<Observations_details(record_code='{self.record_code}', physical_condition='{self.physical_condition}', foliage_density='{self.foliage_density}', aesthetic_value='{self.aesthetic_value}', growth_phase='{self.growth_phase}', origin='{self.origin}', iucn_status='{self.iucn_status}', growth_habit='{self.growth_habit}')>"
+        return f"<Observations_details(record_code='{self.record_code}', physical_condition='{self.physical_condition}', foliage_density='{self.foliage_density}', aesthetic_value='{self.aesthetic_value}', growth_phase='{self.growth_phase}')>"
 
     def __str__(self):
         return self.record_code

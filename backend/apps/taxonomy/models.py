@@ -213,7 +213,6 @@ class Species(models.Model):
     )
     gbif_id = models.CharField(
         _("GBIF ID"),
-        unique=True,
         max_length=20, 
         blank=True, 
         help_text="GBIF species identifier"

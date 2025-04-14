@@ -67,7 +67,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='species',
             name='gbif_id',
-            field=models.CharField(blank=True, help_text='GBIF species identifier', max_length=20, unique=True, verbose_name='GBIF ID'),
+            field=models.CharField(blank=True, help_text='GBIF species identifier', max_length=20, verbose_name='GBIF ID'),
         ),
         migrations.AddField(
             model_name='species',

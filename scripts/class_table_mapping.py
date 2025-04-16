@@ -360,7 +360,7 @@ class Biodiversity_records(Base):
   epsg_id: SmallInteger |Foreign Key to geog_coord_syst.epsg|
   '''
   __tablename__ = 'biodiversity_records'
-  code_record = Column(String, nullable=False, unique=True, primary_key=True)
+  code_record = Column(Integer, nullable=False, unique=True, primary_key=True)
   common_name = Column(String)
   latitude = Column(Float)
   longitude = Column(Float)
@@ -423,7 +423,7 @@ class Measurements(Base):
   measurement_method = Column(String)
   measurement_unit = Column(String)
   measurement_date_event = Column(DateTime)
-  record_code = Column(String, ForeignKey("biodiversity_records.code_record"))
+  record_code = Column(Integer, ForeignKey("biodiversity_records.code_record"))
   biodiversity = relationship("Biodiversity_records")
   list_columns = ['measurement_name','measurement_value','measurement_method','measurement_unit','measurement_date_event','record_code']
 
@@ -479,7 +479,7 @@ class Observations_details(Base):
     __tablename__ = 'observations_details'
 
     id_observation = Column(Integer, primary_key=True)
-    record_code = Column(String, ForeignKey('biodiversity_records.code_record'))
+    record_code = Column(Integer, ForeignKey('biodiversity_records.code_record'))
 
     # Textual / Descriptive Fields
     biological_record_comments = Column(Text)

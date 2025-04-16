@@ -279,6 +279,7 @@ class FunctionalTraitsStructure(Base):
 
     id_structure = Column(Integer, primary_key=True)
     pft_id = Column(Integer)
+    species = Column(String)
     taxonomy_id = Column(Integer, ForeignKey("taxonomy_details.id_taxonomy"))
     taxonomy = relationship("Taxonomy_details", back_populates="structure_traits")
 
@@ -302,19 +303,20 @@ class FunctionalTraitsStructure(Base):
     
 
     list_columns = [
-        'pft_id', 'taxonomy_id', 'canopy_shape', 'color',
+        'pft_id', 'species','taxonomy_id', 'canopy_shape', 'color',
         'carbon_sequestration_min', 'carbon_sequestration_max',
         'shade_index_min', 'shade_index_max',
         'canopy_diameter_min', 'canopy_diameter_max',
         'height_max_min', 'height_max_max'
     ]
 
-    def __init__(self, pft_id, taxonomy_id, canopy_shape, color,
+    def __init__(self, pft_id,species , taxonomy_id, canopy_shape, color,
                  carbon_sequestration_min, carbon_sequestration_max,
                  shade_index_min, shade_index_max,
                  canopy_diameter_min, canopy_diameter_max,
                  height_max_min, height_max_max):
         self.pft_id = pft_id
+        self.species = species
         self.taxonomy_id = taxonomy_id
         self.canopy_shape = canopy_shape
         self.color = color
@@ -322,6 +324,7 @@ class FunctionalTraitsStructure(Base):
         self.carbon_sequestration_max = carbon_sequestration_max
         self.shade_index_min = shade_index_min
         self.shade_index_max = shade_index_max
+        
         self.canopy_diameter_min = canopy_diameter_min
         self.canopy_diameter_max = canopy_diameter_max
         self.height_max_min = height_max_min
@@ -400,16 +403,16 @@ class Biodiversity_records(Base):
 # Table of measuraments
 class Measurements(Base):
   '''
-  Esta tabla tiene las medidas.
-  de los registros de biodiversidad, y especificando los metodos mediante los cuales se tomaron estos valores.
-  Hereda sus propiedades de la clase `Base` del modulo SQLAlchemy.
-  Las columnas y tipos de datos que requiere esta tabla son:
+  This table contains the measurements
+  from biodiversity records, specifying the methods by which these values were obtained.
+  It inherits its properties from the `Base` class of the SQLAlchemy module.
+  The columns and data types required by this table are:
 
-  measurement_name: String
-  measurement_value: Float
-  measurement_method: String
-  measurement_date_event: DateTime
-  record_code: String
+  measurement_name: String  
+  measurement_value: Float  
+  measurement_method: String  
+  measurement_date_event: DateTime  
+  record_code: String  
   '''
   # Table name
   __tablename__ = "measurements"
@@ -447,71 +450,97 @@ class Measurements(Base):
 # Table of observations from biodiversity records 
 class Observations_details(Base):
     """
-    This table contains observations from biodiversity records,
-    specifying the methods by which these values were taken.
-    It inherits its properties from the `Base` class of the SQLAlchemy module.
-    
-    Columns:
-    - id_observation: Integer (Primary Key)
-    - record_code: String (ForeignKey from biodiversity_records.code_record)
-    - biological_record_comments: String
-    - reproductive_condition: String
-    - observations: String
-    - phytosanitary_status: String
-    - accompanying_collectors: String
-    - use: String
-    - physical_condition: String
-    - foliage_density: String
-    - aesthetic_value: String
-    - growth_phase: String
-    - origin: String (New)
-    - iucn_status: String (New)
-    - growth_habit: String (New)
-    """
+    This table stores qualitative and quantitative observation data associated with biodiversity records.
+    It includes descriptive assessments (e.g., physical condition, aesthetic value) and condition indexes 
+    (e.g., foliage density, phytosanitary status), as well as multiple binary indicators and numeric scores 
+    from standardized evaluation protocols.
 
-    # Table name
+    The table inherits from SQLAlchemy's `Base` class, and its structure is designed to ensure compatibility 
+    with environmental monitoring systems, urban tree inventories, and ecological health assessments.
+
+    The columns and their expected data types are:
+
+    record_code: String (Foreign Key from biodiversity_records.code_record)
+    biological_record_comments: Text
+    reproductive_condition: String
+    observations: String
+    accompanying_collectors: String
+    physical_condition: String
+    foliage_density: String
+    aesthetic_value: String
+    growth_phase: String
+    ed: String
+    hc: String
+    hcf: String
+    general_state: String
+    cre, crh, cra, coa, ce, civ, crt, crg, cap: String (binary condition flags)
+    rd, dm, bbs, ab, pi, ph, pa, pd, pe, pp, po, r_vol, r_cr, r_ce: String (scored indicators)
+    """
     __tablename__ = 'observations_details'
 
-    # Table columns
     id_observation = Column(Integer, primary_key=True)
     record_code = Column(String, ForeignKey('biodiversity_records.code_record'))
+
+    # Textual / Descriptive Fields
     biological_record_comments = Column(Text)
     reproductive_condition = Column(String)
     observations = Column(String)
-    phytosanitary_status = Column(String)
     accompanying_collectors = Column(String)
-    physical_condition = Column(String)  
-    foliage_density = Column(String)  
-    aesthetic_value = Column(String)  
-    growth_phase = Column(String)  
 
+    # Qualitative Assessments
+    physical_condition = Column(String)
+    foliage_density = Column(String)
+    aesthetic_value = Column(String)
+    growth_phase = Column(String)
+    ed = Column(String)  # estado del dosel
+    hc = Column(String)  # condición fitosanitaria
+    hcf = Column(String)  # condición fitosanitaria del follaje
+    general_state = Column(String)  # estado general
+
+    # Binary Condition Flags
+    cre = Column(String)
+    crh = Column(String)
+    cra = Column(String)
+    coa = Column(String)
+    ce = Column(String)
+    civ = Column(String)
+    crt = Column(String)
+    crg = Column(String)
+    cap = Column(String)
+
+    # Numeric Scores (pueden ser cast a integer si se desea)
+    rd = Column(String)
+    dm = Column(String)
+    bbs = Column(String)
+    ab = Column(String)
+    pi = Column(String)
+    ph = Column(String)
+    pa = Column(String)
+    pd = Column(String)
+    pe = Column(String)
+    pp = Column(String)
+    po = Column(String)
+    r_vol = Column(String)
+    r_cr = Column(String)
+    r_ce = Column(String)
 
     biodiversity = relationship("Biodiversity_records")
 
-    # Updated list of column names
     list_columns = [
         'record_code', 'biological_record_comments', 'reproductive_condition', 'observations',
-        'phytosanitary_status', 'accompanying_collectors',
-        'physical_condition', 'foliage_density', 'aesthetic_value', 'growth_phase'
+        'accompanying_collectors', 'physical_condition', 'foliage_density', 'aesthetic_value',
+        'growth_phase', 'ed', 'hc', 'hcf', 'general_state',
+        'cre', 'crh', 'cra', 'coa', 'ce', 'civ', 'crt', 'crg', 'cap',
+        'rd', 'dm', 'bbs', 'ab', 'pi', 'ph', 'pa', 'pd', 'pe', 'pp', 'po',
+        'r_vol', 'r_cr', 'r_ce'
     ]
 
-    def __init__(self, record_code, biological_record_comments, reproductive_condition, observations, 
-                 phytosanitary_status, accompanying_collectors,
-                 physical_condition=None, foliage_density=None, aesthetic_value=None, growth_phase=None):
-        self.record_code = record_code
-        self.biological_record_comments = biological_record_comments
-        self.reproductive_condition = reproductive_condition
-        self.observations = observations
-        self.phytosanitary_status = phytosanitary_status
-        self.accompanying_collectors = accompanying_collectors
-        self.physical_condition = physical_condition
-        self.foliage_density = foliage_density
-        self.aesthetic_value = aesthetic_value
-        self.growth_phase = growth_phase
-
+    def __init__(self, **kwargs):
+        for key in self.list_columns:
+            setattr(self, key, kwargs.get(key))
 
     def __repr__(self):
-        return f"<Observations_details(record_code='{self.record_code}', physical_condition='{self.physical_condition}', foliage_density='{self.foliage_density}', aesthetic_value='{self.aesthetic_value}', growth_phase='{self.growth_phase}')>"
+        return f"<Observations_details(record_code='{self.record_code}')>"
 
     def __str__(self):
         return self.record_code

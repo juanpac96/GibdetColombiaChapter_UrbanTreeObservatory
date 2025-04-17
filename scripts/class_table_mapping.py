@@ -218,7 +218,6 @@ class Taxonomy_details(Base):
     gbif_id = Column(String)
     lifeForm = Column(String)
     origin = Column(String)
-    use = Column(String)
     iucn_category = Column(String)
     identified_by = Column(String)
     date_of_identification = Column(String)
@@ -228,12 +227,12 @@ class Taxonomy_details(Base):
 
     list_columns = [
         'family', 'genus', 'specie', 'accept_scientific_name', 'gbif_id',
-        'lifeForm', 'origin', 'use',
+        'lifeForm', 'origin',
         'iucn_category', 'identified_by', 'date_of_identification'
     ]
 
     def __init__(self, family, genus, specie, accept_scientific_name,
-                 gbif_id, lifeForm, origin, use,
+                 gbif_id, lifeForm, origin,
                  iucn_category, identified_by, date_of_identification):
         self.family = family
         self.genus = genus
@@ -242,7 +241,6 @@ class Taxonomy_details(Base):
         self.gbif_id = gbif_id
         self.lifeForm = lifeForm
         self.origin = origin
-        self.use = use
         self.iucn_category = iucn_category
         self.identified_by = identified_by
         self.date_of_identification = date_of_identification
@@ -279,13 +277,8 @@ class FunctionalTraitsStructure(Base):
 
     id_structure = Column(Integer, primary_key=True)
     pft_id = Column(Integer)
-    species = Column(String)
     taxonomy_id = Column(Integer, ForeignKey("taxonomy_details.id_taxonomy"))
     taxonomy = relationship("Taxonomy_details", back_populates="structure_traits")
-
-    # Structural traits
-    canopy_shape = Column(String)
-    color = Column(String)
 
     # Functional trait ranges
     carbon_sequestration_min = Column(Float)
@@ -303,14 +296,14 @@ class FunctionalTraitsStructure(Base):
     
 
     list_columns = [
-        'pft_id', 'species','taxonomy_id', 'canopy_shape', 'color',
+        'pft_id','taxonomy_id',
         'carbon_sequestration_min', 'carbon_sequestration_max',
         'shade_index_min', 'shade_index_max',
         'canopy_diameter_min', 'canopy_diameter_max',
         'height_max_min', 'height_max_max'
     ]
 
-    def __init__(self, pft_id,species , taxonomy_id, canopy_shape, color,
+    def __init__(self, pft_id,species , taxonomy_id,
                  carbon_sequestration_min, carbon_sequestration_max,
                  shade_index_min, shade_index_max,
                  canopy_diameter_min, canopy_diameter_max,
@@ -318,8 +311,7 @@ class FunctionalTraitsStructure(Base):
         self.pft_id = pft_id
         self.species = species
         self.taxonomy_id = taxonomy_id
-        self.canopy_shape = canopy_shape
-        self.color = color
+
         self.carbon_sequestration_min = carbon_sequestration_min
         self.carbon_sequestration_max = carbon_sequestration_max
         self.shade_index_min = shade_index_min

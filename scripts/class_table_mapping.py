@@ -489,6 +489,7 @@ class Observations_details(Base):
 
     # Qualitative Assessments
     physical_condition = Column(String)
+    phytosanitary_status = Column(String)
     foliage_density = Column(String)
     aesthetic_value = Column(String)
     growth_phase = Column(String)
@@ -528,7 +529,7 @@ class Observations_details(Base):
 
     list_columns = [
         'record_code', 'biological_record_comments', 'reproductive_condition', 'observations',
-        'accompanying_collectors', 'physical_condition', 'foliage_density', 'aesthetic_value',
+        'accompanying_collectors', 'physical_condition','phytosanitary_status', 'foliage_density', 'aesthetic_value',
         'growth_phase', 'ed', 'hc', 'hcf', 'general_state',
         'cre', 'crh', 'cra', 'coa', 'ce', 'civ', 'crt', 'crg', 'cap',
         'rd', 'dm', 'bbs', 'ab', 'pi', 'ph', 'pa', 'pd', 'pe', 'pp', 'po',

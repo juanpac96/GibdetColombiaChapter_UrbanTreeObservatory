@@ -100,8 +100,8 @@ class Place(UniqueMixin, Base):
     self.department = department
     self.municipality = municipality
     self.populated_center = populated_center
-    self.zone = self.zone
-    self.subzone = self.subzone
+    self.zone = zone
+    self.subzone = subzone
     self.site = site
     self.code_site =code_site
 

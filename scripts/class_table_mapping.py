@@ -217,7 +217,7 @@ class Taxonomy_details(Base):
     accept_scientific_name = Column(String)
     gbif_id = Column(String)
     lifeForm = Column(String)
-    establishmentMeans = Column(String)
+    origin = Column(String)
     use = Column(String)
     iucn_category = Column(String)
     identified_by = Column(String)
@@ -228,12 +228,12 @@ class Taxonomy_details(Base):
 
     list_columns = [
         'family', 'genus', 'specie', 'accept_scientific_name', 'gbif_id',
-        'lifeForm', 'establishmentMeans', 'use',
+        'lifeForm', 'origin', 'use',
         'iucn_category', 'identified_by', 'date_of_identification'
     ]
 
     def __init__(self, family, genus, specie, accept_scientific_name,
-                 gbif_id, lifeForm, establishmentMeans, use,
+                 gbif_id, lifeForm, origin, use,
                  iucn_category, identified_by, date_of_identification):
         self.family = family
         self.genus = genus
@@ -241,7 +241,7 @@ class Taxonomy_details(Base):
         self.accept_scientific_name = accept_scientific_name
         self.gbif_id = gbif_id
         self.lifeForm = lifeForm
-        self.establishmentMeans = establishmentMeans
+        self.origin = origin
         self.use = use
         self.iucn_category = iucn_category
         self.identified_by = identified_by

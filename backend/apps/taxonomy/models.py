@@ -1,11 +1,13 @@
-import uuid
-
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+from django.core.validators import RegexValidator
+
+from apps.core.models import BaseModel
 
 
-class Family(models.Model):
-    uuid = models.UUIDField(_("uuid"), default=uuid.uuid4, editable=False)
+class Family(BaseModel):
+    """Represents a family of species."""
+
     name = models.CharField(_("family name"), max_length=50, unique=True)
 
     class Meta:
@@ -17,8 +19,9 @@ class Family(models.Model):
         return self.name
 
 
-class Genus(models.Model):
-    uuid = models.UUIDField(_("uuid"), default=uuid.uuid4, editable=False)
+class Genus(BaseModel):
+    """Represents a genus of species."""
+
     name = models.CharField(_("genus name"), max_length=50, unique=True)
     family = models.ForeignKey(
         Family,
@@ -36,7 +39,7 @@ class Genus(models.Model):
         return self.name
 
 
-class Trait(models.Model):
+class Trait(BaseModel):
     """Represents a trait that can be measured for a species group."""
 
     class TraitType(models.TextChoices):
@@ -44,27 +47,25 @@ class Trait(models.Model):
         SHADE_IDX = "SHADE", _("shade index")
         CANOPY_DIAMETER_MAX = "CANOPY", _("maximum diameter of canopy (m)")
         TOTAL_HEIGHT_MAX = "HEIGHT", _("maximum total height (m)")
-    
-    uuid = models.UUIDField(_("uuid"), default=uuid.uuid4, editable=False)
+
     type = models.CharField(
         _("trait type"),
         max_length=6,
         choices=TraitType,
     )
-    
+
     class Meta:
         verbose_name = _("trait")
         verbose_name_plural = _("traits")
         ordering = ["type"]
-        
+
     def __str__(self):
         return self.get_type_display()
 
 
-class TraitValue(models.Model):
+class TraitValue(BaseModel):
     """Represents a specific trait value range for a functional group."""
-    
-    uuid = models.UUIDField(_("uuid"), default=uuid.uuid4, editable=False)
+
     trait = models.ForeignKey(
         Trait,
         on_delete=models.CASCADE,
@@ -79,11 +80,11 @@ class TraitValue(models.Model):
     )
     min_value = models.FloatField(
         _("minimum value"),
-        help_text=_("minimum value for this trait in the functional group"),
+        help_text=_("Minimum value for this trait in the functional group"),
     )
     max_value = models.FloatField(
         _("maximum value"),
-        help_text=_("maximum value for this trait in the functional group"),
+        help_text=_("Maximum value for this trait in the functional group"),
     )
 
     class Meta:
@@ -95,15 +96,15 @@ class TraitValue(models.Model):
                 name="unique_trait_functional_group",
             ),
             models.CheckConstraint(
-                check=models.Q(min_value__lte=models.F("max_value")),
+                condition=models.Q(min_value__lte=models.F("max_value")),
                 name="min_value_less_than_max_value",
             ),
             models.CheckConstraint(
-                check=models.Q(min_value__gte=0),
+                condition=models.Q(min_value__gte=0),
                 name="min_value_greater_than_zero",
             ),
             models.CheckConstraint(
-                check=models.Q(max_value__gte=0),
+                condition=models.Q(max_value__gte=0),
                 name="max_value_greater_than_zero",
             ),
         ]
@@ -112,18 +113,17 @@ class TraitValue(models.Model):
         return f"{self.trait}: {self.min_value}-{self.max_value}"
 
 
-class FunctionalGroup(models.Model):
+class FunctionalGroup(BaseModel):
     """Represents a functional group of species."""
 
-    uuid = models.UUIDField(_("uuid"), default=uuid.uuid4, editable=False)
     group_id = models.PositiveSmallIntegerField(
         _("group id"),
-        help_text=_("unique identifier for the functional group"),
+        help_text=_("Unique identifier for the functional group"),
         unique=True,
     )
     description = models.TextField(
         _("description"),
-        help_text=_("description of the functional group"),
+        help_text=_("Optional description of the functional group"),
         blank=True,
     )
     traits = models.ManyToManyField(
@@ -136,24 +136,28 @@ class FunctionalGroup(models.Model):
     class Meta:
         verbose_name = _("functional group")
         verbose_name_plural = _("functional groups")
-        ordering = ["id"]
+        ordering = ["group_id"]
 
     def __str__(self):
         return f"Group {str(self.group_id)}"
 
 
-class Species(models.Model):
+class Species(BaseModel):
     """Represents a species, including its genus and family."""
 
     class Origin(models.TextChoices):
-        EXOTIC = "EX", _("exotic")
         NATIVE = "NA", _("native")
+        CULTIVATED = "CU", _("cultivated")
+        NATIVE_CULTIVATED = "NC", _("native | cultivated")
+        NATURALIZED = "NU", _("naturalized")
+        NATURALIZED_CULTIVATED = "NL", _("naturalized | cultivated")
         ENDEMIC = "EN", _("endemic")
         NOT_IDENTIFIED = "NI", _("not identified")
 
     class IUCNStatus(models.TextChoices):
         DATA_DEFICIENT = "DD", _("data deficient")
         LEAST_CONCERN = "LC", _("least concern")
+        CONSERVATION_DEPENDENT = "CD", _("lower risk / conservation dependent")
         NEAR_THREATENED = "NT", _("near threatened")
         VULNERABLE = "VU", _("vulnerable")
         ENDANGERED = "EN", _("endangered")
@@ -168,7 +172,34 @@ class Species(models.Model):
         SHRUB = "SH", _("shrub")
         OTHER = "OT", _("other")
 
-    uuid = models.UUIDField(_("uuid"), default=uuid.uuid4, editable=False)
+    class CanopyShape(models.TextChoices):
+        BROAD = "BD", _("broad")
+        CAULIROSULA_FAN = "CF", _("caulirosula - fan")
+        CAULIROSULA_FEATHER = "CR", _("caulirosula - feather")
+        CAULIROSULA_SESPITOSO = "CS", _("caulirosula sespitoso")
+        COLUMNAR = "CO", _("columnar")
+        GLOBOSE = "GL", _("globose")
+        IRREGULAR = "IR", _("irregular")
+        OVAL = "OV", _("oval")
+        PYRAMIDAL = "PY", _("pyramidal")
+        SEMIGLOBOSE = "SG", _("semiglobose")
+        SPREADING = "SP", _("spreading")
+        OTHER = "OT", _("other")
+        NOT_IDENTIFIED = "NI", _("not identified")
+
+    class FlowerColor(models.TextChoices):
+        BROWN = "BR", _("brown")
+        FUCHSIA = "FU", _("fuchsia")
+        GREEN = "GR", _("green")
+        ORANGE = "OR", _("orange")
+        PINK = "PI", _("pink")
+        RED = "RE", _("red")
+        VIOLET = "VI", _("violet")
+        WHITE = "WH", _("white")
+        YELLOW = "YE", _("yellow")
+        OTHER = "OT", _("other")
+        NOT_IDENTIFIED = "NI", _("not identified")
+
     genus = models.ForeignKey(
         Genus,
         on_delete=models.CASCADE,
@@ -176,7 +207,7 @@ class Species(models.Model):
         verbose_name=_("genus"),
     )
     name = models.CharField(
-        _("species name"), max_length=50, help_text=_("species name without the genus")
+        _("species name"), max_length=50, help_text=_("Species name without the genus")
     )
     functional_group = models.ForeignKey(
         FunctionalGroup,
@@ -189,7 +220,7 @@ class Species(models.Model):
         _("accepted scientific name"),
         max_length=150,
         help_text=_(
-            "scientific genus and species name with optional reference to whom named it"
+            "Scientific genus and species name with optional reference to whom named it"
         ),
         default="No identificado",
     )
@@ -211,24 +242,34 @@ class Species(models.Model):
         choices=LifeForm,
         default=LifeForm.TREE,
     )
+    canopy_shape = models.CharField(
+        _("canopy shape"),
+        max_length=50,
+        choices=CanopyShape,
+        default=CanopyShape.NOT_IDENTIFIED,
+    )
+    flower_color = models.CharField(
+        _("flower color"),
+        max_length=50,
+        choices=FlowerColor,
+        default=FlowerColor.NOT_IDENTIFIED,
+    )
     gbif_id = models.CharField(
         _("GBIF ID"),
-        max_length=20, 
-        blank=True, 
-        help_text="GBIF species identifier"
-    )
-    use = models.CharField(
-        _("use"),
-        max_length=255,
-        default="No reportado",
-        help_text=_("common local use of the species"),
+        max_length=12,
+        blank=True,
+        help_text=_("GBIF species identifier"),
+        validators=[
+            RegexValidator(
+                regex=r"^\d+$",
+                message=_("GBIF ID must be a positive integer."),
+            )
+        ],
     )
     identified_by = models.CharField(
-        _("identified by"), max_length=255, default="Cortolima", blank=True
+        _("identified by"), max_length=255, default="Cortolima"
     )
-    identified_date = models.DateField(_("identified date"), null=True, blank=True)
-    created_at = models.DateTimeField(_("created at"), auto_now_add=True)
-    updated_at = models.DateTimeField(_("updated at"), auto_now=True)
+    date = models.DateField(_("identified date"), null=True, blank=True)
 
     class Meta:
         verbose_name = _("species")
@@ -246,11 +287,17 @@ class Species(models.Model):
 
     @property
     def gbif_url(self):
-        if self.gbif_id and self.gbif_id != "No identificado":
+        """Return the GBIF URL for the species if gbif_id is valid."""
+        if self.gbif_id and self.gbif_id.isdigit():
             return f"https://www.gbif.org/species/{self.gbif_id}"
         return None
 
     @property
     def scientific_name(self):
         """Return the scientific name of the species."""
-        return f"{self.genus} {self.name}"
+        return f"{self.genus.name} {self.name}"
+
+    @property
+    def tropical_plants_url(self):
+        """Return the URL for the species on the Useful Tropical Plants Database."""
+        return f"https://tropical.theferns.info/viewtropical.php?id={self.genus.name}+{self.name}"

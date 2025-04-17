@@ -483,6 +483,7 @@ class Observations_details(Base):
     foliage_density = Column(String)
     aesthetic_value = Column(String)
     growth_phase = Column(String)
+    field_notes = Column(String)
     ed = Column(String)  # estado del dosel
     hc = Column(String)  # condición fitosanitaria
     hcf = Column(String)  # condición fitosanitaria del follaje
@@ -518,7 +519,7 @@ class Observations_details(Base):
     biodiversity = relationship("Biodiversity_records")
 
     list_columns = [
-        'record_code', 'reproductive_condition',
+        'record_code', 'reproductive_condition','field_notes',
         'accompanying_collectors', 'physical_condition','phytosanitary_status', 'foliage_density', 'aesthetic_value',
         'growth_phase', 'ed', 'hc', 'hcf', 'general_state',
         'cre', 'crh', 'cra', 'coa', 'ce', 'civ', 'crt', 'crg', 'cap',

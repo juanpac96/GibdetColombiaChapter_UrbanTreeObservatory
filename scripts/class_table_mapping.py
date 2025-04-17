@@ -474,9 +474,7 @@ class Observations_details(Base):
     record_code = Column(Integer, ForeignKey('biodiversity_records.code_record'))
 
     # Textual / Descriptive Fields
-    biological_record_comments = Column(Text)
     reproductive_condition = Column(String)
-    observations = Column(String)
     accompanying_collectors = Column(String)
 
     # Qualitative Assessments
@@ -520,7 +518,7 @@ class Observations_details(Base):
     biodiversity = relationship("Biodiversity_records")
 
     list_columns = [
-        'record_code', 'biological_record_comments', 'reproductive_condition', 'observations',
+        'record_code', 'reproductive_condition',
         'accompanying_collectors', 'physical_condition','phytosanitary_status', 'foliage_density', 'aesthetic_value',
         'growth_phase', 'ed', 'hc', 'hcf', 'general_state',
         'cre', 'crh', 'cra', 'coa', 'ce', 'civ', 'crt', 'crg', 'cap',

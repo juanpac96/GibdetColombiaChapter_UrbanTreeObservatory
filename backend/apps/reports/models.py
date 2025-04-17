@@ -1,12 +1,11 @@
-import uuid
-
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 from apps.biodiversity.models import BiodiversityRecord
+from apps.core.models import BaseModel
 
 
-class Measurement(models.Model):
+class Measurement(BaseModel):
     """Records quantifiable attributes like trunk height or total height for trees.
 
     Stores numeric data collected through defined methodologies with
@@ -19,27 +18,22 @@ class Measurement(models.Model):
         DIAMETER_BH = "DBH", _("diameter at breast height")
         VOLUME = "VO", _("volume")
         WOOD_DENSITY = "WD", _("wood density")
-        OTHER = "OT", _("other")
-        NOT_REPORTED = "NO", _("not reported")
+        NOT_REPORTED = "NR", _("not reported")
 
     class MeasurementUnit(models.TextChoices):
         METERS = "m", _("meters")
         CUBIC_METERS = "m3", _("cubic meters")
         CENTIMETERS = "cm", _("centimeters")
-        MILLIMETERS = "mm", _("millimeters")
         GRAMS_PER_CUBIC_CM = "g/cm3", _("grams per cubic centimeter")
-        OTHER = "OT", _("other")
-        NOT_REPORTED = "NO", _("not reported")
+        NOT_REPORTED = "NR", _("not reported")
 
     class MeasurementMethod(models.TextChoices):
         OPTICAL_ESTIMATION = "OE", _("optical estimation")
         VOLUME_EQUATION = "VE", _("volume equation")
         DIAMETER_TAPE = "DT", _("diameter tape")
         WOOD_DENSITY_DB = "WD", _("wood density database")
-        OTHER = "OT", _("other")
-        NOT_REPORTED = "NO", _("not reported")
+        NOT_REPORTED = "NR", _("not reported")
 
-    uuid = models.UUIDField(_("uuid"), default=uuid.uuid4, editable=False)
     biodiversity_record = models.ForeignKey(
         BiodiversityRecord,
         on_delete=models.CASCADE,
@@ -47,40 +41,43 @@ class Measurement(models.Model):
         verbose_name=_("biodiversity record"),
     )
     attribute = models.CharField(
-        _("measured attribute"), max_length=3, choices=MeasuredAttribute
-    )
-    other_attribute = models.CharField(
-        _("other attribute specification"), max_length=50, blank=True
+        _("measured attribute"),
+        max_length=3,
+        choices=MeasuredAttribute,
+        default=MeasuredAttribute.NOT_REPORTED,
     )
     value = models.FloatField(_("measurement value"))
     unit = models.CharField(
-        _("measurement unit"), max_length=5, choices=MeasurementUnit
-    )
-    other_unit = models.CharField(
-        _("other unit specification"), max_length=20, blank=True
+        _("measurement unit"),
+        max_length=5,
+        choices=MeasurementUnit,
+        default=MeasurementUnit.NOT_REPORTED,
     )
     method = models.CharField(
-        _("measurement method"), max_length=2, choices=MeasurementMethod
+        _("measurement method"),
+        max_length=2,
+        choices=MeasurementMethod,
+        default=MeasurementMethod.NOT_REPORTED,
     )
-    other_method = models.CharField(
-        _("other method specification"), max_length=50, blank=True
-    )
-    notes = models.TextField(_("notes"), blank=True)
     date = models.DateField(_("measurement date"), null=True, blank=True)
-    created_at = models.DateTimeField(_("created at"), auto_now_add=True)
-    updated_at = models.DateTimeField(_("updated at"), auto_now=True)
 
     class Meta:
         verbose_name = _("measurement")
         verbose_name_plural = _("measurements")
-        ordering = ["biodiversity_record", "created_at"]
+        ordering = ["-created_at"]
 
     def __str__(self):
+        """Returns a string representation of the measurement, including the
+        measured attribute, biodiversity record, and measurement date if available.
+        Example: "trunk height measurement for biodiversity record #1 on 2025-10-01"
+        """
         date_str = f" on {self.date}" if self.date else ""
-        return f"{self.get_attribute_display()} measurement for {self.biodiversity_record}{date_str}"
+        return (
+            f"{self.get_attribute_display()} measurement for "
+            f"biodiversity record #{self.biodiversity_record.id}{date_str}"
+        )
 
-
-class Observation(models.Model):
+class Observation(BaseModel):
     """Captures qualitative assessments of tree conditions and characteristics.
 
     Documents subjective evaluations including aesthetic value, health status,
@@ -90,26 +87,26 @@ class Observation(models.Model):
         FLOWERING = "FL", _("flowering")
         FRUITING = "FR", _("fruiting")
         STERILE = "ST", _("sterile")
-        NOT_REPORTED = "NO", _("not reported")
+        NOT_REPORTED = "NR", _("not reported")
 
     class PhytosanitaryStatus(models.TextChoices):
         HEALTHY = "HE", _("healthy")
         SICK = "SI", _("sick")
-        CRITICALLY_SICK = "CR", _("critically sick")
+        CRITICAL = "CR", _("critical")
         DEAD = "DE", _("dead")
-        NOT_REPORTED = "NO", _("not reported")
+        NOT_REPORTED = "NR", _("not reported")
 
     class PhysicalCondition(models.TextChoices):
         GOOD = "GO", _("good")
         FAIR = "FA", _("fair")
         POOR = "PO", _("poor")
-        NOT_REPORTED = "NO", _("not reported")
+        NOT_REPORTED = "NR", _("not reported")
 
     class FoliageDensity(models.TextChoices):
         DENSE = "DE", _("dense")
         MEDIUM = "ME", _("medium")
         SPARSE = "SP", _("sparse")
-        NOT_REPORTED = "NO", _("not reported")
+        NOT_REPORTED = "NR", _("not reported")
 
     class AestheticValue(models.TextChoices):
         ESSENTIAL = "ES", _("essential")
@@ -117,15 +114,32 @@ class Observation(models.Model):
         DESIRABLE = "DE", _("desirable")
         INDIFFERENT = "IN", _("indifferent")
         UNACCEPTABLE = "UN", _("unacceptable")
-        NOT_REPORTED = "NO", _("not reported")
+        NOT_REPORTED = "NR", _("not reported")
 
-    class GrowthPhase(models.TextChoices):
-        F1 = "F1", _("F1")
-        F2 = "F2", _("F2")
-        F3 = "F3", _("F3")
-        NOT_REPORTED = "NO", _("not reported")
+    class GrowthPhase(models.IntegerChoices):
+        SEEDLING = 1, _("seedling")
+        JUVENILE = 2, _("juvenile")
+        ADULT = 3, _("adult")
 
-    uuid = models.UUIDField(_("uuid"), default=uuid.uuid4, editable=False)
+    class YesNoReported(models.TextChoices):
+        YES = "Y", _("yes")
+        NO = "N", _("no")
+        NOT_REPORTED = "NR", _("not reported")
+
+    class HealthCondition(models.TextChoices):
+        NATURAL_STATE = "NS", _("natural state")
+        NUTRIENT_DEFICIENCY = "ND", _("nutrient deficiency")
+        NOT_REPORTED = "NR", _("not reported")
+
+    class DamagePercent(models.TextChoices):
+        ZERO = "0", _("0%")
+        TWENTY = "20", _("20%")
+        FORTY = "40", _("40%")
+        SIXTY = "60", _("60%")
+        EIGHTY = "80", _("80%")
+        HUNDRED = "100", _("100%")
+        NOT_REPORTED = "NR", _("not reported")
+
     biodiversity_record = models.ForeignKey(
         BiodiversityRecord,
         on_delete=models.CASCADE,
@@ -162,13 +176,154 @@ class Observation(models.Model):
         choices=AestheticValue,
         default=AestheticValue.NOT_REPORTED,
     )
-    growth_phase = models.CharField(
+    growth_phase = models.IntegerField(
         _("growth phase"),
-        max_length=2,
         choices=GrowthPhase,
-        default=GrowthPhase.NOT_REPORTED,
+        default=GrowthPhase.SEEDLING,
     )
-    notes = models.TextField(_("notes"), blank=True)
+
+    # General status fields without explicit name in the original data
+    ed = models.CharField(
+        max_length=2,
+        choices=PhysicalCondition,
+        default=PhysicalCondition.NOT_REPORTED,
+    )
+    hc = models.CharField(
+        max_length=2,
+        choices=HealthCondition,
+        default=HealthCondition.NOT_REPORTED,
+    )
+    hfc = models.CharField(
+        max_length=2,
+        choices=HealthCondition,
+        default=HealthCondition.NOT_REPORTED,
+    )
+
+    # Maps to `general_state` text field in original data; converted to boolean
+    is_standing = models.BooleanField(
+        _("is standing"), default=True, help_text=_("Is the tree standing?")
+    )
+
+    # Yes/No/Not reported fields without explicit names in the original data
+    cre = models.CharField(
+        max_length=2,
+        choices=YesNoReported,
+        default=YesNoReported.NOT_REPORTED,
+    )
+    crh = models.CharField(
+        max_length=2,
+        choices=YesNoReported,
+        default=YesNoReported.NOT_REPORTED,
+    )
+    cra = models.CharField(
+        max_length=2,
+        choices=YesNoReported,
+        default=YesNoReported.NOT_REPORTED,
+    )
+    coa = models.CharField(
+        max_length=2,
+        choices=YesNoReported,
+        default=YesNoReported.NOT_REPORTED,
+    )
+    ce = models.CharField(
+        max_length=2,
+        choices=YesNoReported,
+        default=YesNoReported.NOT_REPORTED,
+    )
+    civ = models.CharField(
+        max_length=2,
+        choices=YesNoReported,
+        default=YesNoReported.NOT_REPORTED,
+    )
+    crt = models.CharField(
+        max_length=2,
+        choices=YesNoReported,
+        default=YesNoReported.NOT_REPORTED,
+    )
+    crg = models.CharField(
+        max_length=2,
+        choices=YesNoReported,
+        default=YesNoReported.NOT_REPORTED,
+    )
+    cap = models.CharField(
+        max_length=2,
+        choices=YesNoReported,
+        default=YesNoReported.NOT_REPORTED,
+    )
+
+    # Percentage damage fields without explicit names in the original data
+    rd = models.CharField(
+        max_length=3,
+        choices=DamagePercent,
+        default=DamagePercent.ZERO,
+    )
+    dm = models.CharField(
+        max_length=3,
+        choices=DamagePercent,
+        default=DamagePercent.ZERO,
+    )
+    bbs = models.CharField(
+        max_length=3,
+        choices=DamagePercent,
+        default=DamagePercent.ZERO,
+    )
+    ab = models.CharField(
+        max_length=3,
+        choices=DamagePercent,
+        default=DamagePercent.ZERO,
+    )
+    pi = models.CharField(
+        max_length=3,
+        choices=DamagePercent,
+        default=DamagePercent.ZERO,
+    )
+    ph = models.CharField(
+        max_length=3,
+        choices=DamagePercent,
+        default=DamagePercent.ZERO,
+    )
+    pa = models.CharField(
+        max_length=3,
+        choices=DamagePercent,
+        default=DamagePercent.ZERO,
+    )
+    pd = models.CharField(
+        max_length=3,
+        choices=DamagePercent,
+        default=DamagePercent.ZERO,
+    )
+    pe = models.CharField(
+        max_length=3,
+        choices=DamagePercent,
+        default=DamagePercent.ZERO,
+    )
+    pp = models.CharField(
+        max_length=3,
+        choices=DamagePercent,
+        default=DamagePercent.ZERO,
+    )
+    po = models.CharField(
+        max_length=3,
+        choices=DamagePercent,
+        default=DamagePercent.ZERO,
+    )
+    r_vol = models.CharField(
+        max_length=3,
+        choices=DamagePercent,
+        default=DamagePercent.ZERO,
+    )
+    r_cr = models.CharField(
+        max_length=3,
+        choices=DamagePercent,
+        default=DamagePercent.ZERO,
+    )
+    r_ce = models.CharField(
+        max_length=3,
+        choices=DamagePercent,
+        default=DamagePercent.ZERO,
+    )
+
+    field_notes = models.TextField(_("field notes"), blank=True)
     recorded_by = models.CharField(
         _("recorded by"), max_length=50, default="Cortolima", blank=True
     )
@@ -176,13 +331,11 @@ class Observation(models.Model):
         _("accompanying collectors"), blank=True, default="No reportado"
     )
     date = models.DateField(_("observation date"), null=True, blank=True)
-    created_at = models.DateTimeField(_("created at"), auto_now_add=True)
-    updated_at = models.DateTimeField(_("updated at"), auto_now=True)
 
     class Meta:
         verbose_name = _("observation")
         verbose_name_plural = _("observations")
-        ordering = ["biodiversity_record", "created_at"]
+        ordering = ["-created_at"]
 
     def __str__(self):
         date_str = f" on {self.date}" if self.date else ""

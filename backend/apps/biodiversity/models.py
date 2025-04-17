@@ -1,16 +1,14 @@
-import uuid
-
 from django.contrib.gis.db import models as gis_models
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
+from apps.core.models import BaseModel
 from apps.taxonomy.models import Species
 
 
-class Place(models.Model):
+class Place(BaseModel):
     """Represents a general geographical location of biodiversity records."""
 
-    uuid = models.UUIDField(_("uuid"), default=uuid.uuid4, editable=False)
     country = models.CharField(_("country"), default="Colombia", max_length=50)
     department = models.CharField(_("department"), default="Tolima", max_length=50)
     municipality = models.CharField(_("municipality"), default="Ibagué", max_length=50)
@@ -20,8 +18,6 @@ class Place(models.Model):
     )
     zone = models.PositiveSmallIntegerField(_("zone"), null=True, blank=True)
     subzone = models.PositiveSmallIntegerField(_("subzone"), null=True, blank=True)
-    created_at = models.DateTimeField(_("created at"), auto_now_add=True)
-    updated_at = models.DateTimeField(_("updated at"), auto_now=True)
 
     class Meta:
         constraints = [
@@ -42,11 +38,10 @@ class Place(models.Model):
         return ", ".join(filter(None, components))
 
 
-class BiodiversityRecord(models.Model):
+class BiodiversityRecord(BaseModel):
     """Represents a record of biodiversity, including species, location,
     common name, and other attributes."""
 
-    uuid = models.UUIDField(_("uuid"), default=uuid.uuid4, editable=False)
     common_name = models.TextField(_("common name"), blank=True)
     species = models.ForeignKey(
         Species,
@@ -66,8 +61,6 @@ class BiodiversityRecord(models.Model):
         _("recorded by"), max_length=50, default="Cortolima", blank=True
     )
     date = models.DateField(_("recorded date"), null=True, blank=True)
-    created_at = models.DateTimeField(_("created at"), auto_now_add=True)
-    updated_at = models.DateTimeField(_("updated at"), auto_now=True)
 
     class Meta:
         verbose_name = _("biodiversity record")

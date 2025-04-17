@@ -4,33 +4,67 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('reports', '0001_initial'),
+        ("reports", "0001_initial"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='observation',
-            name='is_standing',
+            model_name="observation",
+            name="is_standing",
         ),
         migrations.RemoveField(
-            model_name='observation',
-            name='use',
+            model_name="observation",
+            name="use",
         ),
         migrations.AlterField(
-            model_name='measurement',
-            name='attribute',
-            field=models.CharField(choices=[('TH', 'trunk height'), ('HT', 'total height'), ('CD', 'crown diameter'), ('DBH', 'diameter at breast height'), ('VO', 'volume'), ('WD', 'wood density'), ('OT', 'other'), ('NO', 'not reported')], max_length=3, verbose_name='measured attribute'),
+            model_name="measurement",
+            name="attribute",
+            field=models.CharField(
+                choices=[
+                    ("TH", "trunk height"),
+                    ("HT", "total height"),
+                    ("CD", "crown diameter"),
+                    ("DBH", "diameter at breast height"),
+                    ("VO", "volume"),
+                    ("WD", "wood density"),
+                    ("OT", "other"),
+                    ("NO", "not reported"),
+                ],
+                max_length=3,
+                verbose_name="measured attribute",
+            ),
         ),
         migrations.AlterField(
-            model_name='measurement',
-            name='method',
-            field=models.CharField(choices=[('OE', 'optical estimation'), ('VE', 'volume equation'), ('DT', 'diameter tape'), ('WD', 'wood density database'), ('OT', 'other'), ('NO', 'not reported')], max_length=2, verbose_name='measurement method'),
+            model_name="measurement",
+            name="method",
+            field=models.CharField(
+                choices=[
+                    ("OE", "optical estimation"),
+                    ("VE", "volume equation"),
+                    ("DT", "diameter tape"),
+                    ("WD", "wood density database"),
+                    ("OT", "other"),
+                    ("NO", "not reported"),
+                ],
+                max_length=2,
+                verbose_name="measurement method",
+            ),
         ),
         migrations.AlterField(
-            model_name='observation',
-            name='phytosanitary_status',
-            field=models.CharField(choices=[('HE', 'healthy'), ('SI', 'sick'), ('CR', 'critically sick'), ('DE', 'dead'), ('NO', 'not reported')], default='NO', max_length=2, verbose_name='phytosanitary status'),
+            model_name="observation",
+            name="phytosanitary_status",
+            field=models.CharField(
+                choices=[
+                    ("HE", "healthy"),
+                    ("SI", "sick"),
+                    ("CR", "critically sick"),
+                    ("DE", "dead"),
+                    ("NO", "not reported"),
+                ],
+                default="NO",
+                max_length=2,
+                verbose_name="phytosanitary status",
+            ),
         ),
     ]

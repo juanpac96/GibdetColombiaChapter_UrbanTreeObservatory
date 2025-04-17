@@ -4,19 +4,18 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('biodiversity', '0001_initial'),
+        ("biodiversity", "0001_initial"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='biodiversityrecord',
-            name='common_names',
+            model_name="biodiversityrecord",
+            name="common_names",
         ),
         migrations.AddField(
-            model_name='biodiversityrecord',
-            name='common_name',
-            field=models.TextField(blank=True, verbose_name='common name'),
+            model_name="biodiversityrecord",
+            name="common_name",
+            field=models.TextField(blank=True, verbose_name="common name"),
         ),
     ]

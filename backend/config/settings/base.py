@@ -40,7 +40,6 @@ INSTALLED_APPS = [
     "leaflet",
     # Project apps
     "apps.core",
-    "apps.accounts",
     "apps.taxonomy",
     "apps.biodiversity",
     "apps.reports",
@@ -50,7 +49,7 @@ MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",  # Serving static files
     "django.contrib.sessions.middleware.SessionMiddleware",
-    "django.middleware.locale.LocaleMiddleware",  # Language detection 
+    "django.middleware.locale.LocaleMiddleware",  # Language detection
     "corsheaders.middleware.CorsMiddleware",  # CORS support
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -139,7 +138,6 @@ LEAFLET_CONFIG = {
 LANGUAGE_CODE = "es"  # Default language
 TIME_ZONE = "America/Bogota"  # Colombia timezone
 USE_I18N = True
-USE_L10N = True
 USE_TZ = True
 
 LANGUAGES = [

@@ -219,6 +219,8 @@ class Taxonomy_details(Base):
     lifeForm = Column(String)
     origin = Column(String)
     iucn_category = Column(String)
+    canopy_shape_code = Column(String)
+    flower_color_code = Column(String)
     identified_by = Column(String)
     date_of_identification = Column(String)
 
@@ -228,12 +230,12 @@ class Taxonomy_details(Base):
     list_columns = [
         'family', 'genus', 'specie', 'accept_scientific_name', 'gbif_id',
         'lifeForm', 'origin',
-        'iucn_category', 'identified_by', 'date_of_identification'
+        'iucn_category', 'canopy_shape_code','flower_color_code','identified_by', 'date_of_identification'
     ]
 
     def __init__(self, family, genus, specie, accept_scientific_name,
                  gbif_id, lifeForm, origin,
-                 iucn_category, identified_by, date_of_identification):
+                 iucn_category, canopy_shape_code, flower_color_code,identified_by, date_of_identification):
         self.family = family
         self.genus = genus
         self.specie = specie
@@ -241,6 +243,8 @@ class Taxonomy_details(Base):
         self.gbif_id = gbif_id
         self.lifeForm = lifeForm
         self.origin = origin
+        self.canopy_shape_code = canopy_shape_code
+        self.flower_color_code = flower_color_code
         self.iucn_category = iucn_category
         self.identified_by = identified_by
         self.date_of_identification = date_of_identification

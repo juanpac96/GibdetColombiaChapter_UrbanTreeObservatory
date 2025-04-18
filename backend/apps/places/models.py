@@ -97,8 +97,13 @@ class Place(BaseModel):
     def __str__(self):
         """Returns a string representation of the place, including the site,
         municipality, department, and country, if they are not empty.
-
+    
         Example: "Parque Centenario, Ibagué, Tolima, Colombia"
         """
-        components = [self.site, self.municipality, self.department, self.country]
+        components = [
+            self.site,
+            self.municipality.name if self.municipality else None,
+            self.department.name if self.department else None,
+            self.country.name if self.country else None
+        ]
         return ", ".join(filter(None, components))

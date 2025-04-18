@@ -41,8 +41,10 @@ INSTALLED_APPS = [
     # Project apps
     "apps.core",
     "apps.taxonomy",
+    "apps.places",
     "apps.biodiversity",
     "apps.reports",
+    "apps.climate",
 ]
 
 MIDDLEWARE = [

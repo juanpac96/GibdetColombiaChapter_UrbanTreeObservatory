@@ -77,6 +77,7 @@ class Measurement(BaseModel):
             f"biodiversity record #{self.biodiversity_record.id}{date_str}"
         )
 
+
 class Observation(BaseModel):
     """Captures qualitative assessments of tree conditions and characteristics.
 
@@ -324,12 +325,8 @@ class Observation(BaseModel):
     )
 
     field_notes = models.TextField(_("field notes"), blank=True)
-    recorded_by = models.CharField(
-        _("recorded by"), max_length=50, default="Cortolima", blank=True
-    )
-    accompanying_collectors = models.TextField(
-        _("accompanying collectors"), blank=True, default="No reportado"
-    )
+    recorded_by = models.CharField(_("recorded by"), max_length=50, default="Cortolima")
+    accompanying_collectors = models.TextField(_("accompanying collectors"), blank=True)
     date = models.DateField(_("observation date"), null=True, blank=True)
 
     class Meta:

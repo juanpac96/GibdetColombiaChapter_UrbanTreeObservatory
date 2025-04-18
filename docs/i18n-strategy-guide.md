@@ -65,7 +65,7 @@ from django.utils.translation import gettext_lazy as _
 
 class Origin(models.TextChoices):
     NATIVE = "NA", _("native")
-    CULTIVATED = "CU", _("cultivated") 
+    CULTIVATED = "CU", _("cultivated")
     NOT_IDENTIFIED = "NI", _("not identified")
     NATIVE_CULTIVATED = "NC", _("native | cultivated")
     NATURALIZED = "NU", _("naturalized")
@@ -92,7 +92,7 @@ Two main translation functions:
 
    ```python
    from django.utils.translation import gettext_lazy as _
-   
+
    class MyModel(models.Model):
        name = models.CharField(_("name"), max_length=100)
    ```
@@ -101,7 +101,7 @@ Two main translation functions:
 
    ```python
    from django.utils.translation import gettext as _
-   
+
    def clean_email(self):
        if error:
            raise ValidationError(_("Invalid email address"))
@@ -134,11 +134,11 @@ from django.utils.translation import gettext_lazy as _
 class SpeciesSerializer(serializers.ModelSerializer):
     # Add display text for choice fields
     origin_display = serializers.CharField(source="get_origin_display", read_only=True)
-    
+
     class Meta:
         model = Species
         fields = ["id", "name", "scientific_name", "origin", "origin_display"]
-        
+
     def validate_name(self, value):
         if not value:
             raise serializers.ValidationError(_("Species name cannot be empty"))
@@ -174,11 +174,11 @@ class LocalizedChoiceField(serializers.ChoiceField):
    import { TranslateModule, TranslateLoader } from '@ngx-translate/core';
    import { TranslateHttpLoader } from '@ngx-translate/http-loader';
    import { HttpClient } from '@angular/common/http';
-   
+
    export function HttpLoaderFactory(http: HttpClient) {
      return new TranslateHttpLoader(http, './assets/i18n/', '.json');
    }
-   
+
    @NgModule({
      imports: [
        // Other imports
@@ -200,16 +200,16 @@ class LocalizedChoiceField(serializers.ChoiceField):
    ```typescript
    // app.component.ts
    import { TranslateService } from '@ngx-translate/core';
-   
+
    @Component({/* ... */})
    export class AppComponent {
      constructor(private translate: TranslateService) {
        // Default and fallback language
        translate.setDefaultLang('es');
-       
+
        // Get saved language or use browser language
-       const savedLang = localStorage.getItem('language') || 
-                         translate.getBrowserLang() || 
+       const savedLang = localStorage.getItem('language') ||
+                         translate.getBrowserLang() ||
                          'es';
        translate.use(savedLang);
      }
@@ -277,10 +277,10 @@ Create translation files in `/assets/i18n/`:
    ```html
    <!-- Simple strings -->
    <button>{{ 'common.buttons.save' | translate }}</button>
-   
+
    <!-- With parameters -->
    <p>{{ 'species.count' | translate:{ count: totalSpecies } }}</p>
-   
+
    <!-- HTML content -->
    <div [innerHTML]="'species.description' | translate"></div>
    ```
@@ -289,14 +289,14 @@ Create translation files in `/assets/i18n/`:
 
    ```typescript
    import { TranslateService } from '@ngx-translate/core';
-   
+
    constructor(private translateService: TranslateService) {}
-   
+
    showMessage() {
      const message = this.translateService.instant('messages.success');
      // Use message in alerts, etc.
    }
-   
+
    switchLanguage(lang: string) {
      this.translateService.use(lang);
      localStorage.setItem('language', lang);
@@ -313,20 +313,20 @@ Create translation files in `/assets/i18n/`:
    // api.service.ts
    import { HttpClient, HttpHeaders } from '@angular/common/http';
    import { TranslateService } from '@ngx-translate/core';
-   
+
    @Injectable()
    export class ApiService {
      constructor(
        private http: HttpClient,
        private translateService: TranslateService
      ) {}
-     
+
      getHeaders(): HttpHeaders {
        return new HttpHeaders({
          'Accept-Language': this.translateService.currentLang
        });
      }
-     
+
      getSpecies() {
        return this.http.get('/api/species/', { headers: this.getHeaders() });
      }
@@ -350,7 +350,7 @@ Strategy 1: Return both code and display value:
   "name": "Quercus ilex",
   "origin": {
     "code": "NA",
-    "display": "Nativa" 
+    "display": "Nativa"
   }
 }
 ```
@@ -360,7 +360,7 @@ Strategy 2: Expand serializer with display values:
 ```python
 class SpeciesSerializer(serializers.ModelSerializer):
     origin_display = serializers.CharField(source="get_origin_display", read_only=True)
-    
+
     class Meta:
         model = Species
         fields = ["id", "name", "origin", "origin_display"]
@@ -387,17 +387,17 @@ def get_mapped_value(value, mapping_dict, default=None):
     """Get mapped value from dictionary with case-insensitive lookup"""
     if not value:
         return default
-        
+
     # Try direct lookup
     if value in mapping_dict:
         return mapping_dict[value]
-    
+
     # Try case-insensitive lookup
     value_lower = value.lower()
     for k, v in mapping_dict.items():
         if k.lower() == value_lower:
             return v
-    
+
     return default
 ```
 
@@ -411,7 +411,7 @@ def process_taxonomy_data(data):
             ORIGIN_MAPPINGS,
             Species.Origin.UNKNOWN
         )
-        
+
         species = Species.objects.create(
             name=row.get("name", ""),
             origin=origin,
@@ -434,7 +434,7 @@ def process_taxonomy_data(data):
 
    ```python
    from django.utils.translation import gettext_lazy as _
-   
+
    title = _("Species List")
    ```
 
@@ -480,13 +480,13 @@ class I18nTestCase(TestCase):
             name="Oak",
             origin=Species.Origin.NATIVE
         )
-    
+
     def test_origin_display_localization(self):
         # Test Spanish translation
         with translation.override("es"):
             serializer = SpeciesSerializer(self.species)
             self.assertEqual(serializer.data["origin_display"], "Nativa")
-        
+
         # Test English translation
         with translation.override("en"):
             serializer = SpeciesSerializer(self.species)
@@ -508,7 +508,7 @@ describe('TranslationService', () => {
         TranslateModule.forRoot()
       ]
     });
-    
+
     translateService = TestBed.inject(TranslateService);
     translateService.setTranslation('es', {
       'species.origin.native': 'Nativa'
@@ -522,7 +522,7 @@ describe('TranslationService', () => {
   it('should translate according to current language', () => {
     translateService.use('es');
     expect(translateService.instant('species.origin.native')).toBe('Nativa');
-    
+
     translateService.use('en');
     expect(translateService.instant('species.origin.native')).toBe('Native');
   });
@@ -538,7 +538,7 @@ describe('TranslationService', () => {
    ```python
    # BAD
    message = _("Hello") + ", " + user.name
-   
+
    # GOOD - With placeholders
    message = _("Hello, %(name)s") % {"name": user.name}
    ```
@@ -547,7 +547,7 @@ describe('TranslationService', () => {
 
    ```python
    from django.utils.translation import pgettext_lazy
-   
+
    # "Trunk" can mean different things
    tree_trunk = pgettext_lazy("tree part", "trunk")
    elephant_trunk = pgettext_lazy("elephant body part", "trunk")

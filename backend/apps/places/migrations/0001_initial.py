@@ -17,9 +17,10 @@ class Migration(migrations.Migration):
             name='Country',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(default='Colombia', max_length=50, unique=True, verbose_name='country')),
+                ('name', models.CharField(max_length=50, unique=True, verbose_name='country')),
             ],
             options={
+                'verbose_name_plural': 'countries',
                 'ordering': ['name'],
             },
         ),
@@ -27,7 +28,7 @@ class Migration(migrations.Migration):
             name='Department',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(default='Tolima', max_length=50, unique=True, verbose_name='department')),
+                ('name', models.CharField(max_length=50, unique=True, verbose_name='department')),
                 ('country', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='departments', to='places.country', verbose_name='country')),
             ],
             options={
@@ -38,10 +39,11 @@ class Migration(migrations.Migration):
             name='Municipality',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(default='Ibagué', max_length=50, unique=True, verbose_name='municipality')),
+                ('name', models.CharField(max_length=50, unique=True, verbose_name='municipality')),
                 ('department', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='municipalities', to='places.department', verbose_name='department')),
             ],
             options={
+                'verbose_name_plural': 'municipalities',
                 'ordering': ['name'],
             },
         ),

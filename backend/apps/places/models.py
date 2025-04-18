@@ -9,11 +9,12 @@ class Country(models.Model):
     """Represents a country."""
 
     name = models.CharField(
-        _("country"), max_length=50, default="Colombia", unique=True
+        _("country"), max_length=50, unique=True
     )
 
     class Meta:
         ordering = ["name"]
+        verbose_name_plural = _("countries")
 
     def __str__(self):
         return self.name
@@ -23,7 +24,7 @@ class Department(models.Model):
     """Represents a department within a country."""
 
     name = models.CharField(
-        _("department"), max_length=50, default="Tolima", unique=True
+        _("department"), max_length=50, unique=True
     )
     country = models.ForeignKey(
         Country,
@@ -43,7 +44,7 @@ class Municipality(models.Model):
     """Represents a municipality within a department."""
 
     name = models.CharField(
-        _("municipality"), max_length=50, default="Ibagué", unique=True
+        _("municipality"), max_length=50, unique=True
     )
     department = models.ForeignKey(
         Department,
@@ -54,6 +55,7 @@ class Municipality(models.Model):
 
     class Meta:
         ordering = ["name"]
+        verbose_name_plural = _("municipalities")
 
     def __str__(self):
         return f"{self.name}, {self.department.name}"

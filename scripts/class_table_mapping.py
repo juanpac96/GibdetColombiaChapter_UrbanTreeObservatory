@@ -307,13 +307,12 @@ class FunctionalTraitsStructure(Base):
         'height_max_min', 'height_max_max'
     ]
 
-    def __init__(self, pft_id,species , taxonomy_id,
+    def __init__(self, pft_id, taxonomy_id,
                  carbon_sequestration_min, carbon_sequestration_max,
                  shade_index_min, shade_index_max,
                  canopy_diameter_min, canopy_diameter_max,
                  height_max_min, height_max_max):
         self.pft_id = pft_id
-        self.species = species
         self.taxonomy_id = taxonomy_id
 
         self.carbon_sequestration_min = carbon_sequestration_min

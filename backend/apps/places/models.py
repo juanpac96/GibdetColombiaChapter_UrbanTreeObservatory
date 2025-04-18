@@ -62,18 +62,6 @@ class Municipality(models.Model):
 class Place(BaseModel):
     """Represents a general geographical location of biodiversity records."""
 
-    country = models.ForeignKey(
-        Country,
-        on_delete=models.CASCADE,
-        related_name="places",
-        verbose_name=_("country"),
-    )
-    department = models.ForeignKey(
-        Department,
-        on_delete=models.CASCADE,
-        related_name="places",
-        verbose_name=_("department"),
-    )
     municipality = models.ForeignKey(
         Municipality,
         on_delete=models.CASCADE,
@@ -88,22 +76,24 @@ class Place(BaseModel):
     class Meta:
         constraints = [
             models.UniqueConstraint(
-                fields=["country", "department", "municipality", "site"],
+                fields=["municipality", "site"],
                 name="unique_place",
             )
         ]
-        ordering = ["country", "department", "municipality", "site"]
+        ordering = ["municipality", "site"]
 
     def __str__(self):
         """Returns a string representation of the place, including the site,
-        municipality, department, and country, if they are not empty.
+        municipality, department, and country.
     
         Example: "Parque Centenario, Ibagué, Tolima, Colombia"
         """
+        department = self.municipality.department
+        country = department.country
         components = [
             self.site,
-            self.municipality.name if self.municipality else None,
-            self.department.name if self.department else None,
-            self.country.name if self.country else None
+            self.municipality.name,
+            department.name,
+            country.name
         ]
         return ", ".join(filter(None, components))

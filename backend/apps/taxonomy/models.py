@@ -1,6 +1,6 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
-from django.core.validators import RegexValidator
+from django.core.validators import MinValueValidator
 
 from apps.core.models import BaseModel
 
@@ -80,10 +80,16 @@ class TraitValue(BaseModel):
     )
     min_value = models.FloatField(
         _("minimum value"),
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0.0)],
         help_text=_("Minimum value for this trait in the functional group"),
     )
     max_value = models.FloatField(
         _("maximum value"),
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0.0)],
         help_text=_("Maximum value for this trait in the functional group"),
     )
 
@@ -91,20 +97,18 @@ class TraitValue(BaseModel):
         verbose_name = _("trait value")
         verbose_name_plural = _("trait values")
         constraints = [
-            models.UniqueConstraint(
-                fields=["trait", "functional_group"],
-                name="unique_trait_functional_group",
-            ),
             models.CheckConstraint(
-                condition=models.Q(min_value__lte=models.F("max_value")),
+                condition=models.Q(min_value__isnull=True)
+                | models.Q(max_value__isnull=True)
+                | models.Q(min_value__lte=models.F("max_value")),
                 name="min_value_less_than_max_value",
             ),
             models.CheckConstraint(
-                condition=models.Q(min_value__gte=0),
+                condition=models.Q(min_value__isnull=True) | models.Q(min_value__gte=0),
                 name="min_value_greater_than_zero",
             ),
             models.CheckConstraint(
-                condition=models.Q(max_value__gte=0),
+                condition=models.Q(max_value__isnull=True) | models.Q(max_value__gte=0),
                 name="max_value_greater_than_zero",
             ),
         ]
@@ -254,17 +258,8 @@ class Species(BaseModel):
         choices=FlowerColor,
         default=FlowerColor.NOT_IDENTIFIED,
     )
-    gbif_id = models.CharField(
-        _("GBIF ID"),
-        max_length=12,
-        blank=True,
-        help_text=_("GBIF species identifier"),
-        validators=[
-            RegexValidator(
-                regex=r"^\d+$",
-                message=_("GBIF ID must be a positive integer."),
-            )
-        ],
+    gbif_id = models.PositiveIntegerField(
+        _("GBIF ID"), null=True, blank=True, help_text=_("GBIF species identifier")
     )
     identified_by = models.CharField(
         _("identified by"), max_length=255, default="Cortolima"
@@ -287,8 +282,8 @@ class Species(BaseModel):
 
     @property
     def gbif_url(self):
-        """Return the GBIF URL for the species if gbif_id is valid."""
-        if self.gbif_id and self.gbif_id.isdigit():
+        """Return the GBIF URL for the species if gbif_id exists."""
+        if self.gbif_id is not None:
             return f"https://www.gbif.org/species/{self.gbif_id}"
         return None
 

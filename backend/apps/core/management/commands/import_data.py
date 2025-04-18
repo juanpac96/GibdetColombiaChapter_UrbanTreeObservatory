@@ -487,7 +487,7 @@ class Command(BaseCommand):
             )
 
             # Default values for establishment means and life form until we add these fields
-            establishment_means = row.get("establishmentMeans", "").strip()
+            # establishment_means = row.get("establishmentMeans", "").strip()
             life_form = row.get("lifeForm", "").strip()
 
             # Default values that will be updated from observations
@@ -744,7 +744,7 @@ class Command(BaseCommand):
 
                 location = Point(lon, lat, srid=4326)
                 elevation = self._safe_float(row.get("elevation_m"))
-                common_name = row.get("common_name", "").strip()
+                # common_name = row.get("common_name", "").strip()
                 recorded_by = row.get("registered_by", "Cortolima").strip()
 
                 # Parse date if available

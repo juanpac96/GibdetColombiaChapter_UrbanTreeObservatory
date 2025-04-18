@@ -121,69 +121,6 @@ class Place(UniqueMixin, Base):
   def unique_filter(cls, query, site):
     return query.filter(Place.site == site)
 
-# Table of geografic systems
-
-class Geog_coord_syst(Base):
-  '''
-  In this table is the information related to the georeferencing systems
-  in which the coordinates indicated in the dataset were captured.
-  It inherits its properties from the `Base` class of the SQLAlchemy module. 
-  The columns and data types that this table requires are:
-
-  epsg: SmallInteger
-  unit: String
-  geodetic_crs: String
-  datum: String
-  ellipsoid: String
-  prime_meridian: String
-  data_source: String
-  information_source: String
-  revision_date: DateTime
-  scope: String
-  area_of_use: String
-  coordinate_system: String
-  '''
-  # Table name
-  __tablename__ = 'geog_coord_syst'
-  # Table columns
-  epsg = Column(SmallInteger, primary_key=True)
-  unit = Column(String)
-  geodetic_crs = Column(String)
-  datum = Column(String)
-  ellipsoid = Column(String)
-  prime_meridian = Column(String)
-  data_source = Column(String)
-  information_source = Column(String)
-  revision_date = Column(DateTime)
-  scope = Column(String)
-  area_of_use = Column(String)
-  coordinate_system = Column(String)
-  list_columns = ['epsg','unit','geodetic_crs','datum','ellipsoid','prime_meridian',
-                  'data_source','information_source','revision_date','scope',
-                  'area_of_use','coordinate_system']
-
-  def __init__(self, epsg, unit, geodetic_crs, datum, ellipsoid, prime_meridian, data_source,information_source, revision_date, scope, area_of_use, coordinate_system):
-    self.epsg = epsg
-    self.unit = unit
-    self.geodetic_crs = geodetic_crs
-    self.datum = datum
-    self.ellipsoid = ellipsoid
-    self.prime_meridian = prime_meridian
-    self.data_source = data_source
-    self.information_source = information_source
-    self.revision_date = revision_date
-    self.scope = scope
-    self.area_of_use = area_of_use
-    self.coordinate_system = coordinate_system
-  def __repr__(self):
-    return "<geog_coord_syst(" + ','.join([f"'{i}'" for i in self.list_columns]) + ")>"
-
-
-  def __str__(self):
-    return self.epsg
-
-
-
 
 # Botanical taxonomy table
 class Taxonomy_details(Base):
@@ -369,12 +306,11 @@ class Biodiversity_records(Base):
   place_id = Column(Integer, ForeignKey("places.id_place"))
   place = relationship("Place")
 
-  epsg_id = Column(SmallInteger, ForeignKey("geog_coord_syst.epsg"))
-  epsg = relationship("Geog_coord_syst")
 
-  list_columns = ['code_record', 'common_name', 'latitude', 'longitude', 'elevation_m', 'registered_by', 'date_event', 'place_id', 'epsg_id', 'taxonomy_id']
 
-  def __init__(self, code_record, common_name, latitude, longitude, elevation_m, registered_by, date_event, place_id, epsg_id, taxonomy_id):
+  list_columns = ['code_record', 'common_name', 'latitude', 'longitude', 'elevation_m', 'registered_by', 'date_event', 'place_id', 'taxonomy_id']
+
+  def __init__(self, code_record, common_name, latitude, longitude, elevation_m, registered_by, date_event, place_id, taxonomy_id):
     self.code_record = code_record
     self.common_name = common_name
     self.latitude = latitude
@@ -383,7 +319,6 @@ class Biodiversity_records(Base):
     self.registered_by = registered_by
     self.date_event = date_event
     self.place_id = place_id
-    self.epsg_id = epsg_id
     self.taxonomy_id = taxonomy_id
 
   def __repr__(self):

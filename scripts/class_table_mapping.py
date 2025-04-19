@@ -152,7 +152,7 @@ class Taxonomy_details(Base):
     genus = Column(String)
     specie = Column(String)
     accept_scientific_name = Column(String)
-    gbif_id = Column(String)
+    gbif_id = Column(Integer)
     lifeForm = Column(String)
     origin = Column(String)
     iucn_category = Column(String)

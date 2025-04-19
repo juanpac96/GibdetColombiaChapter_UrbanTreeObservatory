@@ -159,7 +159,7 @@ class Command(BaseCommand):
         
         # Create species (all rows, as each represents a unique species)
         species_batch = []
-        species_map = {}  # To store id -> Species mapping for later use
+        # species_map = {}  # To store id -> Species mapping for later use
         
         for _, row in tqdm(df.iterrows(), desc='Preparing species', total=len(df)):
             # Map the origin, iucn_status, etc from CSV to model choices
@@ -204,7 +204,7 @@ class Command(BaseCommand):
         places_batch = []
         for _, row in tqdm(df.iterrows(), desc='Preparing places', total=len(df)):
             place = Place(
-                id=row['id_place'],
+                id=row['id_place'],  # Primary key
                 municipality=self.ibague,  # Using the stored reference
                 site=row['site'],
                 populated_center=row['populated_center'],
@@ -231,10 +231,10 @@ class Command(BaseCommand):
         
         # Create the four traits (if they don't exist already)
         traits = {
-            'carbon': Trait.objects.get_or_create(type=Trait.TraitType.CARBON_SEQUESTRATION_IDX)[0],
+            'carbon': Trait.objects.get_or_create(type=Trait.TraitType.CARBON_SEQUESTRATION)[0],
             'shade': Trait.objects.get_or_create(type=Trait.TraitType.SHADE_IDX)[0],
-            'canopy': Trait.objects.get_or_create(type=Trait.TraitType.CANOPY_DIAMETER_MAX)[0],
-            'height': Trait.objects.get_or_create(type=Trait.TraitType.TOTAL_HEIGHT_MAX)[0],
+            'canopy': Trait.objects.get_or_create(type=Trait.TraitType.CANOPY_DIAMETER)[0],
+            'height': Trait.objects.get_or_create(type=Trait.TraitType.HEIGHT_MAX)[0],
         }
         
         # Create functional groups
@@ -331,7 +331,7 @@ class Command(BaseCommand):
                 location = f'POINT({row["longitude"]} {row["latitude"]})'
                 
                 bio_record = BiodiversityRecord(
-                    id=row['code_record'],  # Assuming code_record is the ID
+                    id=row['code_record'],  # Primary key
                     common_name=row['common_name'],
                     species=self.species_by_id[row['taxonomy_id']],
                     place=self.places_by_id[row['place_id']],
@@ -403,8 +403,6 @@ class Command(BaseCommand):
             
             batch_observations = []
             for _, row in batch_df.iterrows():
-                # Convert general_state to boolean is_standing
-                is_standing = row['general_state'] == 'ST'
                 
                 observation = Observation(
                     biodiversity_record_id=row['record_code'],  # Foreign key
@@ -415,7 +413,7 @@ class Command(BaseCommand):
                     aesthetic_value=row['aesthetic_value'],
                     growth_phase=row['growth_phase'],
                     field_notes=row['field_notes'] if pd.notna(row['field_notes']) else '',
-                    is_standing=is_standing,
+                    standing=row['general_state'],  # Renamed field
                     # Add all the coded fields
                     rd=row['rd'],
                     dm=row['dm'],

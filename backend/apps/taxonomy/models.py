@@ -43,20 +43,19 @@ class Trait(BaseModel):
     """Represents a trait that can be measured for a species group."""
 
     class TraitType(models.TextChoices):
-        CARBON_SEQUESTRATION_IDX = "CARBON", _("carbon sequestration index")
-        SHADE_IDX = "SHADE", _("shade index")
-        CANOPY_DIAMETER_MAX = "CANOPY", _("maximum diameter of canopy (m)")
-        TOTAL_HEIGHT_MAX = "HEIGHT", _("maximum total height (m)")
+        CARBON_SEQUESTRATION = "CS", _("carbon sequestration (%)")
+        SHADE_IDX = "SH", _("shade index")
+        CANOPY_DIAMETER = "CY", _("canopy diameter (m)")
+        HEIGHT_MAX = "HX", _("maximum height (m)")
 
     type = models.CharField(
         _("trait type"),
-        max_length=6,
+        max_length=2,
         choices=TraitType,
+        unique=True,
     )
 
     class Meta:
-        verbose_name = _("trait")
-        verbose_name_plural = _("traits")
         ordering = ["type"]
 
     def __str__(self):
@@ -124,11 +123,6 @@ class FunctionalGroup(BaseModel):
         _("group id"),
         help_text=_("Unique identifier for the functional group"),
         unique=True,
-    )
-    description = models.TextField(
-        _("description"),
-        help_text=_("Optional description of the functional group"),
-        blank=True,
     )
     traits = models.ManyToManyField(
         Trait,

@@ -1,52 +1,16 @@
-import uuid
-
 from django.contrib.gis.db import models as gis_models
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
+from apps.core.models import BaseModel
+from apps.places.models import Place
 from apps.taxonomy.models import Species
 
 
-class Place(models.Model):
-    """Represents a general geographical location of biodiversity records."""
-
-    uuid = models.UUIDField(_("uuid"), default=uuid.uuid4, editable=False)
-    country = models.CharField(_("country"), default="Colombia", max_length=50)
-    department = models.CharField(_("department"), default="Tolima", max_length=50)
-    municipality = models.CharField(_("municipality"), default="Ibagué", max_length=50)
-    site = models.CharField(_("site"), max_length=50, blank=True)
-    populated_center = models.CharField(
-        _("populated center"), max_length=50, blank=True
-    )
-    zone = models.PositiveSmallIntegerField(_("zone"), null=True, blank=True)
-    subzone = models.PositiveSmallIntegerField(_("subzone"), null=True, blank=True)
-    created_at = models.DateTimeField(_("created at"), auto_now_add=True)
-    updated_at = models.DateTimeField(_("updated at"), auto_now=True)
-
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(
-                fields=["country", "department", "municipality", "site"],
-                name="unique_place",
-            )
-        ]
-        ordering = ["country", "department", "municipality", "site"]
-
-    def __str__(self):
-        """Returns a string representation of the place, including the site,
-        municipality, department, and country, if they are not empty.
-
-        Example: "Parque Centenario, Ibagué, Tolima, Colombia"
-        """
-        components = [self.site, self.municipality, self.department, self.country]
-        return ", ".join(filter(None, components))
-
-
-class BiodiversityRecord(models.Model):
+class BiodiversityRecord(BaseModel):
     """Represents a record of biodiversity, including species, location,
     common name, and other attributes."""
 
-    uuid = models.UUIDField(_("uuid"), default=uuid.uuid4, editable=False)
     common_name = models.TextField(_("common name"), blank=True)
     species = models.ForeignKey(
         Species,
@@ -66,8 +30,6 @@ class BiodiversityRecord(models.Model):
         _("recorded by"), max_length=50, default="Cortolima", blank=True
     )
     date = models.DateField(_("recorded date"), null=True, blank=True)
-    created_at = models.DateTimeField(_("created at"), auto_now_add=True)
-    updated_at = models.DateTimeField(_("updated at"), auto_now=True)
 
     class Meta:
         verbose_name = _("biodiversity record")

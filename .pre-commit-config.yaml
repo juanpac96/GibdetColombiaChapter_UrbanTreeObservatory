@@ -1,6 +1,17 @@
 default_language_version:
   python: python3.12
 
+# Define paths to exclude
+exclude: |
+  (?x)(
+    ^webapp/|
+    ^frontend/|
+    ^data/|
+    ^scripts/|
+    ^notebooks|
+    ^.*\/migrations\/.*\.py$
+  )
+
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0

@@ -1,5 +1,7 @@
 from pathlib import Path
 
+from django.utils.translation import gettext_lazy as _
+
 import environ
 
 # Initialize environment variables
@@ -38,23 +40,25 @@ INSTALLED_APPS = [
     "leaflet",
     # Project apps
     "apps.core",
-    "apps.accounts",
     "apps.taxonomy",
+    "apps.places",
     "apps.biodiversity",
     "apps.reports",
+    "apps.climate",
 ]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",  # Serving static files
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.locale.LocaleMiddleware",  # Language detection
     "corsheaders.middleware.CorsMiddleware",  # CORS support
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "allauth.account.middleware.AccountMiddleware",
+    "allauth.account.middleware.AccountMiddleware",  # Django AllAuth
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -133,10 +137,19 @@ LEAFLET_CONFIG = {
 }
 
 # Internationalization
-LANGUAGE_CODE = "en-us"
-TIME_ZONE = "America/Bogota"  # Colombia time zone
+LANGUAGE_CODE = "es"  # Default language
+TIME_ZONE = "America/Bogota"  # Colombia timezone
 USE_I18N = True
 USE_TZ = True
+
+LANGUAGES = [
+    ("es", _("Spanish")),
+    ("en", _("English")),
+]
+
+LOCALE_PATHS = [
+    BASE_DIR / "locale",
+]
 
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = "/static/"

@@ -200,9 +200,12 @@ class Observation(BaseModel):
         default=HealthCondition.NOT_REPORTED,
     )
 
-    # Maps to `general_state` text field in original data; converted to boolean
-    is_standing = models.BooleanField(
-        _("is standing"), default=True, help_text=_("Is the tree standing?")
+    # Adapted from `general_state` text field in original data
+    standing = models.CharField(
+        _("standing"), 
+        max_length=2,
+        choices=YesNoReported,
+        default=YesNoReported.NOT_REPORTED,
     )
 
     # Yes/No/Not reported fields without explicit names in the original data

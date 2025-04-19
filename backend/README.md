@@ -118,18 +118,17 @@ docker compose exec backend python manage.py [command_name]
 
 ### Data Import Command
 
-To import data from CSV files into the database:
+To import initial data from CSV files into the database:
 
 ```bash
-docker compose exec backend python manage.py import_data --local-dir=scripts/data/csv
+docker compose exec backend python manage.py import_initial_data <data_dir>
 ```
 
 This command will:
 
 1. Process taxonomy data from `taxonomy_details.csv`
 2. Create places from `place.csv`
-3. Import biodiversity records from `biodiversity_records.csv`
-4. Import measurements from `measurements.csv`
-5. Import observations from `observations_details.csv`
-
-A detailed import report will be saved to `import_report.txt` in the backend container.
+3. Import functional groups and traits from `functional_groups_traits.csv`
+4. Import biodiversity records from `biodiversity_records.csv`
+5. Import measurements from `measurements.csv`
+6. Import observations from `observations_details.csv`

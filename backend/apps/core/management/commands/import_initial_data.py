@@ -1,6 +1,35 @@
-from pathlib import Path
-from tqdm import tqdm
+"""
+Import initial data from CSV files into the database.
 
+This Django management command imports data for an Urban Tree Observatory including:
+- Taxonomy (families, genera, species)
+- Places and locations
+- Functional groups and traits
+- Biodiversity records
+- Measurements and observations
+
+Prerequisites:
+1. Required migrations must be completed
+2. Target tables must be empty (except for country, department, municipality)
+3. Municipality of Ibagué (Tolima, Colombia) must exist in the database
+
+Assumptions:
+- All records are for the municipality of Ibagué, Tolima, Colombia.
+- The CSV files are structured correctly and contain all necessary data.
+
+Usage:
+    python manage.py import_initial_data <data_dir>
+
+Arguments:
+    data_dir - Path to directory containing the required CSV files
+
+Example:
+    python manage.py import_initial_data /path/to/data
+"""
+
+from pathlib import Path
+
+from tqdm import tqdm
 import pandas as pd
 
 from django.core.management.base import BaseCommand, CommandError
@@ -17,7 +46,25 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument('data_dir', type=str, help='Path to directory containing CSV files')
+    
+    def parse_date(self, date_string):
+        """Convert a date-time string from CSV to a date object for Django DateField.
         
+        Args:
+            date_string: String in format 'YYYY-MM-DD HH:MM:SS' or None/NaN
+            
+        Returns:
+            date object or None if input is empty/NaN
+        """
+        if pd.isna(date_string) or not date_string:
+            return None
+        
+        try:
+            # Parse the datetime string and extract just the date part
+            return pd.to_datetime(date_string).date()
+        except:
+            return None
+                
     def handle(self, *args, **options):
         self.data_dir = Path(options['data_dir'])
         self.stdout.write(self.style.SUCCESS(f'Starting import from {self.data_dir}'))
@@ -128,7 +175,7 @@ class Command(BaseCommand):
                 flower_color=row['flower_color_code'],
                 gbif_id=row['gbif_id'] if row['gbif_id'] != '0' else None,
                 identified_by=row['identified_by'],
-                date=row['date_of_identification'] if pd.notna(row['date_of_identification']) else None,
+                date=self.parse_date(row['date_of_identification']) if pd.notna(row['date_of_identification']) else None,
                 # functional_group will be set later
             )
             species_batch.append(species)
@@ -291,7 +338,7 @@ class Command(BaseCommand):
                     location=location,
                     elevation_m=row['elevation_m'] if pd.notna(row['elevation_m']) else None,
                     recorded_by=row['registered_by'],
-                    date=row['date_event'] if pd.notna(row['date_event']) else None,
+                    date=self.parse_date(row['date_event']) if pd.notna(row['date_event']) else None,
                 )
                 batch_records.append(bio_record)
             
@@ -327,7 +374,7 @@ class Command(BaseCommand):
                     value=row['measurement_value'],
                     unit=row['measurement_unit'],
                     method=row['measurement_method'],
-                    date=row['measurement_date_event'] if pd.notna(row['measurement_date_event']) else None,
+                    date=self.parse_date(row['measurement_date_event']) if pd.notna(row['measurement_date_event']) else None,
                 )
                 batch_measurements.append(measurement)
             

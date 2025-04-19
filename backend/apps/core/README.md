@@ -4,7 +4,7 @@ This Django app contains common functionality used across the Urban Tree Observa
 
 ## Management Commands
 
-### `import_data`
+### `import_initial_data`
 
 This command imports data from CSV files into the database. It handles importing taxonomy, places, biodiversity records, measurements, and observations.
 
@@ -12,10 +12,10 @@ This command imports data from CSV files into the database. It handles importing
 
 ```bash
 # Using default URLs
-python manage.py import_data
+python manage.py import_initial_data
 
 # Using custom URLs
-python manage.py import_data \
+python manage.py import_initial_data \
   --taxonomy-url=https://example.com/taxonomy_details.csv \
   --place-url=https://example.com/place.csv \
   --biodiversity-url=https://example.com/biodiversity_records.csv \
@@ -23,7 +23,7 @@ python manage.py import_data \
   --observations-url=https://example.com/observations_details.csv
 
 # Using local files in a directory
-python manage.py import_data --local-dir=/path/to/csv/files
+python manage.py import_initial_data --local-dir=/path/to/csv/files
 ```
 
 #### Data Flow

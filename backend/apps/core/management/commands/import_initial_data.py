@@ -1,16 +1,13 @@
-import csv
-import os
 from pathlib import Path
 from tqdm import tqdm
 
 import pandas as pd
 
-from django.core.management.base import BaseCommand
-from django.db import transaction
-from django.db.models import Count
+from django.core.management.base import BaseCommand, CommandError
+from django.db import transaction, connection
 
 from apps.taxonomy.models import Family, Genus, Species, FunctionalGroup, Trait, TraitValue
-from apps.places.models import Country, Department, Municipality, Place
+from apps.places.models import Municipality, Place
 from apps.biodiversity.models import BiodiversityRecord
 from apps.reports.models import Measurement, Observation
 
@@ -24,6 +21,12 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         self.data_dir = Path(options['data_dir'])
         self.stdout.write(self.style.SUCCESS(f'Starting import from {self.data_dir}'))
+        
+        # Check that required migrations have run
+        self.check_required_data()
+        
+        # Check that tables to be populated are empty
+        self.check_empty_tables()
         
         try:
             with transaction.atomic():
@@ -39,6 +42,50 @@ class Command(BaseCommand):
         except Exception as e:
             self.stdout.write(self.style.ERROR(f'Import failed: {str(e)}'))
             raise
+
+    def check_required_data(self):
+        """Check that required initial data exists (from migrations)."""
+        try:
+            # Check that Ibagué exists (if so, Colombia and Tolima are assumed present)
+            ibague = Municipality.objects.get(name='Ibagué')
+            self.stdout.write(self.style.SUCCESS('Required initial location data confirmed'))
+            
+            # Store for later use
+            self.ibague = ibague
+        except Municipality.DoesNotExist:
+            raise CommandError(
+                "Municipality 'Ibagué' not found. Please ensure initial migrations have run."
+            )
+
+    def check_empty_tables(self):
+        """Check that all tables to be populated are empty before import."""
+        tables_to_check = [
+            (Family, "Family"),
+            (Genus, "Genus"),
+            (Species, "Species"),
+            (Place, "Place"),
+            (FunctionalGroup, "FunctionalGroup"),
+            (Trait, "Trait"),
+            (TraitValue, "TraitValue"),
+            (BiodiversityRecord, "BiodiversityRecord"),
+            (Measurement, "Measurement"),
+            (Observation, "Observation"),
+        ]
+        
+        non_empty_tables = []
+        
+        for model, name in tables_to_check:
+            if model.objects.exists():
+                non_empty_tables.append(name)
+        
+        if non_empty_tables:
+            message = (
+                f"The following tables are not empty: {', '.join(non_empty_tables)}. "
+                "Please empty these tables before running the import to avoid ID conflicts."
+            )
+            raise CommandError(message)
+        
+        self.stdout.write(self.style.SUCCESS('All required tables are empty - ready to import'))
 
     def import_taxonomy(self):
         self.stdout.write('Importing taxonomy data...')
@@ -106,36 +153,12 @@ class Command(BaseCommand):
         # Read place.csv
         df = pd.read_csv(self.data_dir / 'place.csv')
         
-        # Create countries (should be just one - Colombia)
-        countries = {}
-        for country_name in df['country'].unique():
-            country, created = Country.objects.get_or_create(name=country_name)
-            countries[country_name] = country
-        
-        # Create departments
-        departments = {}
-        for dept_name in df['department'].unique():
-            department, created = Department.objects.get_or_create(
-                name=dept_name,
-                country=countries[df[df['department'] == dept_name]['country'].iloc[0]]
-            )
-            departments[dept_name] = department
-        
-        # Create municipalities
-        municipalities = {}
-        for muni_name in df['municipality'].unique():
-            municipality, created = Municipality.objects.get_or_create(
-                name=muni_name,
-                department=departments[df[df['municipality'] == muni_name]['department'].iloc[0]]
-            )
-            municipalities[muni_name] = municipality
-        
-        # Create places
+        # Create places using the ibague reference we stored earlier
         places_batch = []
         for _, row in tqdm(df.iterrows(), desc='Preparing places', total=len(df)):
             place = Place(
-                id=row['id_place'],  # Assuming the CSV's id_place maps to the Place model's id
-                municipality=municipalities[row['municipality']],
+                id=row['id_place'],
+                municipality=self.ibague,  # Using the stored reference
                 site=row['site'],
                 populated_center=row['populated_center'],
                 zone=row['zone'] if pd.notna(row['zone']) else None,
@@ -150,8 +173,7 @@ class Command(BaseCommand):
         self.places_by_id = {place.id: place for place in places}
         
         self.stdout.write(self.style.SUCCESS(
-            f'Imported {len(countries)} countries, {len(departments)} departments, '
-            f'{len(municipalities)} municipalities, {len(places)} places'
+            f'Imported {len(places)} places in Ibagué, Tolima, Colombia'
         ))
 
     def import_functional_groups(self):
@@ -384,3 +406,21 @@ class Command(BaseCommand):
             observations_created += len(created)
         
         self.stdout.write(self.style.SUCCESS(f'Imported {observations_created} observations'))
+
+    def reset_sequences(self):
+        """Reset ID sequences after import for PostgreSQL."""
+        with connection.cursor() as cursor:
+            tables = [
+                'taxonomy_family', 'taxonomy_genus', 'taxonomy_species',
+                'places_country', 'places_department', 'places_municipality', 'places_place',
+                'taxonomy_functionalgroup', 'taxonomy_trait', 'taxonomy_traitvalue',
+                'biodiversity_biodiversityrecord', 'reports_measurement', 'reports_observation'
+            ]
+            
+            for table in tables:
+                cursor.execute(
+                    f"SELECT setval(pg_get_serial_sequence('{table}', 'id'), "
+                    f"COALESCE((SELECT MAX(id) FROM {table}), 0) + 1, false)"
+                )
+        
+        self.stdout.write(self.style.SUCCESS('Sequence IDs reset successfully'))

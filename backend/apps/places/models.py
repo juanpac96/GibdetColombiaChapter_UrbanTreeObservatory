@@ -8,9 +8,7 @@ from django.utils.translation import gettext_lazy as _
 class Country(models.Model):
     """Represents a country."""
 
-    name = models.CharField(
-        _("country"), max_length=50, unique=True
-    )
+    name = models.CharField(_("country"), max_length=50, unique=True)
 
     class Meta:
         ordering = ["name"]
@@ -23,9 +21,7 @@ class Country(models.Model):
 class Department(models.Model):
     """Represents a department within a country."""
 
-    name = models.CharField(
-        _("department"), max_length=50, unique=True
-    )
+    name = models.CharField(_("department"), max_length=50, unique=True)
     country = models.ForeignKey(
         Country,
         on_delete=models.CASCADE,
@@ -43,9 +39,7 @@ class Department(models.Model):
 class Municipality(models.Model):
     """Represents a municipality within a department."""
 
-    name = models.CharField(
-        _("municipality"), max_length=50, unique=True
-    )
+    name = models.CharField(_("municipality"), max_length=50, unique=True)
     department = models.ForeignKey(
         Department,
         on_delete=models.CASCADE,
@@ -87,15 +81,10 @@ class Place(BaseModel):
     def __str__(self):
         """Returns a string representation of the place, including the site,
         municipality, department, and country.
-    
+
         Example: "Parque Centenario, Ibagué, Tolima, Colombia"
         """
         department = self.municipality.department
         country = department.country
-        components = [
-            self.site,
-            self.municipality.name,
-            department.name,
-            country.name
-        ]
+        components = [self.site, self.municipality.name, department.name, country.name]
         return ", ".join(filter(None, components))

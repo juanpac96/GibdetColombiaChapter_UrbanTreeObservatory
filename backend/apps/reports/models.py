@@ -194,7 +194,7 @@ class Observation(BaseModel):
         choices=HealthCondition,
         default=HealthCondition.NOT_REPORTED,
     )
-    hfc = models.CharField(
+    hcf = models.CharField(
         max_length=2,
         choices=HealthCondition,
         default=HealthCondition.NOT_REPORTED,
@@ -202,7 +202,7 @@ class Observation(BaseModel):
 
     # Adapted from `general_state` text field in original data
     standing = models.CharField(
-        _("standing"), 
+        _("standing"),
         max_length=2,
         choices=YesNoReported,
         default=YesNoReported.NOT_REPORTED,
@@ -327,6 +327,13 @@ class Observation(BaseModel):
         default=DamagePercent.ZERO,
     )
 
+    photo_url = models.URLField(
+        _("photo URL"),
+        max_length=255,
+        null=True,
+        blank=True,
+        help_text=_("URL of the photo associated with the observation"),
+    )
     field_notes = models.TextField(_("field notes"), blank=True)
     recorded_by = models.CharField(_("recorded by"), max_length=50, default="Cortolima")
     accompanying_collectors = models.TextField(_("accompanying collectors"), blank=True)

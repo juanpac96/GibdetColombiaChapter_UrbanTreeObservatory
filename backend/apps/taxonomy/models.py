@@ -97,12 +97,6 @@ class TraitValue(BaseModel):
         verbose_name_plural = _("trait values")
         constraints = [
             models.CheckConstraint(
-                condition=models.Q(min_value__isnull=True)
-                | models.Q(max_value__isnull=True)
-                | models.Q(min_value__lte=models.F("max_value")),
-                name="min_value_less_than_max_value",
-            ),
-            models.CheckConstraint(
                 condition=models.Q(min_value__isnull=True) | models.Q(min_value__gte=0),
                 name="min_value_greater_than_zero",
             ),

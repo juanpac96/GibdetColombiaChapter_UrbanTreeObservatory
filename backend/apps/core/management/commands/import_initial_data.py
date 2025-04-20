@@ -18,13 +18,22 @@ Assumptions:
 - The CSV files are structured correctly and contain all necessary data.
 
 Usage:
-    python manage.py import_initial_data <data_dir>
+    python manage.py import_initial_data [options]
 
-Arguments:
-    data_dir - Path to directory containing the required CSV files
+Options:
+    --local-dir PATH        Path to directory containing the CSV files
+    --taxonomy-url URL      URL for the taxonomy details CSV file
+    --places-url URL        URL for the places CSV file
+    --biodiversity-url URL  URL for the biodiversity records CSV file
+    --measurements-url URL  URL for the measurements CSV file
+    --observations-url URL  URL for the observations details CSV file
+    --traits-url URL        URL for the functional groups traits CSV file
+
+By default, the command fetches data from Hugging Face URLs.
 
 Example:
-    python manage.py import_initial_data /path/to/data
+    python manage.py import_initial_data  # Uses default Hugging Face URLs
+    python manage.py import_initial_data --local-dir /path/to/data  # Uses local files
 """
 
 from pathlib import Path
@@ -52,8 +61,41 @@ class Command(BaseCommand):
     help = "Import CSV data into the database"
 
     def add_arguments(self, parser):
+        """Add command line arguments for the management command."""
+
         parser.add_argument(
-            "data_dir", type=str, help="Path to directory containing CSV files"
+            "--taxonomy-url",
+            default="https://huggingface.co/datasets/juanpac96/urban_tree_census_data/Taxonomy_details.csv",
+            help="URL for the taxonomy details CSV file",
+        )
+        parser.add_argument(
+            "--places-url",
+            default="https://huggingface.co/datasets/juanpac96/urban_tree_census_data/Place.csv",
+            help="URL for the places CSV file",
+        )
+        parser.add_argument(
+            "--biodiversity-url",
+            default="https://huggingface.co/datasets/juanpac96/urban_tree_census_data/Biodiversity_records.csv",
+            help="URL for the biodiversity records CSV file",
+        )
+        parser.add_argument(
+            "--measurements-url",
+            default="https://huggingface.co/datasets/juanpac96/urban_tree_census_data/Measurements.csv",
+            help="URL for the measurements CSV file",
+        )
+        parser.add_argument(
+            "--observations-url",
+            default="https://huggingface.co/datasets/juanpac96/urban_tree_census_data/Observations_details.csv",
+            help="URL for the observations details CSV file",
+        )
+        parser.add_argument(
+            "--traits-url",
+            default="https://huggingface.co/datasets/juanpac96/urban_tree_census_data/FunctionalTraitsStructure.csv",
+            help="URL for the functional groups traits CSV file",
+        )
+        parser.add_argument(
+            "--local-dir",
+            help="Local directory containing CSV files with the same names as Hugging Face URLs",
         )
 
     def parse_date(self, date_string):
@@ -75,8 +117,26 @@ class Command(BaseCommand):
             return None
 
     def handle(self, *args, **options):
-        self.data_dir = Path(options["data_dir"])
-        self.stdout.write(self.style.SUCCESS(f"Starting import from {self.data_dir}"))
+        # Store the URLs or paths for later use
+        self.use_local = options.get("local_dir") is not None
+
+        if self.use_local:
+            self.data_dir = Path(options["local_dir"])
+            self.stdout.write(
+                self.style.SUCCESS(
+                    f"Starting import from local directory: {self.data_dir}"
+                )
+            )
+        else:
+            self.taxonomy_url = options["taxonomy_url"]
+            self.place_url = options["place_url"]
+            self.biodiversity_url = options["biodiversity_url"]
+            self.measurements_url = options["measurements_url"]
+            self.observations_url = options["observations_url"]
+            self.traits_url = options["traits_url"]
+            self.stdout.write(
+                self.style.SUCCESS("Starting import from Hugging Face URLs")
+            )
 
         # Check that required migrations have run
         self.check_required_data()
@@ -153,8 +213,13 @@ class Command(BaseCommand):
         # Read CSV with pandas for easier handling
         # Prevent pandas from interpreting "NA" as NaN (missing value)
         # NA is a valid value for origin ("native").
+        if self.use_local:
+            csv_path = self.data_dir / "Taxonomy_details.csv"
+        else:
+            csv_path = self.taxonomy_url
+
         df = pd.read_csv(
-            self.data_dir / "taxonomy_details.csv",
+            csv_path,
             keep_default_na=False,  # Don't convert "NA" to NaN
             na_values=[],  # Empty list means don't interpret any values as NaN
         )
@@ -227,7 +292,12 @@ class Command(BaseCommand):
         self.stdout.write("Importing place data...")
 
         # Read place.csv
-        df = pd.read_csv(self.data_dir / "place.csv")
+        if self.use_local:
+            csv_path = self.data_dir / "Place.csv"
+        else:
+            csv_path = self.place_url
+
+        df = pd.read_csv(csv_path)
 
         # Create places using the ibague reference we stored earlier
         places_batch = []
@@ -258,7 +328,12 @@ class Command(BaseCommand):
         self.stdout.write("Importing functional groups and traits...")
 
         # Read functional_groups_traits.csv
-        df = pd.read_csv(self.data_dir / "functional_groups_traits.csv")
+        if self.use_local:
+            csv_path = self.data_dir / "FunctionalTraitsStructure.csv"
+        else:
+            csv_path = self.traits_url
+
+        df = pd.read_csv(csv_path)
 
         # Create the four traits (if they don't exist already)
         traits = {
@@ -374,7 +449,12 @@ class Command(BaseCommand):
         self.stdout.write("Importing biodiversity records...")
 
         # Read biodiversity_records.csv
-        df = pd.read_csv(self.data_dir / "biodiversity_records.csv")
+        if self.use_local:
+            csv_path = self.data_dir / "Biodiversity_records.csv"
+        else:
+            csv_path = self.biodiversity_url
+
+        df = pd.read_csv(csv_path)
 
         # Create biodiversity records in batches to manage memory
         batch_size = 1000
@@ -430,7 +510,12 @@ class Command(BaseCommand):
         # We'll process this in chunks due to the large number of rows
         chunksize = 50000  # Adjust based on available memory
 
-        reader = pd.read_csv(self.data_dir / "measurements.csv", chunksize=chunksize)
+        if self.use_local:
+            csv_path = self.data_dir / "Measurements.csv"
+        else:
+            csv_path = self.measurements_url
+
+        reader = pd.read_csv(csv_path, chunksize=chunksize)
 
         total_measurements = 0
 
@@ -465,8 +550,13 @@ class Command(BaseCommand):
         self.stdout.write("Importing observations...")
 
         # Read observations_details.csv with specified data types to handle mixed types warning
+        if self.use_local:
+            csv_path = self.data_dir / "Observations_details.csv"
+        else:
+            csv_path = self.observations_url
+
         df = pd.read_csv(
-            self.data_dir / "observations_details.csv",
+            csv_path,
             # Convert the problematic columns (8,9,10,11,13,34) to string type
             # Column index starts at 0, so we need to adjust the numbers from the warning
             dtype={

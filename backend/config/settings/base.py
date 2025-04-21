@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     "leaflet",
     # Project apps
     "apps.core",
+    "apps.users",
     "apps.taxonomy",
     "apps.places",
     "apps.biodiversity",
@@ -192,6 +193,9 @@ else:
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# Custom user model
+AUTH_USER_MODEL = "users.User"
 
 # Django AllAuth settings
 AUTHENTICATION_BACKENDS = [

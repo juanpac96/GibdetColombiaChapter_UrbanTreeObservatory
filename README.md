@@ -87,6 +87,7 @@ docker compose exec backend python manage.py import_initial_data --local-dir=/pa
   - `config/` - Django project settings
   - `apps/` - Django apps
     - `core/` - Core functionality
+    - `users/` - User management
     - `taxonomy/` - Family, genus, and species management
     - `biodiversity/` - Tree data management with GIS
     - `reports/` - Tree measurements and observations

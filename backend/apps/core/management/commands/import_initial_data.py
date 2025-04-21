@@ -230,46 +230,43 @@ class Command(BaseCommand):
             na_values=[],  # Empty list means don't interpret any values as NaN
         )
 
+        # Validate headers
+        required_columns = {"taxonomy_id", "family", "genus", "specie", "accept_scientific_name", "origin", "iucn_category", "lifeForm", "canopy_shape_code", "flower_color_code", "gbif_id", "identified_by", "date_of_identification"}
+        if not required_columns.issubset(df.columns):
+            missing = required_columns - set(df.columns)
+            raise CommandError(f"Missing required columns in taxonomy.csv: {missing}")
+
         # Create families (track created ones to avoid duplicates)
         families = {}
         for family_name in tqdm(df["family"].unique(), desc="Importing families"):
-            family, created = Family.objects.get_or_create(name=family_name)
+            family, _ = Family.objects.get_or_create(name=family_name)
             families[family_name] = family
 
         # Create genera
         genera = {}
-        for _, row in tqdm(
-            df[["family", "genus"]].drop_duplicates().iterrows(),
-            desc="Importing genera",
-            total=len(df[["family", "genus"]].drop_duplicates()),
-        ):
-            genus, created = Genus.objects.get_or_create(
-                name=row["genus"], family=families[row["family"]]
-            )
-            genera[row["genus"]] = genus
+        for row in tqdm(df[["family", "genus"]].drop_duplicates().itertuples(index=False), desc="Importing genera"):
+            genus, _ = Genus.objects.get_or_create(name=row.genus, family=families[row.family])
+            genera[row.genus] = genus
 
         # Create species (all rows, as each represents a unique species)
         species_batch = []
 
-        for _, row in tqdm(df.iterrows(), desc="Preparing species", total=len(df)):
+        for row in tqdm(df.itertuples(index=False), desc="Preparing species", total=len(df)):
             # Map the origin, iucn_status, etc from CSV to model choices
             # Note: We assume the CSV values match the model choices' values
             species = Species(
-                genus=genera[row["genus"]],
-                name=row["specie"].replace(
-                    row["genus"] + " ", ""
-                ),  # Remove genus prefix if present
-                accepted_scientific_name=row["accept_scientific_name"],
-                origin=row["origin"],
-                iucn_status=row["iucn_category"],
-                life_form=row["lifeForm"],
-                canopy_shape=row["canopy_shape_code"],
-                flower_color=row["flower_color_code"],
-                gbif_id=row["gbif_id"] if pd.notna(row["gbif_id"]) else None,
-                identified_by=row["identified_by"],
-                date=self.parse_date(row["date_of_identification"])
-                if pd.notna(row["date_of_identification"])
-                else None,
+                id=row.taxonomy_id,  # Primary key
+                genus=genera[row.genus],
+                name=row.specie.replace(row.genus + " ", ""),  # Remove genus prefix if present
+                accepted_scientific_name=row.accept_scientific_name,
+                origin=row.origin,
+                iucn_status=row.iucn_category,
+                life_form=row.lifeForm,
+                canopy_shape=row.canopy_shape_code,
+                flower_color=row.flower_color_code,
+                gbif_id=row.gbif_id if pd.notna(row.gbif_id) else None,
+                identified_by=row.identified_by,
+                date=self.parse_date(row.date_of_identification) if pd.notna(row.date_of_identification) else None,
                 # functional_group will be set later
             )
             species_batch.append(species)
@@ -277,12 +274,8 @@ class Command(BaseCommand):
         # Bulk create species
         created_species = Species.objects.bulk_create(species_batch, batch_size=100)
 
-        # Map taxonomy_id to created species objects for later use
-        species_by_id = {}
-        for i, row in enumerate(df.iterrows()):
-            species_by_id[row[1]['taxonomy_id']] = created_species[i]
-
-        self.species_by_id = species_by_id  # Save for later
+        # Create mapping for use in biodiversity records
+        self.species_by_id = {sp.id: sp for sp in created_species}
 
         self.stdout.write(
             self.style.SUCCESS(
@@ -301,16 +294,22 @@ class Command(BaseCommand):
 
         df = pd.read_csv(csv_path)
 
+        # Validate headers
+        required_columns = {"id_place", "site", "populated_center", "zone", "subzone"}
+        if not required_columns.issubset(df.columns):
+            missing = required_columns - set(df.columns)
+            raise CommandError(f"Missing required columns in places.csv: {missing}")
+
         # Create places using the ibague reference we stored earlier
         places_batch = []
-        for _, row in tqdm(df.iterrows(), desc="Preparing places", total=len(df)):
+        for row in tqdm(df.itertuples(index=False), desc="Preparing places", total=len(df)):
             place = Place(
-                id=row["id_place"],  # Primary key
+                id=row.id_place,  # Primary key
                 municipality=self.ibague,  # Using the stored reference
-                site=row["site"],
-                populated_center=row["populated_center"],
-                zone=row["zone"] if pd.notna(row["zone"]) else None,
-                subzone=row["subzone"] if pd.notna(row["subzone"]) else None,
+                site=row.site,
+                populated_center=row.populated_center,
+                zone=row.zone if pd.notna(row.zone) else None,
+                subzone=row.subzone if pd.notna(row.subzone) else None,
             )
             places_batch.append(place)
 
@@ -337,6 +336,23 @@ class Command(BaseCommand):
 
         df = pd.read_csv(csv_path)
 
+        # Validate headers
+        required_columns = {
+            "pft_id",
+            "taxonomy_id",
+            "carbon_sequestration_min",
+            "carbon_sequestration_max",
+            "shade_index_min",
+            "shade_index_max",
+            "canopy_diameter_min",
+            "canopy_diameter_max",
+            "height_max_min",
+            "height_max_max",
+        }
+        if not required_columns.issubset(df.columns):
+            missing = required_columns - set(df.columns)
+            raise CommandError(f"Missing required columns in traits.csv: {missing}")
+
         # Create the four traits (if they don't exist already)
         traits = {
             "carbon": Trait.objects.get_or_create(
@@ -351,8 +367,8 @@ class Command(BaseCommand):
 
         # Create functional groups
         fg_batch = []
-        for pft_id in tqdm(df["pft_id"].unique(), desc="Creating functional groups"):
-            fg = FunctionalGroup(group_id=pft_id)
+        for row in tqdm(df[["pft_id"]].drop_duplicates().itertuples(index=False), desc="Creating functional groups"):
+            fg = FunctionalGroup(group_id=row.pft_id)
             fg_batch.append(fg)
 
         functional_groups = FunctionalGroup.objects.bulk_create(fg_batch)
@@ -362,18 +378,14 @@ class Command(BaseCommand):
 
         # Create trait values
         trait_values = []
-        for _, row in tqdm(df.iterrows(), desc="Creating trait values"):
+        for row in tqdm(df.itertuples(index=False), desc="Creating trait values", total=len(df)):
             # Carbon sequestration trait values
             trait_values.append(
                 TraitValue(
                     trait=traits["carbon"],
-                    functional_group=fg_map[row["pft_id"]],
-                    min_value=row["carbon_sequestration_min"]
-                    if pd.notna(row["carbon_sequestration_min"])
-                    else None,
-                    max_value=row["carbon_sequestration_max"]
-                    if pd.notna(row["carbon_sequestration_max"])
-                    else None,
+                    functional_group=fg_map[row.pft_id],
+                    min_value=row.carbon_sequestration_min if pd.notna(row.carbon_sequestration_min) else None,
+                    max_value=row.carbon_sequestration_max if pd.notna(row.carbon_sequestration_max) else None,
                 )
             )
 
@@ -381,13 +393,9 @@ class Command(BaseCommand):
             trait_values.append(
                 TraitValue(
                     trait=traits["shade"],
-                    functional_group=fg_map[row["pft_id"]],
-                    min_value=row["shade_index_min"]
-                    if pd.notna(row["shade_index_min"])
-                    else None,
-                    max_value=row["shade_index_max"]
-                    if pd.notna(row["shade_index_max"])
-                    else None,
+                    functional_group=fg_map[row.pft_id],
+                    min_value=row.shade_index_min if pd.notna(row.shade_index_min) else None,
+                    max_value=row.shade_index_max if pd.notna(row.shade_index_max) else None,
                 )
             )
 
@@ -395,13 +403,9 @@ class Command(BaseCommand):
             trait_values.append(
                 TraitValue(
                     trait=traits["canopy"],
-                    functional_group=fg_map[row["pft_id"]],
-                    min_value=row["canopy_diameter_min"]
-                    if pd.notna(row["canopy_diameter_min"])
-                    else None,
-                    max_value=row["canopy_diameter_max"]
-                    if pd.notna(row["canopy_diameter_max"])
-                    else None,
+                    functional_group=fg_map[row.pft_id],
+                    min_value=row.canopy_diameter_min if pd.notna(row.canopy_diameter_min) else None,
+                    max_value=row.canopy_diameter_max if pd.notna(row.canopy_diameter_max) else None,
                 )
             )
 
@@ -409,13 +413,9 @@ class Command(BaseCommand):
             trait_values.append(
                 TraitValue(
                     trait=traits["height"],
-                    functional_group=fg_map[row["pft_id"]],
-                    min_value=row["height_max_min"]
-                    if pd.notna(row["height_max_min"])
-                    else None,
-                    max_value=row["height_max_max"]
-                    if pd.notna(row["height_max_max"])
-                    else None,
+                    functional_group=fg_map[row.pft_id],
+                    min_value=row.height_max_min if pd.notna(row.height_max_min) else None,
+                    max_value=row.height_max_max if pd.notna(row.height_max_max) else None,
                 )
             )
 
@@ -423,10 +423,9 @@ class Command(BaseCommand):
         TraitValue.objects.bulk_create(trait_values, batch_size=500)
 
         # Update species with functional group references
-        # Group by taxonomy_id to get functional group for each species
         taxonomy_to_fg = {}
-        for _, row in df.iterrows():
-            taxonomy_to_fg[row["taxonomy_id"]] = fg_map[row["pft_id"]]
+        for row in df.itertuples(index=False):
+            taxonomy_to_fg[row.taxonomy_id] = fg_map[row.pft_id]
 
         # Batch update species with functional groups
         species_updates = []
@@ -458,6 +457,22 @@ class Command(BaseCommand):
 
         df = pd.read_csv(csv_path)
 
+        # Validate headers
+        required_columns = {
+            "code_record",
+            "common_name",
+            "taxonomy_id",
+            "place_id",
+            "longitude",
+            "latitude",
+            "elevation_m",
+            "registered_by",
+            "date_event",
+        }
+        if not required_columns.issubset(df.columns):
+            missing = required_columns - set(df.columns)
+            raise CommandError(f"Missing required columns in biodiversity.csv: {missing}")
+
         # Create biodiversity records in batches to manage memory
         batch_size = 1000
         total_batches = (len(df) // batch_size) + (1 if len(df) % batch_size > 0 else 0)
@@ -473,23 +488,19 @@ class Command(BaseCommand):
             batch_df = df.iloc[start_idx:end_idx]
 
             batch_records = []
-            for _, row in batch_df.iterrows():
+            for row in batch_df.itertuples(index=False):
                 # Create a Point geometry for the location
-                location = f"POINT({row['longitude']} {row['latitude']})"
+                location = f"POINT({row.longitude} {row.latitude})"
 
                 bio_record = BiodiversityRecord(
-                    id=row["code_record"],  # Primary key
-                    common_name=row["common_name"],
-                    species=self.species_by_id[row["taxonomy_id"]],
-                    place=self.places_by_id[row["place_id"]],
+                    id=row.code_record,  # Primary key
+                    common_name=row.common_name,
+                    species=self.species_by_id[row.taxonomy_id],
+                    place=self.places_by_id[row.place_id],
                     location=location,
-                    elevation_m=row["elevation_m"]
-                    if pd.notna(row["elevation_m"])
-                    else None,
-                    recorded_by=row["registered_by"],
-                    date=self.parse_date(row["date_event"])
-                    if pd.notna(row["date_event"])
-                    else None,
+                    elevation_m=row.elevation_m if pd.notna(row.elevation_m) else None,
+                    recorded_by=row.registered_by,
+                    date=self.parse_date(row.date_event) if pd.notna(row.date_event) else None,
                 )
                 batch_records.append(bio_record)
 
@@ -526,20 +537,29 @@ class Command(BaseCommand):
 
         with tqdm(total=total_rows, desc="Importing measurements") as pbar:
             for chunk in reader:
+                # Validate headers in the first chunk
+                required_columns = {
+                    "record_code",
+                    "measurement_name",
+                    "measurement_value",
+                    "measurement_unit",
+                    "measurement_method",
+                    "measurement_date_event",
+                }
+                if not required_columns.issubset(chunk.columns):
+                    missing = required_columns - set(chunk.columns)
+                    raise CommandError(f"Missing required columns in measurements.csv: {missing}")
+
                 batch_measurements = []
 
-                for _, row in chunk.iterrows():
+                for row in chunk.itertuples(index=False):
                     measurement = Measurement(
-                        biodiversity_record_id=row["record_code"],  # Foreign key
-                        attribute=row["measurement_name"],
-                        value=row["measurement_value"]
-                        if pd.notna(row["measurement_value"])
-                        else None,
-                        unit=row["measurement_unit"],
-                        method=row["measurement_method"],
-                        date=self.parse_date(row["measurement_date_event"])
-                        if pd.notna(row["measurement_date_event"])
-                        else None,
+                        biodiversity_record_id=row.record_code,  # Foreign key
+                        attribute=row.measurement_name,
+                        value=row.measurement_value if pd.notna(row.measurement_value) else None,
+                        unit=row.measurement_unit,
+                        method=row.measurement_method,
+                        date=self.parse_date(row.measurement_date_event) if pd.notna(row.measurement_date_event) else None,
                     )
                     batch_measurements.append(measurement)
 
@@ -556,94 +576,129 @@ class Command(BaseCommand):
 
     def import_observations(self):
         self.stdout.write("Importing observations...")
-
+    
         # Read observations.csv with specified data types to handle mixed types warning
         if self.use_local:
             csv_path = self.data_dir / "observations.csv"
         else:
             csv_path = self.observations_url
-
-        df = pd.read_csv(
-            csv_path,
-            # Convert the problematic columns (8,9,10,11,13) to string type
-            # Column index starts at 0, so we need to adjust the numbers from the warning
-            dtype={
-                "rd": str,  # Column 8
-                "dm": str,  # Column 9
-                "bbs": str,  # Column 10
-                "ab": str,  # Column 11
-                "pi": str,  # Column 13
-            },
-        )
-
+    
+        # Specify dtype for columns that may have mixed types
+        dtype = {
+            "rd": str,
+            "dm": str,
+            "bbs": str,
+            "ab": str,
+            "pi": str,
+        }
+    
+        df = pd.read_csv(csv_path, dtype=dtype)
+    
+        # Validate headers
+        required_columns = {
+            "record_code",
+            "reproductive_condition",
+            "phytosanitary_status",
+            "physical_condition",
+            "foliage_density",
+            "aesthetic_value",
+            "growth_phase",
+            "field_notes",
+            "standing",
+            "rd",
+            "dm",
+            "bbs",
+            "ab",
+            "ed",
+            "pi",
+            "ph",
+            "pa",
+            "hc",
+            "hcf",
+            "pd",
+            "pe",
+            "pp",
+            "po",
+            "cre",
+            "crh",
+            "cra",
+            "coa",
+            "ce",
+            "civ",
+            "crt",
+            "crg",
+            "cap",
+            "r_vol",
+            "r_cr",
+            "r_ce",
+            "photo_url",
+            "accompanying_collectors",
+        }
+        if not required_columns.issubset(df.columns):
+            missing = required_columns - set(df.columns)
+            raise CommandError(f"Missing required columns in observations.csv: {missing}")
+    
         # Process in batches
         batch_size = 1000
         total_batches = (len(df) // batch_size) + (1 if len(df) % batch_size > 0 else 0)
-
+    
         observations_created = 0
-
+    
         for batch_idx in tqdm(range(total_batches), desc="Importing observations"):
             start_idx = batch_idx * batch_size
             end_idx = min((batch_idx + 1) * batch_size, len(df))
             batch_df = df.iloc[start_idx:end_idx]
-
+    
             batch_observations = []
-            for _, row in batch_df.iterrows():
+            for row in batch_df.itertuples(index=False):
                 observation = Observation(
-                    biodiversity_record_id=row["record_code"],  # Foreign key
-                    reproductive_condition=row["reproductive_condition"],
-                    phytosanitary_status=row["phytosanitary_status"],
-                    physical_condition=row["physical_condition"],
-                    foliage_density=row["foliage_density"],
-                    aesthetic_value=row["aesthetic_value"],
-                    growth_phase=row["growth_phase"],
-                    field_notes=row["field_notes"]
-                    if pd.notna(row["field_notes"])
-                    else "",
-                    standing=row["standing"],
-                    # Add all the coded fields
-                    rd=row["rd"],
-                    dm=row["dm"],
-                    bbs=row["bbs"],
-                    ab=row["ab"],
-                    ed=row["ed"],
-                    pi=row["pi"],
-                    ph=row["ph"],
-                    pa=row["pa"],
-                    hc=row["hc"],
-                    hcf=row["hcf"],
-                    pd=row["pd"],
-                    pe=row["pe"],
-                    pp=row["pp"],
-                    po=row["po"],
-                    cre=row["cre"],
-                    crh=row["crh"],
-                    cra=row["cra"],
-                    coa=row["coa"],
-                    ce=row["ce"],
-                    civ=row["civ"],
-                    crt=row["crt"],
-                    crg=row["crg"],
-                    cap=row["cap"],
-                    r_vol=row["r_vol"],
-                    r_cr=row["r_cr"],
-                    r_ce=row["r_ce"],
+                    biodiversity_record_id=row.record_code,  # Foreign key
+                    reproductive_condition=row.reproductive_condition,
+                    phytosanitary_status=row.phytosanitary_status,
+                    physical_condition=row.physical_condition,
+                    foliage_density=row.foliage_density,
+                    aesthetic_value=row.aesthetic_value,
+                    growth_phase=row.growth_phase,
+                    field_notes=row.field_notes if pd.notna(row.field_notes) else "",
+                    standing=row.standing,
+                    rd=row.rd,
+                    dm=row.dm,
+                    bbs=row.bbs,
+                    ab=row.ab,
+                    ed=row.ed,
+                    pi=row.pi,
+                    ph=row.ph,
+                    pa=row.pa,
+                    hc=row.hc,
+                    hcf=row.hcf,
+                    pd=row.pd,
+                    pe=row.pe,
+                    pp=row.pp,
+                    po=row.po,
+                    cre=row.cre,
+                    crh=row.crh,
+                    cra=row.cra,
+                    coa=row.coa,
+                    ce=row.ce,
+                    civ=row.civ,
+                    crt=row.crt,
+                    crg=row.crg,
+                    cap=row.cap,
+                    r_vol=row.r_vol,
+                    r_cr=row.r_cr,
+                    r_ce=row.r_ce,
                     recorded_by="Cortolima",  # Default from model
-                    photo_url=row["photo_url"]
-                    if pd.notna(row["photo_url"])
-                    else "",
-                    accompanying_collectors=row["accompanying_collectors"]
-                    if pd.notna(row["accompanying_collectors"])
-                    else "",
+                    photo_url=row.photo_url if pd.notna(row.photo_url) else "",
+                    accompanying_collectors=row.accompanying_collectors if pd.notna(row.accompanying_collectors) else "",
                 )
                 batch_observations.append(observation)
-
+    
             # Bulk create the observations in this batch
             created = Observation.objects.bulk_create(
                 batch_observations, batch_size=1000
             )
             observations_created += len(created)
-
+    
         self.stdout.write(
             self.style.SUCCESS(f"Imported {observations_created} observations")
         )
@@ -676,27 +731,17 @@ class Command(BaseCommand):
 
     def reset_sequences(self):
         """Reset ID sequences after import for PostgreSQL."""
-        with connection.cursor() as cursor:
-            tables = [
-                "taxonomy_family",
-                "taxonomy_genus",
-                "taxonomy_species",
-                "places_country",
-                "places_department",
-                "places_municipality",
-                "places_place",
-                "taxonomy_functionalgroup",
-                "taxonomy_trait",
-                "taxonomy_traitvalue",
-                "biodiversity_biodiversityrecord",
-                "reports_measurement",
-                "reports_observation",
-            ]
+        from django.apps import apps
 
-            for table in tables:
+        models = [
+            Family, Genus, Species, Place, FunctionalGroup, Trait, TraitValue,
+            BiodiversityRecord, Measurement, Observation
+        ]
+        with connection.cursor() as cursor:
+            for model in models:
+                table = model._meta.db_table
                 cursor.execute(
                     f"SELECT setval(pg_get_serial_sequence('{table}', 'id'), "
                     f"COALESCE((SELECT MAX(id) FROM {table}), 0) + 1, false)"
                 )
-
         self.stdout.write(self.style.SUCCESS("Sequence IDs reset successfully"))

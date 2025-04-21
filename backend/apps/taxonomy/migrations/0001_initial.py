@@ -37,7 +37,6 @@ class Migration(migrations.Migration):
                 ('created_at', models.DateTimeField(auto_now_add=True, verbose_name='created at')),
                 ('updated_at', models.DateTimeField(auto_now=True, verbose_name='updated at')),
                 ('group_id', models.PositiveSmallIntegerField(help_text='Unique identifier for the functional group', unique=True, verbose_name='group id')),
-                ('description', models.TextField(blank=True, help_text='Optional description of the functional group', verbose_name='description')),
             ],
             options={
                 'verbose_name': 'functional group',
@@ -52,11 +51,9 @@ class Migration(migrations.Migration):
                 ('uuid', models.UUIDField(default=uuid.uuid4, editable=False, verbose_name='UUID')),
                 ('created_at', models.DateTimeField(auto_now_add=True, verbose_name='created at')),
                 ('updated_at', models.DateTimeField(auto_now=True, verbose_name='updated at')),
-                ('type', models.CharField(choices=[('CARBON', 'carbon sequestration index'), ('SHADE', 'shade index'), ('CANOPY', 'maximum diameter of canopy (m)'), ('HEIGHT', 'maximum total height (m)')], max_length=6, verbose_name='trait type')),
+                ('type', models.CharField(choices=[('CS', 'carbon sequestration (%)'), ('SH', 'shade index'), ('CY', 'canopy diameter (m)'), ('HX', 'maximum height (m)')], max_length=2, unique=True, verbose_name='trait type')),
             ],
             options={
-                'verbose_name': 'trait',
-                'verbose_name_plural': 'traits',
                 'ordering': ['type'],
             },
         ),

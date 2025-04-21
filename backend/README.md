@@ -115,21 +115,3 @@ To run custom management commands:
 ```bash
 docker compose exec backend python manage.py [command_name]
 ```
-
-### Data Import Command
-
-To import data from CSV files into the database:
-
-```bash
-docker compose exec backend python manage.py import_data --local-dir=scripts/data/csv
-```
-
-This command will:
-
-1. Process taxonomy data from `taxonomy_details.csv`
-2. Create places from `place.csv`
-3. Import biodiversity records from `biodiversity_records.csv`
-4. Import measurements from `measurements.csv`
-5. Import observations from `observations_details.csv`
-
-A detailed import report will be saved to `import_report.txt` in the backend container.

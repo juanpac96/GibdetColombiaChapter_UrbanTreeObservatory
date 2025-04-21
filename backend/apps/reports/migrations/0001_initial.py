@@ -50,7 +50,7 @@ class Migration(migrations.Migration):
                 ('ed', models.CharField(choices=[('GO', 'good'), ('FA', 'fair'), ('PO', 'poor'), ('NR', 'not reported')], default='NR', max_length=2)),
                 ('hc', models.CharField(choices=[('NS', 'natural state'), ('ND', 'nutrient deficiency'), ('NR', 'not reported')], default='NR', max_length=2)),
                 ('hfc', models.CharField(choices=[('NS', 'natural state'), ('ND', 'nutrient deficiency'), ('NR', 'not reported')], default='NR', max_length=2)),
-                ('is_standing', models.BooleanField(default=True, help_text='Is the tree standing?', verbose_name='is standing')),
+                ('standing', models.CharField(choices=[('Y', 'yes'), ('N', 'no'), ('NR', 'not reported')], default='NR', max_length=2, verbose_name='standing')),
                 ('cre', models.CharField(choices=[('Y', 'yes'), ('N', 'no'), ('NR', 'not reported')], default='NR', max_length=2)),
                 ('crh', models.CharField(choices=[('Y', 'yes'), ('N', 'no'), ('NR', 'not reported')], default='NR', max_length=2)),
                 ('cra', models.CharField(choices=[('Y', 'yes'), ('N', 'no'), ('NR', 'not reported')], default='NR', max_length=2)),

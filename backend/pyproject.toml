@@ -16,9 +16,11 @@ dependencies = [
     "djangorestframework-gis>=1.0",
     "djangorestframework-simplejwt>=5.5.0",
     "gunicorn>=23.0.0",
+    "pandas>=2.2.3",
     "pillow>=11.1.0",
     "psycopg>=3.2.6",
     "sentry-sdk>=2.24.0",
+    "tqdm>=4.67.1",
     "whitenoise>=6.9.0",
 ]
 

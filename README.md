@@ -68,12 +68,12 @@ docker-compose exec backend python manage.py import_initial_data
 
 # Using custom URLs
 docker compose exec backend python manage.py import_initial_data \
-  --taxonomy-url=https://example.com/Taxonomy_details.csv \
-  --place-url=https://example.com/Place.csv \
-  --biodiversity-url=https://example.com/Biodiversity_records.csv \
-  --measurements-url=https://example.com/Measurements.csv \
-  --observations-url=https://example.com/Observations_details.csv \
-  --traits-url=https://example.com/FunctionalTraitsStructure.csv
+  --taxonomy-url=https://example.com/taxonomy.csv \
+  --place-url=https://example.com/places.csv \
+  --biodiversity-url=https://example.com/biodiversity.csv \
+  --measurements-url=https://example.com/measurements.csv \
+  --observations-url=https://example.com/observations.csv \
+  --traits-url=https://example.com/traits.csv
 
 # Using local files in a directory mounted to the container
 docker compose exec backend python manage.py import_initial_data --local-dir=/path/to/data

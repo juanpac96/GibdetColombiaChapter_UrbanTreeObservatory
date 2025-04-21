@@ -25,22 +25,23 @@ import re
 
 # Fields that map to TextChoices in Django models
 TEXT_CHOICE_FIELDS = {
-    "taxonomy_details.csv": [
+    "taxonomy.csv": [
         "origin",
         "iucn_category",
         "lifeForm",
         "canopy_shape_code",
         "flower_color_code",
     ],
-    "biodiversity_records.csv": [],
+    "biodiversity.csv": [],
     "measurements.csv": ["measurement_name", "measurement_unit", "measurement_method"],
-    "observations_details.csv": [
+    "observations.csv": [
         "reproductive_condition",
         "phytosanitary_status",
         "physical_condition",
         "foliage_density",
         "aesthetic_value",
         "growth_phase",
+        "standing",
         "rd",
         "dm",
         "bbs",
@@ -68,13 +69,13 @@ TEXT_CHOICE_FIELDS = {
         "r_cr",
         "r_ce",
     ],
-    "place.csv": [],
-    "functional_groups_traits.csv": [],
+    "places.csv": [],
+    "traits.csv": [],
 }
 
 # Other interesting fields to analyze (not TextChoices)
 ADDITIONAL_FIELDS = {
-    "taxonomy_details.csv": [
+    "taxonomy.csv": [
         "family",
         "genus",
         "specie",
@@ -82,14 +83,13 @@ ADDITIONAL_FIELDS = {
         "identified_by",
         "gbif_id",
     ],
-    "biodiversity_records.csv": [
+    "biodiversity.csv": [
         "common_name",
         "registered_by",
     ],
     "measurements.csv": [],
-    # general_state --> is_standing (boolean)
-    "observations_details.csv": ["accompanying_collectors", "general_state"],
-    "place.csv": [
+    "observations.csv": ["accompanying_collectors"],
+    "places.csv": [
         "country",
         "department",
         "municipality",
@@ -98,30 +98,30 @@ ADDITIONAL_FIELDS = {
         "subzone",
         "site",
     ],
-    "functional_groups_traits.csv": [],
+    "traits.csv": [],
 }
 
 # Fields to sample (show sample values rather than all unique values)
 SAMPLE_FIELDS = {
-    "biodiversity_records.csv": ["code_record", "place_id", "taxonomy_id"],
+    "biodiversity.csv": ["code_record", "place_id", "taxonomy_id"],
     "measurements.csv": ["record_code"],
-    "observations_details.csv": ["record_code"],
-    "taxonomy_details.csv": ["gbif_id"],
+    "observations.csv": ["record_code"],
+    "taxonomy.csv": ["gbif_id"],
 }
 
 # Fields to analyze for special patterns
 PATTERN_FIELDS = {
-    "biodiversity_records.csv": ["code_record"],
+    "biodiversity.csv": ["code_record"],
     "measurements.csv": ["record_code"],
-    "observations_details.csv": ["record_code"],
-    "taxonomy_details.csv": ["specie", "accept_scientific_name", "gbif_id"],
+    "observations.csv": ["record_code"],
+    "taxonomy.csv": ["specie", "accept_scientific_name", "gbif_id"],
 }
 
 # Fields to analyze for relationship mapping
 RELATIONSHIP_FIELDS = {
-    "biodiversity_records.csv": [("code_record", "taxonomy_id", "place_id")],
+    "biodiversity.csv": [("code_record", "taxonomy_id", "place_id")],
     "measurements.csv": [("record_code",)],
-    "observations_details.csv": [("record_code",)],
+    "observations.csv": [("record_code",)],
 }
 
 
@@ -1159,7 +1159,7 @@ def main():
         "--data-dir", required=True, help="Directory containing CSV files"
     )
     parser.add_argument(
-        "--output-dir", default="scripts/data", help="Directory for output reports"
+        "--output-dir", default="data", help="Directory for output reports"
     )
     args = parser.parse_args()
 
@@ -1192,13 +1192,13 @@ def main():
         row_counts[csv_file] = len(data)
 
         # Store data for relationship analysis
-        if csv_file == "biodiversity_records.csv":
+        if csv_file == "biodiversity.csv":
             biodiversity_data = data
         elif csv_file == "measurements.csv":
             measurements_data = data
-        elif csv_file == "observations_details.csv":
+        elif csv_file == "observations.csv":
             observations_data = data
-        elif csv_file == "taxonomy_details.csv":
+        elif csv_file == "taxonomy.csv":
             taxonomy_data = data
 
         if data:

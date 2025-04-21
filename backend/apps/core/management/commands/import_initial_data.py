@@ -65,32 +65,32 @@ class Command(BaseCommand):
 
         parser.add_argument(
             "--taxonomy-url",
-            default="https://huggingface.co/datasets/juanpac96/urban_tree_census_data/Taxonomy_details.csv",
+            default="https://huggingface.co/datasets/juanpac96/urban_tree_census_data/taxonomy.csv",
             help="URL for the taxonomy details CSV file",
         )
         parser.add_argument(
             "--places-url",
-            default="https://huggingface.co/datasets/juanpac96/urban_tree_census_data/Place.csv",
+            default="https://huggingface.co/datasets/juanpac96/urban_tree_census_data/places.csv",
             help="URL for the places CSV file",
         )
         parser.add_argument(
             "--biodiversity-url",
-            default="https://huggingface.co/datasets/juanpac96/urban_tree_census_data/Biodiversity_records.csv",
+            default="https://huggingface.co/datasets/juanpac96/urban_tree_census_data/biodiversity.csv",
             help="URL for the biodiversity records CSV file",
         )
         parser.add_argument(
             "--measurements-url",
-            default="https://huggingface.co/datasets/juanpac96/urban_tree_census_data/Measurements.csv",
+            default="https://huggingface.co/datasets/juanpac96/urban_tree_census_data/measurements.csv",
             help="URL for the measurements CSV file",
         )
         parser.add_argument(
             "--observations-url",
-            default="https://huggingface.co/datasets/juanpac96/urban_tree_census_data/Observations_details.csv",
+            default="https://huggingface.co/datasets/juanpac96/urban_tree_census_data/observations.csv",
             help="URL for the observations details CSV file",
         )
         parser.add_argument(
             "--traits-url",
-            default="https://huggingface.co/datasets/juanpac96/urban_tree_census_data/FunctionalTraitsStructure.csv",
+            default="https://huggingface.co/datasets/juanpac96/urban_tree_census_data/traits.csv",
             help="URL for the functional groups traits CSV file",
         )
         parser.add_argument(
@@ -158,6 +158,12 @@ class Command(BaseCommand):
         except Exception as e:
             self.stdout.write(self.style.ERROR(f"Import failed: {str(e)}"))
             raise
+        
+        # Check that all foreign keys map to valid primary keys
+        self.check_foreign_key_integrity()
+
+        # Reset sequences for all tables to avoid ID conflicts
+        self.reset_sequences()
 
     def check_required_data(self):
         """Check that required initial data exists (from migrations)."""
@@ -214,7 +220,7 @@ class Command(BaseCommand):
         # Prevent pandas from interpreting "NA" as NaN (missing value)
         # NA is a valid value for origin ("native").
         if self.use_local:
-            csv_path = self.data_dir / "Taxonomy_details.csv"
+            csv_path = self.data_dir / "taxonomy.csv"
         else:
             csv_path = self.taxonomy_url
 
@@ -223,9 +229,6 @@ class Command(BaseCommand):
             keep_default_na=False,  # Don't convert "NA" to NaN
             na_values=[],  # Empty list means don't interpret any values as NaN
         )
-
-        # Add a temporary taxonomy_id column (1-indexed)
-        df["taxonomy_id"] = range(1, len(df) + 1)
 
         # Create families (track created ones to avoid duplicates)
         families = {}
@@ -247,7 +250,6 @@ class Command(BaseCommand):
 
         # Create species (all rows, as each represents a unique species)
         species_batch = []
-        # species_map = {}  # To store id -> Species mapping for later use
 
         for _, row in tqdm(df.iterrows(), desc="Preparing species", total=len(df)):
             # Map the origin, iucn_status, etc from CSV to model choices
@@ -263,7 +265,7 @@ class Command(BaseCommand):
                 life_form=row["lifeForm"],
                 canopy_shape=row["canopy_shape_code"],
                 flower_color=row["flower_color_code"],
-                gbif_id=row["gbif_id"] if row["gbif_id"] != "0" else None,
+                gbif_id=row["gbif_id"] if pd.notna(row["gbif_id"]) else None,
                 identified_by=row["identified_by"],
                 date=self.parse_date(row["date_of_identification"])
                 if pd.notna(row["date_of_identification"])
@@ -277,8 +279,8 @@ class Command(BaseCommand):
 
         # Map taxonomy_id to created species objects for later use
         species_by_id = {}
-        for i, (_, row_data) in enumerate(df.iterrows()):
-            species_by_id[row_data["taxonomy_id"]] = created_species[i]
+        for i, row in enumerate(df.iterrows()):
+            species_by_id[row[1]['taxonomy_id']] = created_species[i]
 
         self.species_by_id = species_by_id  # Save for later
 
@@ -291,9 +293,9 @@ class Command(BaseCommand):
     def import_places(self):
         self.stdout.write("Importing place data...")
 
-        # Read place.csv
+        # Read places.csv
         if self.use_local:
-            csv_path = self.data_dir / "Place.csv"
+            csv_path = self.data_dir / "places.csv"
         else:
             csv_path = self.place_url
 
@@ -327,9 +329,9 @@ class Command(BaseCommand):
     def import_functional_groups(self):
         self.stdout.write("Importing functional groups and traits...")
 
-        # Read functional_groups_traits.csv
+        # Read traits.csv
         if self.use_local:
-            csv_path = self.data_dir / "FunctionalTraitsStructure.csv"
+            csv_path = self.data_dir / "traits.csv"
         else:
             csv_path = self.traits_url
 
@@ -448,9 +450,9 @@ class Command(BaseCommand):
     def import_biodiversity_records(self):
         self.stdout.write("Importing biodiversity records...")
 
-        # Read biodiversity_records.csv
+        # Read biodiversity.csv
         if self.use_local:
-            csv_path = self.data_dir / "Biodiversity_records.csv"
+            csv_path = self.data_dir / "biodiversity.csv"
         else:
             csv_path = self.biodiversity_url
 
@@ -511,36 +513,42 @@ class Command(BaseCommand):
         chunksize = 50000  # Adjust based on available memory
 
         if self.use_local:
-            csv_path = self.data_dir / "Measurements.csv"
+            csv_path = self.data_dir / "measurements.csv"
         else:
             csv_path = self.measurements_url
+
+        # Count total rows for tqdm
+        total_rows = sum(1 for _ in open(csv_path)) - 1  # subtract header
 
         reader = pd.read_csv(csv_path, chunksize=chunksize)
 
         total_measurements = 0
 
-        for chunk in tqdm(reader, desc="Importing measurements"):
-            # Process each chunk
-            batch_measurements = []
+        with tqdm(total=total_rows, desc="Importing measurements") as pbar:
+            for chunk in reader:
+                batch_measurements = []
 
-            for _, row in chunk.iterrows():
-                measurement = Measurement(
-                    biodiversity_record_id=row["record_code"],  # Foreign key
-                    attribute=row["measurement_name"],
-                    value=row["measurement_value"],
-                    unit=row["measurement_unit"],
-                    method=row["measurement_method"],
-                    date=self.parse_date(row["measurement_date_event"])
-                    if pd.notna(row["measurement_date_event"])
-                    else None,
+                for _, row in chunk.iterrows():
+                    measurement = Measurement(
+                        biodiversity_record_id=row["record_code"],  # Foreign key
+                        attribute=row["measurement_name"],
+                        value=row["measurement_value"]
+                        if pd.notna(row["measurement_value"])
+                        else None,
+                        unit=row["measurement_unit"],
+                        method=row["measurement_method"],
+                        date=self.parse_date(row["measurement_date_event"])
+                        if pd.notna(row["measurement_date_event"])
+                        else None,
+                    )
+                    batch_measurements.append(measurement)
+
+                # Bulk create the measurements in this chunk
+                created = Measurement.objects.bulk_create(
+                    batch_measurements, batch_size=5000
                 )
-                batch_measurements.append(measurement)
-
-            # Bulk create the measurements in this chunk
-            created = Measurement.objects.bulk_create(
-                batch_measurements, batch_size=5000
-            )
-            total_measurements += len(created)
+                total_measurements += len(created)
+                pbar.update(len(chunk))
 
         self.stdout.write(
             self.style.SUCCESS(f"Imported {total_measurements} measurements")
@@ -549,15 +557,15 @@ class Command(BaseCommand):
     def import_observations(self):
         self.stdout.write("Importing observations...")
 
-        # Read observations_details.csv with specified data types to handle mixed types warning
+        # Read observations.csv with specified data types to handle mixed types warning
         if self.use_local:
-            csv_path = self.data_dir / "Observations_details.csv"
+            csv_path = self.data_dir / "observations.csv"
         else:
             csv_path = self.observations_url
 
         df = pd.read_csv(
             csv_path,
-            # Convert the problematic columns (8,9,10,11,13,34) to string type
+            # Convert the problematic columns (8,9,10,11,13) to string type
             # Column index starts at 0, so we need to adjust the numbers from the warning
             dtype={
                 "rd": str,  # Column 8
@@ -565,7 +573,6 @@ class Command(BaseCommand):
                 "bbs": str,  # Column 10
                 "ab": str,  # Column 11
                 "pi": str,  # Column 13
-                "photo_url": str,  # Column 34
             },
         )
 
@@ -593,7 +600,7 @@ class Command(BaseCommand):
                     field_notes=row["field_notes"]
                     if pd.notna(row["field_notes"])
                     else "",
-                    standing=row["general_state"],  # Renamed field
+                    standing=row["standing"],
                     # Add all the coded fields
                     rd=row["rd"],
                     dm=row["dm"],
@@ -622,9 +629,9 @@ class Command(BaseCommand):
                     r_cr=row["r_cr"],
                     r_ce=row["r_ce"],
                     recorded_by="Cortolima",  # Default from model
-                    photo_url=""
-                    if pd.isna(row["photo_url"]) or row["photo_url"] == "0"
-                    else row["photo_url"],
+                    photo_url=row["photo_url"]
+                    if pd.notna(row["photo_url"])
+                    else "",
                     accompanying_collectors=row["accompanying_collectors"]
                     if pd.notna(row["accompanying_collectors"])
                     else "",
@@ -640,6 +647,32 @@ class Command(BaseCommand):
         self.stdout.write(
             self.style.SUCCESS(f"Imported {observations_created} observations")
         )
+
+    def check_foreign_key_integrity(self):
+        """Check that all foreign keys map to valid primary keys."""
+    
+        # Check Observation.biodiversity_record_id
+        observation_ids = set(Observation.objects.values_list('biodiversity_record_id', flat=True).distinct())
+        valid_bio_ids = set(BiodiversityRecord.objects.values_list('id', flat=True))
+        invalid_obs_ids = observation_ids - valid_bio_ids
+        self.stdout.write(f"Found {len(invalid_obs_ids)} invalid biodiversity_record_id(s) in Observation.")
+    
+        # Check Measurement.biodiversity_record_id
+        measurement_ids = set(Measurement.objects.values_list('biodiversity_record_id', flat=True).distinct())
+        invalid_meas_ids = measurement_ids - valid_bio_ids
+        self.stdout.write(f"Found {len(invalid_meas_ids)} invalid biodiversity_record_id(s) in Measurement.")
+    
+        # Check BiodiversityRecord.place_id
+        bio_place_ids = set(BiodiversityRecord.objects.values_list('place_id', flat=True).distinct())
+        valid_place_ids = set(Place.objects.values_list('id', flat=True))
+        invalid_place_ids = bio_place_ids - valid_place_ids
+        self.stdout.write(f"Found {len(invalid_place_ids)} invalid place_id(s) in BiodiversityRecord.")
+    
+        # Check BiodiversityRecord.species_id
+        bio_species_ids = set(BiodiversityRecord.objects.values_list('species_id', flat=True).distinct())
+        valid_species_ids = set(Species.objects.values_list('id', flat=True))
+        invalid_species_ids = bio_species_ids - valid_species_ids
+        self.stdout.write(f"Found {len(invalid_species_ids)} invalid species_id(s) in BiodiversityRecord.")
 
     def reset_sequences(self):
         """Reset ID sequences after import for PostgreSQL."""

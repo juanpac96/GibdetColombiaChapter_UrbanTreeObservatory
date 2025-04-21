@@ -11,7 +11,9 @@ class BiodiversityRecord(BaseModel):
     """Represents a record of biodiversity, including species, location,
     common name, and other attributes."""
 
-    common_name = models.TextField(_("common name"), blank=True)
+    common_name = models.CharField(
+        _("common name"), max_length=100, null=True, blank=True
+    )
     species = models.ForeignKey(
         Species,
         on_delete=models.PROTECT,

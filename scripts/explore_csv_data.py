@@ -71,6 +71,7 @@ TEXT_CHOICE_FIELDS = {
     ],
     "places.csv": [],
     "traits.csv": [],
+    "climate.csv": [],
 }
 
 # Other interesting fields to analyze (not TextChoices)
@@ -99,6 +100,14 @@ ADDITIONAL_FIELDS = {
         "site",
     ],
     "traits.csv": [],
+    "climate.csv": [
+        "stationcode",
+        "stationname",
+        "longitude",
+        "latitude",
+        "sensordescription",
+        "measureunit",
+    ],
 }
 
 # Fields to sample (show sample values rather than all unique values)
@@ -1159,7 +1168,7 @@ def main():
         "--data-dir", required=True, help="Directory containing CSV files"
     )
     parser.add_argument(
-        "--output-dir", default="data", help="Directory for output reports"
+        "--output-dir", default="scripts/data", help="Directory for output reports"
     )
     args = parser.parse_args()
 

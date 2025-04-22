@@ -216,19 +216,13 @@ class Command(BaseCommand):
     def import_taxonomy(self):
         self.stdout.write("Importing taxonomy data...")
 
-        # Read CSV with pandas for easier handling
-        # Prevent pandas from interpreting "NA" as NaN (missing value)
-        # NA is a valid value for origin ("native").
+        # Read taxonomy.csv
         if self.use_local:
             csv_path = self.data_dir / "taxonomy.csv"
         else:
             csv_path = self.taxonomy_url
 
-        df = pd.read_csv(
-            csv_path,
-            keep_default_na=False,  # Don't convert "NA" to NaN
-            na_values=[],  # Empty list means don't interpret any values as NaN
-        )
+        df = pd.read_csv(csv_path)
 
         # Validate headers
         required_columns = {

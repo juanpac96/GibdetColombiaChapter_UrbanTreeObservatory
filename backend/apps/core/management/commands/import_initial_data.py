@@ -147,7 +147,7 @@ class Command(BaseCommand):
 
         # Check that required migrations have run
         self.check_required_data()
-        
+
         # Validate that all required files exist
         self.validate_files()
 
@@ -191,13 +191,13 @@ class Command(BaseCommand):
             raise CommandError(
                 "Municipality 'Ibagué' not found. Please ensure initial migrations have run."
             )
-            
+
     def validate_files(self):
         """Validate that all required data files exist and can be accessed."""
         self.stdout.write("Validating data files...")
-        
+
         missing_files = []
-        
+
         if self.use_local:
             # Check if all required files exist in the local directory
             required_files = [
@@ -206,10 +206,10 @@ class Command(BaseCommand):
                 "biodiversity.csv",
                 "measurements.csv",
                 "observations.csv",
-                "traits.csv", 
-                "climate.csv"
+                "traits.csv",
+                "climate.csv",
             ]
-            
+
             for filename in required_files:
                 file_path = self.data_dir / filename
                 if not file_path.exists():
@@ -223,9 +223,9 @@ class Command(BaseCommand):
                 ("measurements", self.measurements_url),
                 ("observations", self.observations_url),
                 ("traits", self.traits_url),
-                ("climate", self.climate_url)
+                ("climate", self.climate_url),
             ]
-            
+
             # For remote URLs, we'll just check if pandas can open them
             # This is a lightweight check to avoid downloading entire files
             for name, url in urls:
@@ -234,17 +234,15 @@ class Command(BaseCommand):
                     pd.read_csv(url, nrows=1)
                 except Exception as e:
                     missing_files.append(f"{name} ({url}): {str(e)}")
-        
+
         if missing_files:
             message = (
                 f"The following files could not be accessed: {', '.join(missing_files)}. "
                 "Please ensure all required data files are available before running the import."
             )
             raise CommandError(message)
-            
-        self.stdout.write(
-            self.style.SUCCESS("All required data files are accessible")
-        )
+
+        self.stdout.write(self.style.SUCCESS("All required data files are accessible"))
 
     def check_empty_tables(self):
         """Check that all tables to be populated are empty before import."""
@@ -825,124 +823,99 @@ class Command(BaseCommand):
         self.stdout.write(
             self.style.SUCCESS(f"Imported {observations_created} observations")
         )
-        
+
     def import_climate_data(self):
-        """Import climate data from CSV file.
-        
-        This method handles importing the stations and climate records.
-        All climate data is related to the municipality of Ibague.
-        """
         self.stdout.write("Importing climate data...")
-        
+
         # Read climate.csv
         # We'll process this in chunks due to the large number of rows
         chunksize = 50000  # Adjust based on available memory
-        
+
         if self.use_local:
             csv_path = self.data_dir / "climate.csv"
         else:
             csv_path = self.climate_url
-            
+
         # Read header to validate columns
-        # (We've already checked the file exists in validate_files)
         df_header = pd.read_csv(csv_path, nrows=1)
-        
+
         # Validate headers
         required_columns = {
-            "municipality_id", "stationcode", "stationname", 
-            "datetime", "latitude", "longitude",
-            "sensordescription", "measureunit", "value"
+            "municipality_id",
+            "stationcode",
+            "stationname",
+            "datetime",
+            "latitude",
+            "longitude",
+            "sensordescription",
+            "measureunit",
+            "value",
         }
-        
+
         file_columns = set(df_header.columns)
         if not required_columns.issubset(file_columns):
             missing = required_columns - file_columns
             raise CommandError(f"Missing required columns in climate.csv: {missing}")
-        
+
         # Import stations first (only 4 unique stations)
         # Use a temporary DataFrame to get unique stations
         station_df = pd.read_csv(
-            csv_path, 
+            csv_path,
             usecols=["stationcode", "stationname", "latitude", "longitude"],
-            nrows=1000
+            nrows=1000,
         ).drop_duplicates()
-        
+
         # Create stations
         stations_batch = []
         station_map = {}  # To map station codes to Station objects
-        
+
         for row in tqdm(
-            station_df.itertuples(index=False), 
-            desc="Creating climate stations", 
-            total=len(station_df)
+            station_df.itertuples(index=False),
+            desc="Creating climate stations",
+            total=len(station_df),
         ):
             # Create a Point geometry for the location
             location = f"POINT({row.longitude} {row.latitude})"
-            
+
             station = Station(
                 code=row.stationcode,
                 name=row.stationname,
                 location=location,
             )
             stations_batch.append(station)
-        
+
         # Bulk create the stations
         created_stations = Station.objects.bulk_create(stations_batch)
         for station in created_stations:
             station_map[station.code] = station
-            
+
         self.stdout.write(
             self.style.SUCCESS(f"Imported {len(created_stations)} weather stations")
         )
-        
+
         # Now import climate data in chunks
         # Count total rows for tqdm
         total_rows = sum(1 for _ in open(csv_path)) - 1  # subtract header
-        
+
         reader = pd.read_csv(csv_path, chunksize=chunksize)
-        
+
         total_records = 0
-        
+
         sensor_map = {
             "Temp Aire 2 m": Climate.SensorDescription.AIR_TEMP_2m,
+            "TEMPERATURA DEL AIRE A 2 m": Climate.SensorDescription.AIR_TEMP_2m,
         }
-        
-        unit_map = {
-            "°C": Climate.MeasureUnit.CELSIUS,
-        }
-        
+
         with tqdm(total=total_rows, desc="Importing climate data") as pbar:
             for chunk in reader:
                 batch_climate = []
-                
+
                 for row in chunk.itertuples(index=False):
-                    # Skip any rows with missing values as per requirement
-                    if (pd.isna(row.stationcode) or pd.isna(row.datetime) or 
-                        pd.isna(row.value) or pd.isna(row.sensordescription) or
-                        pd.isna(row.measureunit)):
-                        continue
-                        
-                    # Parse date from datetime string
                     measurement_date = self.parse_date(row.datetime)
-                    if not measurement_date:
-                        continue
-                        
-                    # Map sensor description and unit to model choices
                     sensor = sensor_map.get(row.sensordescription)
-                    if not sensor:
-                        # Skip unknown sensor types
-                        continue
-                        
-                    measure_unit = unit_map.get(row.measureunit)
-                    if not measure_unit:
-                        # Skip unknown unit types
-                        continue
-                    
+                    measure_unit = row.measureunit
                     station = station_map.get(row.stationcode)
-                    if not station:
-                        # Skip if station doesn't exist
-                        continue
-                    
+
                     climate_record = Climate(
                         municipality=self.ibague,
                         station=station,
@@ -952,12 +925,12 @@ class Command(BaseCommand):
                         measure_unit=measure_unit,
                     )
                     batch_climate.append(climate_record)
-                
+
                 # Bulk create the climate records in this chunk
                 created = Climate.objects.bulk_create(batch_climate, batch_size=5000)
                 total_records += len(created)
                 pbar.update(len(chunk))
-        
+
         self.stdout.write(
             self.style.SUCCESS(f"Imported {total_records} climate data records")
         )

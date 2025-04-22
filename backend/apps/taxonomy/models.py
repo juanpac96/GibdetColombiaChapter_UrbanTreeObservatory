@@ -138,7 +138,7 @@ class Species(BaseModel):
     """Represents a species, including its genus and family."""
 
     class Origin(models.TextChoices):
-        NATIVE = "NA", _("native")
+        NATIVE = "NT", _("native")
         CULTIVATED = "CU", _("cultivated")
         NATIVE_CULTIVATED = "NC", _("native | cultivated")
         NATURALIZED = "NU", _("naturalized")

@@ -200,7 +200,6 @@ class Observation(BaseModel):
         default=HealthCondition.NOT_REPORTED,
     )
 
-    # Adapted from `general_state` text field in original data
     standing = models.CharField(
         _("standing"),
         max_length=2,

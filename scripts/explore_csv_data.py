@@ -25,22 +25,23 @@ import re
 
 # Fields that map to TextChoices in Django models
 TEXT_CHOICE_FIELDS = {
-    "taxonomy_details.csv": [
+    "taxonomy.csv": [
         "origin",
         "iucn_category",
         "lifeForm",
         "canopy_shape_code",
         "flower_color_code",
     ],
-    "biodiversity_records.csv": [],
+    "biodiversity.csv": [],
     "measurements.csv": ["measurement_name", "measurement_unit", "measurement_method"],
-    "observations_details.csv": [
+    "observations.csv": [
         "reproductive_condition",
         "phytosanitary_status",
         "physical_condition",
         "foliage_density",
         "aesthetic_value",
         "growth_phase",
+        "standing",
         "rd",
         "dm",
         "bbs",
@@ -68,13 +69,14 @@ TEXT_CHOICE_FIELDS = {
         "r_cr",
         "r_ce",
     ],
-    "place.csv": [],
-    "functional_groups_traits.csv": [],
+    "places.csv": [],
+    "traits.csv": [],
+    "climate.csv": [],
 }
 
 # Other interesting fields to analyze (not TextChoices)
 ADDITIONAL_FIELDS = {
-    "taxonomy_details.csv": [
+    "taxonomy.csv": [
         "family",
         "genus",
         "specie",
@@ -82,14 +84,13 @@ ADDITIONAL_FIELDS = {
         "identified_by",
         "gbif_id",
     ],
-    "biodiversity_records.csv": [
+    "biodiversity.csv": [
         "common_name",
         "registered_by",
     ],
     "measurements.csv": [],
-    # general_state --> is_standing (boolean)
-    "observations_details.csv": ["accompanying_collectors", "general_state"],
-    "place.csv": [
+    "observations.csv": ["accompanying_collectors"],
+    "places.csv": [
         "country",
         "department",
         "municipality",
@@ -98,30 +99,38 @@ ADDITIONAL_FIELDS = {
         "subzone",
         "site",
     ],
-    "functional_groups_traits.csv": [],
+    "traits.csv": [],
+    "climate.csv": [
+        "stationcode",
+        "stationname",
+        "longitude",
+        "latitude",
+        "sensordescription",
+        "measureunit",
+    ],
 }
 
 # Fields to sample (show sample values rather than all unique values)
 SAMPLE_FIELDS = {
-    "biodiversity_records.csv": ["code_record", "place_id", "taxonomy_id"],
+    "biodiversity.csv": ["code_record", "place_id", "taxonomy_id"],
     "measurements.csv": ["record_code"],
-    "observations_details.csv": ["record_code"],
-    "taxonomy_details.csv": ["gbif_id"],
+    "observations.csv": ["record_code"],
+    "taxonomy.csv": ["gbif_id"],
 }
 
 # Fields to analyze for special patterns
 PATTERN_FIELDS = {
-    "biodiversity_records.csv": ["code_record"],
+    "biodiversity.csv": ["code_record"],
     "measurements.csv": ["record_code"],
-    "observations_details.csv": ["record_code"],
-    "taxonomy_details.csv": ["specie", "accept_scientific_name", "gbif_id"],
+    "observations.csv": ["record_code"],
+    "taxonomy.csv": ["specie", "accept_scientific_name", "gbif_id"],
 }
 
 # Fields to analyze for relationship mapping
 RELATIONSHIP_FIELDS = {
-    "biodiversity_records.csv": [("code_record", "taxonomy_id", "place_id")],
+    "biodiversity.csv": [("code_record", "taxonomy_id", "place_id")],
     "measurements.csv": [("record_code",)],
-    "observations_details.csv": [("record_code",)],
+    "observations.csv": [("record_code",)],
 }
 
 
@@ -390,7 +399,6 @@ def analyze_species_names(data):
 
     for row in data:
         species_name = row.get("specie", "").strip()
-        accepted_name = row.get("accept_scientific_name", "").strip()
         genus = row.get("genus", "").strip()
 
         if species_name and genus:
@@ -840,23 +848,23 @@ def generate_html_report(
                 // Hide all tabs
                 const tabs = document.querySelectorAll('.tab-content');
                 tabs.forEach(tab => tab.style.display = 'none');
-                
+
                 // Remove active class from all tab links
                 const tabLinks = document.querySelectorAll('.nav-tabs a');
                 tabLinks.forEach(link => link.parentElement.classList.remove('active'));
-                
+
                 // Show the selected tab
                 document.getElementById(tabId).style.display = 'block';
-                
+
                 // Add active class to selected tab link
                 document.querySelector(`[href="#${tabId}"]`).parentElement.classList.add('active');
-                
+
                 // Save active tab to localStorage
                 localStorage.setItem('activeTab', tabId);
-                
+
                 return false;
             }
-            
+
             window.onload = function() {
                 // Restore active tab from localStorage or default to first tab
                 const activeTab = localStorage.getItem('activeTab') || 'summary-tab';
@@ -866,7 +874,7 @@ def generate_html_report(
     </head>
     <body>
         <h1>Urban Tree Observatory Data Exploration Report</h1>
-        
+
         <ul class="nav-tabs">
             <li><a href="#summary-tab" onclick="return showTab('summary-tab')">Summary</a></li>
             <li><a href="#relationships-tab" onclick="return showTab('relationships-tab')">Relationships</a></li>
@@ -877,7 +885,7 @@ def generate_html_report(
             <li><a href="#samples-tab" onclick="return showTab('samples-tab')">Samples</a></li>
             <li><a href="#values-tab" onclick="return showTab('values-tab')">Field Values</a></li>
         </ul>
-        
+
         <div id="summary-tab" class="tab-content summary">
             <h2>Dataset Summary</h2>
             <table>
@@ -891,7 +899,7 @@ def generate_html_report(
 
     html += """
             </table>
-            
+
             <h3>Key Findings</h3>
             <ul>
                 <li>Species data in taxonomy CSV appears to include genus in the 'specie' field</li>
@@ -900,7 +908,7 @@ def generate_html_report(
                 <li>Various Spanish-language values need mapping to English TextChoices</li>
             </ul>
         </div>
-        
+
         <div id="relationships-tab" class="tab-content">
             <h2>Relationship Analysis</h2>
     """
@@ -912,7 +920,7 @@ def generate_html_report(
 
         for key, value in rel_info.items():
             if key == "examples":
-                html += f'<tr><td colspan="2"><h4>Mapping Examples:</h4></td></tr>'
+                html += '<tr><td colspan="2"><h4>Mapping Examples:</h4></td></tr>'
                 for ex in value:
                     html += f"<tr><td>{ex[0]}</td><td>{ex[1]}</td></tr>"
             else:
@@ -922,7 +930,7 @@ def generate_html_report(
 
     html += """
         </div>
-        
+
         <div id="species-tab" class="tab-content">
             <h2>Species Name Analysis</h2>
             <div class="file-section">
@@ -936,7 +944,7 @@ def generate_html_report(
                 '<tr><td colspan="2"><h3>Species without genus examples:</h3></td></tr>'
             )
             for ex in value:
-                html += f'<tr><td>Species: {ex["species_name"]}</td><td>Genus: {ex["genus"]}</td></tr>'
+                html += f"<tr><td>Species: {ex['species_name']}</td><td>Genus: {ex['genus']}</td></tr>"
         else:
             html += f"<tr><td>{key}</td><td>{value}</td></tr>"
     html += "</table>"
@@ -944,7 +952,7 @@ def generate_html_report(
     html += """
             </div>
         </div>
-        
+
         <div id="measurements-tab" class="tab-content">
             <h2>Measurement Analysis</h2>
     """
@@ -953,29 +961,29 @@ def generate_html_report(
     for name, info in measurement_analysis.items():
         html += f'<div class="field-section"><h3>{name}</h3>'
         html += "<table>"
-        html += f'<tr><td>Count</td><td>{info["count"]}</td></tr>'
-        html += f'<tr><td>Inferred Unit</td><td>{info["inferred_unit"]}</td></tr>'
+        html += f"<tr><td>Count</td><td>{info['count']}</td></tr>"
+        html += f"<tr><td>Inferred Unit</td><td>{info['inferred_unit']}</td></tr>"
         html += (
-            f'<tr><td>Most Common Method</td><td>{info["most_common_method"]}</td></tr>'
+            f"<tr><td>Most Common Method</td><td>{info['most_common_method']}</td></tr>"
         )
         html += "</table>"
 
         html += "<h4>Methods:</h4><table>"
         html += "<tr><th>Method</th><th>Count</th></tr>"
         for method_info in info["methods"]:
-            html += f'<tr><td>{method_info["method"]}</td><td>{method_info["count"]}</td></tr>'
+            html += f"<tr><td>{method_info['method']}</td><td>{method_info['count']}</td></tr>"
         html += "</table></div>"
 
     html += """
         </div>
-        
+
         <div id="columns-tab" class="tab-content columns-section">
             <h2>CSV File Columns</h2>
     """
 
     # Add columns section
     for csv_file, columns in column_lists.items():
-        html += f'<div class="file-section">'
+        html += '<div class="file-section">'
         html += f"<h3>File: {csv_file} ({len(columns)} columns)</h3>"
 
         html += '<table class="columns-table">'
@@ -997,29 +1005,29 @@ def generate_html_report(
             elif column in PATTERN_FIELDS.get(csv_file, []):
                 field_type = '<span class="tag">Pattern</span>'
 
-            html += f'<tr><td>{i+1}</td><td>{column}</td><td><span class="data-type {type_class}">{data_type}</span></td><td>{field_type}</td></tr>'
+            html += f'<tr><td>{i + 1}</td><td>{column}</td><td><span class="data-type {type_class}">{data_type}</span></td><td>{field_type}</td></tr>'
 
         html += "</table>"
         html += "</div>"
 
     html += """
         </div>
-        
+
         <div id="patterns-tab" class="tab-content">
             <h2>Pattern Analysis</h2>
     """
 
     # Add pattern analysis
     for csv_file, field_patterns in pattern_results.items():
-        html += f'<div class="file-section">'
+        html += '<div class="file-section">'
         html += f"<h3>File: {csv_file}</h3>"
 
         for field, pattern_info in field_patterns.items():
-            html += f'<div class="field-section">'
+            html += '<div class="field-section">'
             html += f"<h4>Field: {field}</h4>"
 
             if isinstance(pattern_info, dict) and "patterns" in pattern_info:
-                html += f'<p>Min length: {pattern_info["min_length"]} | Max length: {pattern_info["max_length"]}</p>'
+                html += f"<p>Min length: {pattern_info['min_length']} | Max length: {pattern_info['max_length']}</p>"
 
                 html += "<h5>Example values:</h5>"
                 html += "<ul>"
@@ -1045,20 +1053,20 @@ def generate_html_report(
 
     html += """
         </div>
-        
+
         <div id="samples-tab" class="tab-content">
             <h2>Sample Values</h2>
     """
 
     # Add sample values
     for csv_file, field_samples in sample_results.items():
-        html += f'<div class="file-section">'
+        html += '<div class="file-section">'
         html += f"<h3>File: {csv_file}</h3>"
 
         for field, sample_info in field_samples.items():
-            html += f'<div class="field-section">'
+            html += '<div class="field-section">'
             html += f"<h4>Field: {field}</h4>"
-            html += f'<p>Total unique values: {sample_info["total_unique"]} | Total values: {sample_info["total_values"]}</p>'
+            html += f"<p>Total unique values: {sample_info['total_unique']} | Total values: {sample_info['total_values']}</p>"
 
             if "all_samples" in sample_info:
                 html += "<h5>All Samples:</h5>"
@@ -1093,14 +1101,14 @@ def generate_html_report(
 
     html += """
         </div>
-        
+
         <div id="values-tab" class="tab-content">
             <h2>Field Value Analysis</h2>
     """
 
     # Add values section
     for csv_file, field_values in analysis_results.items():
-        html += f'<div class="file-section">'
+        html += '<div class="file-section">'
         html += f"<h3>File: {csv_file}</h3>"
 
         for field, values in field_values.items():
@@ -1112,7 +1120,7 @@ def generate_html_report(
             if field in TEXT_CHOICE_FIELDS.get(csv_file, []):
                 field_type = ' <span class="tag">TextChoice</span>'
 
-            html += f'<div class="field-section">'
+            html += '<div class="field-section">'
             html += f'<h4>Field: {field} <span class="data-type {type_class}">{data_type}</span>{field_type}</h4>'
 
             html += "<table>"
@@ -1192,13 +1200,13 @@ def main():
         row_counts[csv_file] = len(data)
 
         # Store data for relationship analysis
-        if csv_file == "biodiversity_records.csv":
+        if csv_file == "biodiversity.csv":
             biodiversity_data = data
         elif csv_file == "measurements.csv":
             measurements_data = data
-        elif csv_file == "observations_details.csv":
+        elif csv_file == "observations.csv":
             observations_data = data
-        elif csv_file == "taxonomy_details.csv":
+        elif csv_file == "taxonomy.csv":
             taxonomy_data = data
 
         if data:
@@ -1274,7 +1282,7 @@ def main():
         html_report_path,
     )
 
-    print(f"Reports generated at:")
+    print("Reports generated at:")
     print(f"  - {text_report_path}")
     print(f"  - {html_report_path}")
 

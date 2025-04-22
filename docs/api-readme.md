@@ -78,6 +78,14 @@ The API is organized around the following main resources:
 - `GET /api/v1/reports/observations/` - List all observations
 - `GET /api/v1/reports/observations/{id}/` - Retrieve a specific observation
 
+### Climate
+
+- `GET /api/v1/climate/stations/` - List all weather stations
+- `GET /api/v1/climate/stations/{id}/` - Retrieve a specific weather station
+- `GET /api/v1/climate/stations/near/` - List stations near a specific point
+- `GET /api/v1/climate/data/` - List climate data
+- `GET /api/v1/climate/data/{id}/` - Retrieve a specific climate data record
+
 ## Query Parameters
 
 Most list endpoints support the following query parameters:
@@ -113,12 +121,38 @@ GET /api/v1/biodiversity/records/near/?lat=4.4378&lon=-75.2012&radius=500
 GET /api/v1/reports/measurements/?attribute=HT&value_min=10&value_max=20
 ```
 
+#### Find weather stations near a location
+
+```http
+GET /api/v1/climate/stations/near/?lat=4.4378&lon=-75.2012&radius=5000
+```
+
+#### Get climate data for a specific station within a date range
+
+```http
+GET /api/v1/climate/data/?station=1&date_from=2023-01-01&date_to=2023-01-31
+```
+
+#### Filter climate data by temperature range
+
+```http
+GET /api/v1/climate/data/?sensor=t2m&value_min=20&value_max=30
+```
+
 ## GeoJSON Support
 
-The biodiversity records endpoint supports GeoJSON format:
+The following endpoints support GeoJSON format:
+
+### Biodiversity Records GeoJSON
 
 ```http
 GET /api/v1/biodiversity/records/?format=geojson
+```
+
+### Weather Stations GeoJSON
+
+```http
+GET /api/v1/climate/stations/?format=geojson
 ```
 
 ## Pagination
@@ -172,4 +206,15 @@ Error responses include a JSON body with details:
 
 ## Performance Considerations
 
-Some endpoints, particularly those for biodiversity records, measurements, and observations, contain large datasets. Consider using filters to limit the results and avoid fetching too much data at once.
+Some endpoints contain large datasets:
+
+- **Climate Data**: Over 700,000 records - always use filters (date ranges, station, sensor type) when querying this endpoint
+- **Biodiversity Records**: Contains extensive tree census data
+- **Measurements and Observations**: Contains detailed measurement records
+
+To optimize performance:
+
+1. Always use filtering parameters when available
+2. Limit result sets using pagination
+3. Use date ranges for time-series data
+4. Request only the data you need

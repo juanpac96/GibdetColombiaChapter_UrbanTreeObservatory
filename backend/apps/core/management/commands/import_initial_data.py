@@ -863,23 +863,23 @@ class Command(BaseCommand):
             csv_path,
             usecols=["stationcode", "stationname", "latitude", "longitude"],
         )
-        
+
         # Normalize coordinates for BATALLON ROOKE station (handle two equivalent coordinate formats)
         # Map the alternate coordinates to the majority format
         batallon_rooke_code = 21215180
         batallon_rooke_main_lat = 4.418388889
         batallon_rooke_main_lon = -75.24866667
-        
+
         station_df.loc[
-            (station_df['stationcode'] == batallon_rooke_code) & 
-            (station_df['latitude'] == 4.4180556) & 
-            (station_df['longitude'] == -75.248055556),
-            ['latitude', 'longitude']
+            (station_df["stationcode"] == batallon_rooke_code)
+            & (station_df["latitude"] == 4.4180556)
+            & (station_df["longitude"] == -75.248055556),
+            ["latitude", "longitude"],
         ] = [batallon_rooke_main_lat, batallon_rooke_main_lon]
-        
+
         # Now get unique stations after normalization
-        unique_stations = station_df.drop_duplicates(subset=['stationcode']).copy()
-        
+        unique_stations = station_df.drop_duplicates(subset=["stationcode"]).copy()
+
         # Create stations
         stations_batch = []
         station_map = {}  # To map station codes to Station objects
@@ -936,10 +936,10 @@ class Command(BaseCommand):
                     measurement_date = self.parse_date(row.datetime)
                     sensor = sensor_map.get(row.sensordescription)
                     measure_unit = row.measureunit
-                    
+
                     # First try to get the station by code
                     station = station_map.get(row.stationcode)
-                    
+
                     # If station code matches but the coordinates are the alternate format,
                     # use the mapped station to ensure we're consistent
                     coords = (row.latitude, row.longitude)

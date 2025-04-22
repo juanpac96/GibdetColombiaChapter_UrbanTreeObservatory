@@ -135,7 +135,7 @@ class Command(BaseCommand):
             )
         else:
             self.taxonomy_url = options["taxonomy_url"]
-            self.place_url = options["places_url"]
+            self.places_url = options["places_url"]
             self.biodiversity_url = options["biodiversity_url"]
             self.measurements_url = options["measurements_url"]
             self.observations_url = options["observations_url"]
@@ -147,6 +147,9 @@ class Command(BaseCommand):
 
         # Check that required migrations have run
         self.check_required_data()
+        
+        # Validate that all required files exist
+        self.validate_files()
 
         # Check that tables to be populated are empty
         self.check_empty_tables()
@@ -188,6 +191,60 @@ class Command(BaseCommand):
             raise CommandError(
                 "Municipality 'Ibagué' not found. Please ensure initial migrations have run."
             )
+            
+    def validate_files(self):
+        """Validate that all required data files exist and can be accessed."""
+        self.stdout.write("Validating data files...")
+        
+        missing_files = []
+        
+        if self.use_local:
+            # Check if all required files exist in the local directory
+            required_files = [
+                "taxonomy.csv",
+                "places.csv",
+                "biodiversity.csv",
+                "measurements.csv",
+                "observations.csv",
+                "traits.csv", 
+                "climate.csv"
+            ]
+            
+            for filename in required_files:
+                file_path = self.data_dir / filename
+                if not file_path.exists():
+                    missing_files.append(str(file_path))
+        else:
+            # Check if all remote URLs are accessible
+            urls = [
+                ("taxonomy", self.taxonomy_url),
+                ("places", self.places_url),
+                ("biodiversity", self.biodiversity_url),
+                ("measurements", self.measurements_url),
+                ("observations", self.observations_url),
+                ("traits", self.traits_url),
+                ("climate", self.climate_url)
+            ]
+            
+            # For remote URLs, we'll just check if pandas can open them
+            # This is a lightweight check to avoid downloading entire files
+            for name, url in urls:
+                try:
+                    # Just try to read the header
+                    pd.read_csv(url, nrows=1)
+                except Exception as e:
+                    missing_files.append(f"{name} ({url}): {str(e)}")
+        
+        if missing_files:
+            message = (
+                f"The following files could not be accessed: {', '.join(missing_files)}. "
+                "Please ensure all required data files are available before running the import."
+            )
+            raise CommandError(message)
+            
+        self.stdout.write(
+            self.style.SUCCESS("All required data files are accessible")
+        )
 
     def check_empty_tables(self):
         """Check that all tables to be populated are empty before import."""
@@ -319,7 +376,7 @@ class Command(BaseCommand):
         if self.use_local:
             csv_path = self.data_dir / "places.csv"
         else:
-            csv_path = self.place_url
+            csv_path = self.places_url
 
         df = pd.read_csv(csv_path)
 
@@ -786,25 +843,21 @@ class Command(BaseCommand):
         else:
             csv_path = self.climate_url
             
-        # Validate the file exists
-        try:
-            with open(csv_path, 'r') as f:
-                header = f.readline().strip()
-            
-            # Validate headers
-            required_columns = {
-                "municipality_id", "stationcode", "stationname", 
-                "datetime", "latitude", "longitude",
-                "sensordescription", "measureunit", "value"
-            }
-            
-            file_columns = set(header.split(','))
-            if not required_columns.issubset(file_columns):
-                missing = required_columns - file_columns
-                raise CommandError(f"Missing required columns in climate.csv: {missing}")
-                
-        except FileNotFoundError:
-            raise CommandError(f"Climate data file not found at {csv_path}")
+        # Read header to validate columns
+        # (We've already checked the file exists in validate_files)
+        df_header = pd.read_csv(csv_path, nrows=1)
+        
+        # Validate headers
+        required_columns = {
+            "municipality_id", "stationcode", "stationname", 
+            "datetime", "latitude", "longitude",
+            "sensordescription", "measureunit", "value"
+        }
+        
+        file_columns = set(df_header.columns)
+        if not required_columns.issubset(file_columns):
+            missing = required_columns - file_columns
+            raise CommandError(f"Missing required columns in climate.csv: {missing}")
         
         # Import stations first (only 4 unique stations)
         # Use a temporary DataFrame to get unique stations

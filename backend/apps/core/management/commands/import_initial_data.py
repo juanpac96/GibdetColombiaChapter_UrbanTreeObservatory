@@ -858,21 +858,36 @@ class Command(BaseCommand):
             raise CommandError(f"Missing required columns in climate.csv: {missing}")
 
         # Import stations first (only 4 unique stations)
-        # Use a temporary DataFrame to get unique stations
+        # Use a temporary DataFrame to get unique stations - we need all records to properly handle coordinates
         station_df = pd.read_csv(
             csv_path,
             usecols=["stationcode", "stationname", "latitude", "longitude"],
-            nrows=1000,
-        ).drop_duplicates()
-
+        )
+        
+        # Normalize coordinates for BATALLON ROOKE station (handle two equivalent coordinate formats)
+        # Map the alternate coordinates to the majority format
+        batallon_rooke_code = 21215180
+        batallon_rooke_main_lat = 4.418388889
+        batallon_rooke_main_lon = -75.24866667
+        
+        station_df.loc[
+            (station_df['stationcode'] == batallon_rooke_code) & 
+            (station_df['latitude'] == 4.4180556) & 
+            (station_df['longitude'] == -75.248055556),
+            ['latitude', 'longitude']
+        ] = [batallon_rooke_main_lat, batallon_rooke_main_lon]
+        
+        # Now get unique stations after normalization
+        unique_stations = station_df.drop_duplicates(subset=['stationcode']).copy()
+        
         # Create stations
         stations_batch = []
         station_map = {}  # To map station codes to Station objects
 
         for row in tqdm(
-            station_df.itertuples(index=False),
+            unique_stations.itertuples(index=False),
             desc="Creating climate stations",
-            total=len(station_df),
+            total=len(unique_stations),
         ):
             # Create a Point geometry for the location
             location = f"POINT({row.longitude} {row.latitude})"
@@ -897,6 +912,13 @@ class Command(BaseCommand):
         # Count total rows for tqdm
         total_rows = sum(1 for _ in open(csv_path)) - 1  # subtract header
 
+        # Create a station code mapping for the normalizing the alternate coordinates
+        # This ensures we use the same station when processing climate data
+        coord_to_station_map = {
+            # Map the alternate coords to the same station (BATALLON ROOKE)
+            (4.4180556, -75.248055556): station_map[batallon_rooke_code]
+        }
+
         reader = pd.read_csv(csv_path, chunksize=chunksize)
 
         total_records = 0
@@ -914,7 +936,15 @@ class Command(BaseCommand):
                     measurement_date = self.parse_date(row.datetime)
                     sensor = sensor_map.get(row.sensordescription)
                     measure_unit = row.measureunit
+                    
+                    # First try to get the station by code
                     station = station_map.get(row.stationcode)
+                    
+                    # If station code matches but the coordinates are the alternate format,
+                    # use the mapped station to ensure we're consistent
+                    coords = (row.latitude, row.longitude)
+                    if coords in coord_to_station_map:
+                        station = coord_to_station_map[coords]
 
                     climate_record = Climate(
                         municipality=self.ibague,

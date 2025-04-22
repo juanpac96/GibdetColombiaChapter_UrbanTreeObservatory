@@ -55,6 +55,7 @@ from apps.taxonomy.models import (
 from apps.places.models import Municipality, Place
 from apps.biodiversity.models import BiodiversityRecord
 from apps.reports.models import Measurement, Observation
+from apps.climate.models import Station, Climate
 
 
 class Command(BaseCommand):
@@ -94,6 +95,11 @@ class Command(BaseCommand):
             help="URL for the functional groups traits CSV file",
         )
         parser.add_argument(
+            "--climate-url",
+            default="https://huggingface.co/datasets/juanpac96/urban_tree_census_data/climate.csv",
+            help="URL for the climate data CSV file",
+        )
+        parser.add_argument(
             "--local-dir",
             help="Local directory containing CSV files with the same names as Hugging Face URLs",
         )
@@ -129,11 +135,12 @@ class Command(BaseCommand):
             )
         else:
             self.taxonomy_url = options["taxonomy_url"]
-            self.place_url = options["place_url"]
+            self.place_url = options["places_url"]
             self.biodiversity_url = options["biodiversity_url"]
             self.measurements_url = options["measurements_url"]
             self.observations_url = options["observations_url"]
             self.traits_url = options["traits_url"]
+            self.climate_url = options["climate_url"]
             self.stdout.write(
                 self.style.SUCCESS("Starting import from Hugging Face URLs")
             )
@@ -153,6 +160,7 @@ class Command(BaseCommand):
                 self.import_biodiversity_records()
                 self.import_measurements()
                 self.import_observations()
+                self.import_climate_data()
 
             self.stdout.write(self.style.SUCCESS("Import completed successfully"))
         except Exception as e:
@@ -194,6 +202,8 @@ class Command(BaseCommand):
             (BiodiversityRecord, "BiodiversityRecord"),
             (Measurement, "Measurement"),
             (Observation, "Observation"),
+            (Station, "Station"),
+            (Climate, "Climate"),
         ]
 
         non_empty_tables = []
@@ -758,6 +768,146 @@ class Command(BaseCommand):
         self.stdout.write(
             self.style.SUCCESS(f"Imported {observations_created} observations")
         )
+        
+    def import_climate_data(self):
+        """Import climate data from CSV file.
+        
+        This method handles importing the stations and climate records.
+        All climate data is related to the municipality of Ibague.
+        """
+        self.stdout.write("Importing climate data...")
+        
+        # Read climate.csv
+        # We'll process this in chunks due to the large number of rows
+        chunksize = 50000  # Adjust based on available memory
+        
+        if self.use_local:
+            csv_path = self.data_dir / "climate.csv"
+        else:
+            csv_path = self.climate_url
+            
+        # Validate the file exists
+        try:
+            with open(csv_path, 'r') as f:
+                header = f.readline().strip()
+            
+            # Validate headers
+            required_columns = {
+                "municipality_id", "stationcode", "stationname", 
+                "datetime", "latitude", "longitude",
+                "sensordescription", "measureunit", "value"
+            }
+            
+            file_columns = set(header.split(','))
+            if not required_columns.issubset(file_columns):
+                missing = required_columns - file_columns
+                raise CommandError(f"Missing required columns in climate.csv: {missing}")
+                
+        except FileNotFoundError:
+            raise CommandError(f"Climate data file not found at {csv_path}")
+        
+        # Import stations first (only 4 unique stations)
+        # Use a temporary DataFrame to get unique stations
+        station_df = pd.read_csv(
+            csv_path, 
+            usecols=["stationcode", "stationname", "latitude", "longitude"],
+            nrows=1000
+        ).drop_duplicates()
+        
+        # Create stations
+        stations_batch = []
+        station_map = {}  # To map station codes to Station objects
+        
+        for row in tqdm(
+            station_df.itertuples(index=False), 
+            desc="Creating climate stations", 
+            total=len(station_df)
+        ):
+            # Create a Point geometry for the location
+            location = f"POINT({row.longitude} {row.latitude})"
+            
+            station = Station(
+                code=row.stationcode,
+                name=row.stationname,
+                location=location,
+            )
+            stations_batch.append(station)
+        
+        # Bulk create the stations
+        created_stations = Station.objects.bulk_create(stations_batch)
+        for station in created_stations:
+            station_map[station.code] = station
+            
+        self.stdout.write(
+            self.style.SUCCESS(f"Imported {len(created_stations)} weather stations")
+        )
+        
+        # Now import climate data in chunks
+        # Count total rows for tqdm
+        total_rows = sum(1 for _ in open(csv_path)) - 1  # subtract header
+        
+        reader = pd.read_csv(csv_path, chunksize=chunksize)
+        
+        total_records = 0
+        
+        sensor_map = {
+            "Temp Aire 2 m": Climate.SensorDescription.AIR_TEMP_2m,
+        }
+        
+        unit_map = {
+            "°C": Climate.MeasureUnit.CELSIUS,
+        }
+        
+        with tqdm(total=total_rows, desc="Importing climate data") as pbar:
+            for chunk in reader:
+                batch_climate = []
+                
+                for row in chunk.itertuples(index=False):
+                    # Skip any rows with missing values as per requirement
+                    if (pd.isna(row.stationcode) or pd.isna(row.datetime) or 
+                        pd.isna(row.value) or pd.isna(row.sensordescription) or
+                        pd.isna(row.measureunit)):
+                        continue
+                        
+                    # Parse date from datetime string
+                    measurement_date = self.parse_date(row.datetime)
+                    if not measurement_date:
+                        continue
+                        
+                    # Map sensor description and unit to model choices
+                    sensor = sensor_map.get(row.sensordescription)
+                    if not sensor:
+                        # Skip unknown sensor types
+                        continue
+                        
+                    measure_unit = unit_map.get(row.measureunit)
+                    if not measure_unit:
+                        # Skip unknown unit types
+                        continue
+                    
+                    station = station_map.get(row.stationcode)
+                    if not station:
+                        # Skip if station doesn't exist
+                        continue
+                    
+                    climate_record = Climate(
+                        municipality=self.ibague,
+                        station=station,
+                        date=measurement_date,
+                        sensor=sensor,
+                        value=row.value,
+                        measure_unit=measure_unit,
+                    )
+                    batch_climate.append(climate_record)
+                
+                # Bulk create the climate records in this chunk
+                created = Climate.objects.bulk_create(batch_climate, batch_size=5000)
+                total_records += len(created)
+                pbar.update(len(chunk))
+        
+        self.stdout.write(
+            self.style.SUCCESS(f"Imported {total_records} climate data records")
+        )
 
     def check_foreign_key_integrity(self):
         """Check that all foreign keys map to valid primary keys."""
@@ -819,6 +969,8 @@ class Command(BaseCommand):
             BiodiversityRecord,
             Measurement,
             Observation,
+            Station,
+            Climate,
         ]
         with connection.cursor() as cursor:
             for model in models:

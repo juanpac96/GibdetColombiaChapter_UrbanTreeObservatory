@@ -1,4 +1,4 @@
-from django.contrib.gis.geos import Polygon
+from django.contrib.gis.geos import Polygon, Point
 from django.contrib.gis.measure import D
 from django.db.models import Q
 from rest_framework import viewsets, filters, status
@@ -110,7 +110,7 @@ class BiodiversityRecordViewSet(viewsets.ReadOnlyModelViewSet):
 
         # Get records within the radius
         records = BiodiversityRecord.objects.filter(
-            location__dwithin=(f"POINT({lon} {lat})", D(m=radius))
+            location__dwithin=(Point(lon, lat), D(m=radius))
         ).order_by("location")[:limit]
 
         serializer = self.get_serializer(records, many=True)

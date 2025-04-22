@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import Measurement, Observation
+from apps.biodiversity.models import BiodiversityRecord
 from apps.biodiversity.serializers import BiodiversityRecordLightSerializer
 
 
@@ -10,9 +11,7 @@ class MeasurementSerializer(serializers.ModelSerializer):
     biodiversity_record_id = serializers.PrimaryKeyRelatedField(
         write_only=True,
         source="biodiversity_record",
-        queryset=Measurement.objects.all()
-        .values_list("biodiversity_record", flat=True)
-        .distinct(),
+        queryset=BiodiversityRecord.objects.all(),
     )
 
     attribute_display = serializers.CharField(
@@ -48,9 +47,7 @@ class ObservationSerializer(serializers.ModelSerializer):
     biodiversity_record_id = serializers.PrimaryKeyRelatedField(
         write_only=True,
         source="biodiversity_record",
-        queryset=Observation.objects.all()
-        .values_list("biodiversity_record", flat=True)
-        .distinct(),
+        queryset=BiodiversityRecord.objects.all(),
     )
 
     # Display fields for choice fields

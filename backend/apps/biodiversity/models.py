@@ -40,7 +40,8 @@ class BiodiversityRecord(BaseModel):
         ordering = ["species", "location"]
 
     def __str__(self):
-        return f"{self.species.scientific_name} at {self.longitude}, {self.latitude}"
+        common_name = self.common_name if self.common_name else "Unknown"
+        return f"{common_name} ({self.species.scientific_name}) at {self.place.site}"
 
     def get_admin_url(self):
         return reverse(

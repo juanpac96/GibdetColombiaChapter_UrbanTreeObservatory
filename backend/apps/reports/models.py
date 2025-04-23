@@ -21,10 +21,10 @@ class Measurement(BaseModel):
         NOT_REPORTED = "NR", _("not reported")
 
     class MeasurementUnit(models.TextChoices):
-        METERS = "m", _("meters")
-        CUBIC_METERS = "m3", _("cubic meters")
-        CENTIMETERS = "cm", _("centimeters")
-        GRAMS_PER_CUBIC_CM = "g/cm3", _("grams per cubic centimeter")
+        METERS = "m", _("meters (m)")
+        CUBIC_METERS = "m3", _("cubic meters (m3)")
+        CENTIMETERS = "cm", _("centimeters (cm)")
+        GRAMS_PER_CUBIC_CM = "g/cm3", _("grams per cubic centimeter (g/cm3)")
         NOT_REPORTED = "NR", _("not reported")
 
     class MeasurementMethod(models.TextChoices):

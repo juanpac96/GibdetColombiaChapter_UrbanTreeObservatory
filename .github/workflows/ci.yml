@@ -36,10 +36,14 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
+    env:
+      DJANGO_SETTINGS_MODULE: config.settings.dev
+      SECRET_KEY: github-actions-test-key
+      DATABASE_URL: postgis://postgres:postgres@localhost:5432/urban_tree_db
 
     services:
       postgres:
-        image: postgis/postgis:latest
+        image: postgis/postgis:15-3.4
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
@@ -78,27 +82,12 @@ jobs:
 
     - name: Run Django check
       working-directory: ./backend
-      env:
-        DJANGO_SETTINGS_MODULE: config.settings.dev
-        SECRET_KEY: github-actions-test-key
-      run: |
-          export DATABASE_URL=postgis://postgres:postgres@localhost:5432/urban_tree_db
-          python manage.py check
+      run: python manage.py check
 
     - name: Run migrations
       working-directory: ./backend
-      env:
-        DJANGO_SETTINGS_MODULE: config.settings.dev
-        SECRET_KEY: github-actions-test-key
-      run: |
-          export DATABASE_URL=postgis://postgres:postgres@localhost:5432/urban_tree_db
-          python manage.py migrate
+      run: python manage.py migrate
 
     - name: Run tests
       working-directory: ./backend
-      env:
-        DJANGO_SETTINGS_MODULE: config.settings.dev
-        SECRET_KEY: github-actions-test-key
-      run: |
-          export DATABASE_URL=postgis://postgres:postgres@localhost:5432/urban_tree_db
-          python manage.py pytest || python manage.py test
+      run: python manage.py pytest || python manage.py test

@@ -1,5 +1,7 @@
 # Urban Tree Observatory Project
 
+![CI](https://github.com/OmdenaAI/GibdetColombiaChapter_UrbanTreeObservatory/workflows/CI/badge.svg)
+
 ## Project Overview
 
 The Urban Tree Observatory is a data-driven platform for monitoring and conserving urban trees in Ibagué, Colombia. The project centralizes tree data and tracks conservation efforts.
@@ -23,7 +25,7 @@ The Urban Tree Observatory is a data-driven platform for monitoring and conservi
 2. Start the development environment:
 
    ```bash
-   docker-compose up
+   docker compose up
    ```
 
 3. Access the different components:
@@ -55,7 +57,7 @@ To connect to the database through PgAdmin:
 After starting the containers for the first time, you'll need to create a superuser:
 
 ```bash
-docker-compose exec backend python manage.py createsuperuser
+docker compose exec backend python manage.py createsuperuser
 ```
 
 ### Initial Data Import
@@ -64,7 +66,7 @@ To import initial data into the database, run the following command:
 
 ```bash
 # Using the default Hugging Face URLs
-docker-compose exec backend python manage.py import_initial_data
+docker compose exec backend python manage.py import_initial_data
 
 # Using custom URLs
 docker compose exec backend python manage.py import_initial_data \
@@ -115,6 +117,24 @@ docker compose exec backend python manage.py import_initial_data --local-dir=/pa
 2. Make changes to your code (the development server will auto-reload)
 3. Run tests to verify your changes
 4. Commit and push your changes
+
+### Setting up Pre-commit Hooks
+
+This project uses pre-commit hooks to ensure code quality. To set up pre-commit:
+
+```bash
+# Install pre-commit
+pip install pre-commit
+
+# Install the git hooks
+pre-commit install
+```
+
+Pre-commit will now run automatically on every commit. You can also run it manually:
+
+```bash
+pre-commit run --all-files
+```
 
 ### Running Tests
 

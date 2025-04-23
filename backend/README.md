@@ -108,6 +108,12 @@ docker compose exec backend coverage run --source='.' manage.py test
 docker compose exec backend coverage report
 ```
 
+### Code Quality
+
+This project uses pre-commit hooks to ensure code quality. Make sure to set up pre-commit as described in the main README. The hooks will automatically format your code, check for common issues, and ensure Django best practices are followed.
+
+The CI pipeline runs these same checks, so setting up pre-commit locally will help prevent CI failures.
+
 ### Custom Management Commands
 
 To run custom management commands:

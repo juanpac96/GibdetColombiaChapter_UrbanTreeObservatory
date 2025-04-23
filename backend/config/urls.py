@@ -12,6 +12,11 @@ from drf_spectacular.views import (
     SpectacularSwaggerView,
 )
 
+# Admin site configuration
+admin.site.site_header = "Urban Tree Observatory"
+admin.site.site_title = "UTO Admin"
+admin.site.index_title = "Urban Tree Observatory Admin"
+
 
 urlpatterns = [
     path("admin/", admin.site.urls),

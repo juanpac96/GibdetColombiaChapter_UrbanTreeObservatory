@@ -1,17 +1,14 @@
 # Use the same base image as the database for compatibility
 FROM nickblah/postgis:latest
 
-ENV PYTHONUNBUFFERED 1
-ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
 
 # Install Python and dependencies
 RUN apt-get update && apt-get install -y \
     python3-dev \
     python3-pip \
     python3-venv \
-    binutils \
-    libproj-dev \
-    gdal-bin \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 

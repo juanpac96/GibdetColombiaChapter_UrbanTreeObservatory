@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.utils.html import format_html
 
 from .models import Family, Genus, Species, FunctionalGroup, Trait
 
@@ -65,8 +66,8 @@ class SpeciesAdmin(admin.ModelAdmin):
         "created_at",
         "updated_at",
         "scientific_name",
-        "gbif_url",
-        "tropical_plants_url",
+        "gbif_url_link",
+        "tropical_plants_url_link",
     )
     fieldsets = (
         (
@@ -87,7 +88,7 @@ class SpeciesAdmin(admin.ModelAdmin):
         ("Physical Characteristics", {"fields": ("canopy_shape", "flower_color")}),
         (
             "External References",
-            {"fields": ("gbif_id", "gbif_url", "tropical_plants_url")},
+            {"fields": ("gbif_id", "gbif_url_link", "tropical_plants_url_link")},
         ),
         ("Identification", {"fields": ("identified_by", "date")}),
         ("Metadata", {"fields": ("id", "created_at", "updated_at")}),
@@ -104,3 +105,21 @@ class SpeciesAdmin(admin.ModelAdmin):
     @admin.display(description="IUCN Status")
     def iucn_status_display(self, obj):
         return obj.get_iucn_status_display()
+
+    @admin.display(description="GBIF URL")
+    def gbif_url_link(self, obj):
+        if obj.gbif_url:
+            return format_html(
+                '<a href="{}" target="_blank" rel="noopener">GBIF Link</a>',
+                obj.gbif_url,
+            )
+        return "-"
+
+    @admin.display(description="Tropical Plants URL")
+    def tropical_plants_url_link(self, obj):
+        if obj.tropical_plants_url:
+            return format_html(
+                '<a href="{}" target="_blank" rel="noopener">Tropical Plants Link</a>',
+                obj.tropical_plants_url,
+            )
+        return "-"

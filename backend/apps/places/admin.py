@@ -1,5 +1,35 @@
 from django.contrib import admin
-from .models import Place
+
+from .models import Country, Department, Municipality, Place
 
 
-admin.site.register(Place)
+@admin.register(Country)
+class CountryAdmin(admin.ModelAdmin):
+    list_display = ("name",)
+    search_fields = ("name",)
+    readonly_fields = ("id",)
+
+
+@admin.register(Department)
+class DepartmentAdmin(admin.ModelAdmin):
+    list_display = ("name", "country")
+    list_filter = ("country",)
+    search_fields = ("name",)
+    readonly_fields = ("id",)
+
+
+@admin.register(Municipality)
+class MunicipalityAdmin(admin.ModelAdmin):
+    list_display = ("name", "department")
+    list_filter = ("department__country", "department")
+    search_fields = ("name", "department__name")
+    readonly_fields = ("id",)
+
+
+@admin.register(Place)
+class PlaceAdmin(admin.ModelAdmin):
+    list_display = ("site", "populated_center", "zone", "subzone", "municipality")
+    list_filter = ("municipality", "zone", "subzone")
+    search_fields = ("site", "populated_center", "municipality__name")
+    readonly_fields = ("id", "created_at", "updated_at")
+    list_per_page = 25

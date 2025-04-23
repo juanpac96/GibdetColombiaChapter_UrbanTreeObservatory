@@ -1,6 +1,6 @@
 # apps/taxonomy/admin.py
 from django.contrib import admin
-from .models import Family, Genus, Species, FunctionalGroup, Trait, TraitValue
+from .models import Family, Genus, Species, FunctionalGroup, Trait
 
 
 @admin.register(Family)
@@ -20,9 +20,10 @@ class GenusAdmin(admin.ModelAdmin):
     list_per_page = 100
 
 
-class TraitValueInline(admin.TabularInline):
-    model = TraitValue
+class SpeciesInline(admin.TabularInline):
+    model = Species
     extra = 0
+    fields = ("name", "genus")
 
 
 @admin.register(FunctionalGroup)
@@ -30,7 +31,7 @@ class FunctionalGroupAdmin(admin.ModelAdmin):
     list_display = ("group_str", "trait_count", "created_at")
     search_fields = ("group_id",)
     readonly_fields = ("id", "created_at", "updated_at")
-    inlines = [TraitValueInline]
+    inlines = [SpeciesInline]
 
     @admin.display(description="Group")
     def group_str(self, obj):
@@ -50,7 +51,6 @@ class TraitAdmin(admin.ModelAdmin):
 @admin.register(Species)
 class SpeciesAdmin(admin.ModelAdmin):
     list_display = (
-        "id",
         "scientific_name",
         "life_form_display",
         "origin_display",
@@ -60,6 +60,7 @@ class SpeciesAdmin(admin.ModelAdmin):
     search_fields = ("name", "genus__name", "accepted_scientific_name")
     raw_id_fields = ("genus", "functional_group")
     readonly_fields = (
+        "id",
         "created_at",
         "updated_at",
         "scientific_name",
@@ -88,7 +89,7 @@ class SpeciesAdmin(admin.ModelAdmin):
             {"fields": ("gbif_id", "gbif_url", "tropical_plants_url")},
         ),
         ("Identification", {"fields": ("identified_by", "date")}),
-        ("Metadata", {"fields": ("created_at", "updated_at")}),
+        ("Metadata", {"fields": ("id", "created_at", "updated_at")}),
     )
 
     @admin.display(description="Life Form")

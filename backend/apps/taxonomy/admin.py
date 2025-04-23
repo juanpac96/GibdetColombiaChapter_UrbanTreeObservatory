@@ -1,5 +1,5 @@
-# apps/taxonomy/admin.py
 from django.contrib import admin
+
 from .models import Family, Genus, Species, FunctionalGroup, Trait
 
 
@@ -44,8 +44,9 @@ class FunctionalGroupAdmin(admin.ModelAdmin):
 
 @admin.register(Trait)
 class TraitAdmin(admin.ModelAdmin):
-    list_display = ("id", "type", "get_type_display", "created_at")
+    list_display = ("type",)
     search_fields = ("type",)
+    readonly_fields = ("id", "created_at", "updated_at")
 
 
 @admin.register(Species)

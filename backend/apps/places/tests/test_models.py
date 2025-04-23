@@ -5,13 +5,6 @@ from apps.places.models import Country, Department, Municipality, Place
 class CountryModelTestCase(TestCase):
     """Test case for the Country model."""
 
-    def setUp(self):
-        """Set up a country instance for testing."""
-        # Note the migrations are also ran when tests are executed,
-        # so there is no need to create the country instance here.
-        # self.country = Country.objects.create(name="Colombia")
-        pass
-
     def test_country_str(self):
         """Test the string representation of the country."""
         colombia = Country.objects.get(name="Colombia")
@@ -21,14 +14,6 @@ class CountryModelTestCase(TestCase):
 class DepartmentModelTestCase(TestCase):
     """Test case for the Department model."""
 
-    def setUp(self):
-        """Set up a department instance for testing."""
-        # Note the migrations are also ran when tests are executed,
-        # so there is no need to create the department instance here.
-        # colombia = Country.objects.get(name="Colombia")
-        # self.department = Department.objects.create(name="Antioquia", country=colombia)
-        # pass
-
     def test_department_str(self):
         """Test the string representation of the country."""
         department = Department.objects.get(name="Tolima")
@@ -37,13 +22,6 @@ class DepartmentModelTestCase(TestCase):
 
 class MunicipalityModelTestCase(TestCase):
     """Test case for the Municipality model."""
-
-    def setUp(self):
-        """Set up a municipality instance for testing."""
-        # Note the migrations are also ran when tests are executed
-        # so there is no need to create the municipality instance here.
-        # antioquia = Department.objects.get(name="Antioquia")
-        # self.municipality = Municipality.objects.create(name="Medellín", department=antioquia)
 
     def test_municipality_str(self):
         """Test the string representation of the municipality."""

@@ -21,8 +21,8 @@ class BiodiversityRecordAdmin(GISModelAdmin):
 
     @admin.display(description="Species")
     def species_name(self, obj):
-        return f"{obj.species.genus.name} {obj.species.name}" if obj.species else "-"
+        return f"{obj.species.genus.name} {obj.species.name}"
 
     @admin.display(description="Site")
     def place_name(self, obj):
-        return obj.place.site if obj.place else "-"
+        return obj.place.site

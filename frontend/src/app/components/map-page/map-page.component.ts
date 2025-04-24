@@ -28,7 +28,7 @@ export class MapPageComponent implements AfterViewInit {
     }).addTo(this.map);
 
     this.loadGeoJSON();
-    this.loadPointsFromMultiplePages(10); // Cargar 10 páginas
+    this.loadPointsFromMultiplePages(10); 
   }
 
   private loadGeoJSON(): void {

@@ -3,7 +3,13 @@
   <head>
     <meta charset="utf-8">
     <title>Urban Tree Observatory</title>
-    <base href="/">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- Carga de Leaflet desde CDN (opcional si ya lo tienes en angular.json) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+      body { margin: 0; padding: 0; }
+      html, body, app-root, #map { height: 100%; width: 100%; }
+    </style>
   </head>
   <body>
     <app-root></app-root>

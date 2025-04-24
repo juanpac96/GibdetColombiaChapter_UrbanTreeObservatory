@@ -5,7 +5,8 @@
       "enabled": true,
       "path": ".angular/cache",
       "environment": "all"
-    }
+    },
+    "analytics": "8e493ba3-b79b-4ff9-9c55-b868c5854925"
   },
   "projects": {
     "urban-tree-observatory": {

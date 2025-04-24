@@ -1,0 +1,291 @@
+{
+  "TAXONOMY_ORIGIN": {
+    "NT": "",
+    "CU": "",
+    "NI": "",
+    "NC": "",
+    "EN": "",
+    "NU": "",
+    "NL": ""
+  },
+  "TAXONOMY_IUCN_CATEGORY": {
+    "NE": ""
+  },
+  "TAXONOMY_LIFEFORM": {
+    "TR": "",
+    "OT": "",
+    "SH": "",
+    "PT": ""
+  },
+  "TAXONOMY_CANOPY_SHAPE_CODE": {
+    "NI": "",
+    "GL": "",
+    "OV": "",
+    "IR": "",
+    "SP": "",
+    "SG": "",
+    "CF": "",
+    "PY": "",
+    "BD": "",
+    "CO": "",
+    "CR": "",
+    "CS": ""
+  },
+  "TAXONOMY_FLOWER_COLOR_CODE": {
+    "NI": "",
+    "WH": "",
+    "YE": "",
+    "GR": "",
+    "PI": "",
+    "RE": "",
+    "NV": "",
+    "VI": "",
+    "OR": "",
+    "BR": "",
+    "FU": ""
+  },
+  "MEASUREMENTS_MEASUREMENT_NAME": {
+    "HT": "",
+    "CD": "",
+    "VO": "",
+    "DBH": "",
+    "TH": "",
+    "WD": ""
+  },
+  "MEASUREMENTS_MEASUREMENT_UNIT": {
+    "m": "",
+    "m3": "",
+    "cm": "",
+    "g/cm3": ""
+  },
+  "MEASUREMENTS_MEASUREMENT_METHOD": {
+    "OE": "",
+    "VE": "",
+    "DT": "",
+    "WD": ""
+  },
+  "OBSERVATIONS_REPRODUCTIVE_CONDITION": {
+    "NR": ""
+  },
+  "OBSERVATIONS_PHYTOSANITARY_STATUS": {
+    "HE": "",
+    "SI": "",
+    "DE": "",
+    "CR": "",
+    "NR": ""
+  },
+  "OBSERVATIONS_PHYSICAL_CONDITION": {
+    "NR": "",
+    "GO": "",
+    "FA": "",
+    "PO": ""
+  },
+  "OBSERVATIONS_FOLIAGE_DENSITY": {
+    "DE": "",
+    "ME": "",
+    "SP": "",
+    "NR": ""
+  },
+  "OBSERVATIONS_AESTHETIC_VALUE": {
+    "DE": "",
+    "IN": "",
+    "UN": "",
+    "ES": "",
+    "NR": "",
+    "EM": ""
+  },
+  "OBSERVATIONS_GROWTH_PHASE": {
+    "3": "",
+    "1": "",
+    "2": ""
+  },
+  "OBSERVATIONS_STANDING": {
+    "NR": "",
+    "Y": ""
+  },
+  "OBSERVATIONS_RD": {
+    "0": "",
+    "20": "",
+    "40": "",
+    "60": "",
+    "80": "",
+    "NR": "",
+    "100": ""
+  },
+  "OBSERVATIONS_DM": {
+    "0": "",
+    "20": "",
+    "40": "",
+    "60": "",
+    "80": "",
+    "100": "",
+    "NR": ""
+  },
+  "OBSERVATIONS_BBS": {
+    "0": "",
+    "100": "",
+    "20": "",
+    "80": "",
+    "40": "",
+    "60": "",
+    "NR": ""
+  },
+  "OBSERVATIONS_AB": {
+    "0": "",
+    "20": "",
+    "40": "",
+    "60": "",
+    "80": "",
+    "100": "",
+    "NR": ""
+  },
+  "OBSERVATIONS_ED": {
+    "GO": "",
+    "NR": "",
+    "FA": "",
+    "PO": ""
+  },
+  "OBSERVATIONS_PI": {
+    "0": "",
+    "20": "",
+    "40": "",
+    "60": "",
+    "80": "",
+    "100": "",
+    "NR": ""
+  },
+  "OBSERVATIONS_PH": {
+    "0": "",
+    "20": "",
+    "40": "",
+    "60": "",
+    "80": "",
+    "100": ""
+  },
+  "OBSERVATIONS_PA": {
+    "0": "",
+    "20": "",
+    "40": "",
+    "60": "",
+    "80": "",
+    "100": ""
+  },
+  "OBSERVATIONS_HC": {
+    "NR": "",
+    "NS": "",
+    "ND": ""
+  },
+  "OBSERVATIONS_HCF": {
+    "NR": "",
+    "NS": "",
+    "ND": ""
+  },
+  "OBSERVATIONS_PD": {
+    "0": "",
+    "20": "",
+    "40": "",
+    "60": "",
+    "80": "",
+    "100": ""
+  },
+  "OBSERVATIONS_PE": {
+    "0": "",
+    "20": "",
+    "40": "",
+    "60": "",
+    "80": "",
+    "100": ""
+  },
+  "OBSERVATIONS_PP": {
+    "0": "",
+    "20": "",
+    "40": "",
+    "60": "",
+    "80": "",
+    "100": ""
+  },
+  "OBSERVATIONS_PO": {
+    "0": "",
+    "20": "",
+    "40": "",
+    "60": "",
+    "80": "",
+    "100": ""
+  },
+  "OBSERVATIONS_CRE": {
+    "N": "",
+    "Y": "",
+    "NR": ""
+  },
+  "OBSERVATIONS_CRH": {
+    "N": "",
+    "Y": "",
+    "NR": ""
+  },
+  "OBSERVATIONS_CRA": {
+    "N": "",
+    "Y": "",
+    "NR": ""
+  },
+  "OBSERVATIONS_COA": {
+    "N": "",
+    "Y": "",
+    "NR": ""
+  },
+  "OBSERVATIONS_CE": {
+    "N": "",
+    "Y": "",
+    "NR": ""
+  },
+  "OBSERVATIONS_CIV": {
+    "N": "",
+    "Y": "",
+    "NR": ""
+  },
+  "OBSERVATIONS_CRT": {
+    "N": "",
+    "Y": "",
+    "NR": ""
+  },
+  "OBSERVATIONS_CRG": {
+    "N": "",
+    "Y": "",
+    "NR": ""
+  },
+  "OBSERVATIONS_CAP": {
+    "N": "",
+    "Y": "",
+    "NR": ""
+  },
+  "OBSERVATIONS_R_VOL": {
+    "0": "",
+    "20": "",
+    "40": "",
+    "60": "",
+    "80": "",
+    "100": ""
+  },
+  "OBSERVATIONS_R_CR": {
+    "0": "",
+    "20": "",
+    "40": "",
+    "60": "",
+    "80": "",
+    "100": ""
+  },
+  "OBSERVATIONS_R_CE": {
+    "0": "",
+    "20": "",
+    "40": "",
+    "60": "",
+    "80": "",
+    "100": "",
+    "NR": ""
+  },
+  "CLIMATE_SENSORDESCRIPTION": {
+    "t2m": ""
+  },
+  "CLIMATE_MEASUREUNIT": {
+    "°C": ""
+  }
+}

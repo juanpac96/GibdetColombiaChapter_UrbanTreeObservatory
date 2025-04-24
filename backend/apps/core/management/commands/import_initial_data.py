@@ -828,7 +828,7 @@ class Command(BaseCommand):
 
         # Read climate.csv
         # We'll process this in chunks due to the large number of rows
-        chunksize = 50000  # Adjust based on available memory
+        chunksize = 25000 #50000  # Adjust based on available memory
 
         if self.use_local:
             csv_path = self.data_dir / "climate.csv"

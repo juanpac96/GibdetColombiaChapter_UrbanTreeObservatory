@@ -1,5 +1,6 @@
 from django.contrib.gis.db import models as gis_models
 from django.db import models
+from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
 from apps.core.models import BaseModel
@@ -39,7 +40,14 @@ class BiodiversityRecord(BaseModel):
         ordering = ["species", "location"]
 
     def __str__(self):
-        return f"{self.species.scientific_name} at {self.longitude}, {self.latitude}"
+        common_name = self.common_name if self.common_name else "Unknown"
+        return f"{common_name} ({self.species.scientific_name}) at {self.place.site}"
+
+    def get_admin_url(self):
+        return reverse(
+            f"admin:{self._meta.app_label}_{self._meta.model_name}_change",
+            args=[self.pk],
+        )
 
     @property
     def longitude(self):

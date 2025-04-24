@@ -21,10 +21,10 @@ class Measurement(BaseModel):
         NOT_REPORTED = "NR", _("not reported")
 
     class MeasurementUnit(models.TextChoices):
-        METERS = "m", _("meters")
-        CUBIC_METERS = "m3", _("cubic meters")
-        CENTIMETERS = "cm", _("centimeters")
-        GRAMS_PER_CUBIC_CM = "g/cm3", _("grams per cubic centimeter")
+        METERS = "m", _("meters (m)")
+        CUBIC_METERS = "m3", _("cubic meters (m3)")
+        CENTIMETERS = "cm", _("centimeters (cm)")
+        GRAMS_PER_CUBIC_CM = "g/cm3", _("grams per cubic centimeter (g/cm3)")
         NOT_REPORTED = "NR", _("not reported")
 
     class MeasurementMethod(models.TextChoices):
@@ -185,16 +185,19 @@ class Observation(BaseModel):
 
     # General status fields without explicit name in the original data
     ed = models.CharField(
+        _("ed"),
         max_length=2,
         choices=PhysicalCondition,
         default=PhysicalCondition.NOT_REPORTED,
     )
     hc = models.CharField(
+        _("hc"),
         max_length=2,
         choices=HealthCondition,
         default=HealthCondition.NOT_REPORTED,
     )
     hcf = models.CharField(
+        _("hcf"),
         max_length=2,
         choices=HealthCondition,
         default=HealthCondition.NOT_REPORTED,
@@ -209,46 +212,55 @@ class Observation(BaseModel):
 
     # Yes/No/Not reported fields without explicit names in the original data
     cre = models.CharField(
+        _("cre"),
         max_length=2,
         choices=YesNoReported,
         default=YesNoReported.NOT_REPORTED,
     )
     crh = models.CharField(
+        _("crh"),
         max_length=2,
         choices=YesNoReported,
         default=YesNoReported.NOT_REPORTED,
     )
     cra = models.CharField(
+        _("cra"),
         max_length=2,
         choices=YesNoReported,
         default=YesNoReported.NOT_REPORTED,
     )
     coa = models.CharField(
+        _("coa"),
         max_length=2,
         choices=YesNoReported,
         default=YesNoReported.NOT_REPORTED,
     )
     ce = models.CharField(
+        _("ce"),
         max_length=2,
         choices=YesNoReported,
         default=YesNoReported.NOT_REPORTED,
     )
     civ = models.CharField(
+        _("civ"),
         max_length=2,
         choices=YesNoReported,
         default=YesNoReported.NOT_REPORTED,
     )
     crt = models.CharField(
+        _("crt"),
         max_length=2,
         choices=YesNoReported,
         default=YesNoReported.NOT_REPORTED,
     )
     crg = models.CharField(
+        _("crg"),
         max_length=2,
         choices=YesNoReported,
         default=YesNoReported.NOT_REPORTED,
     )
     cap = models.CharField(
+        _("cap"),
         max_length=2,
         choices=YesNoReported,
         default=YesNoReported.NOT_REPORTED,
@@ -256,71 +268,85 @@ class Observation(BaseModel):
 
     # Percentage damage fields without explicit names in the original data
     rd = models.CharField(
+        _("rd"),
         max_length=3,
         choices=DamagePercent,
         default=DamagePercent.ZERO,
     )
     dm = models.CharField(
+        _("dm"),
         max_length=3,
         choices=DamagePercent,
         default=DamagePercent.ZERO,
     )
     bbs = models.CharField(
+        _("bbs"),
         max_length=3,
         choices=DamagePercent,
         default=DamagePercent.ZERO,
     )
     ab = models.CharField(
+        _("ab"),
         max_length=3,
         choices=DamagePercent,
         default=DamagePercent.ZERO,
     )
     pi = models.CharField(
+        _("pi"),
         max_length=3,
         choices=DamagePercent,
         default=DamagePercent.ZERO,
     )
     ph = models.CharField(
+        _("ph"),
         max_length=3,
         choices=DamagePercent,
         default=DamagePercent.ZERO,
     )
     pa = models.CharField(
+        _("pa"),
         max_length=3,
         choices=DamagePercent,
         default=DamagePercent.ZERO,
     )
     pd = models.CharField(
+        _("pd"),
         max_length=3,
         choices=DamagePercent,
         default=DamagePercent.ZERO,
     )
     pe = models.CharField(
+        _("pe"),
         max_length=3,
         choices=DamagePercent,
         default=DamagePercent.ZERO,
     )
     pp = models.CharField(
+        _("pp"),
         max_length=3,
         choices=DamagePercent,
         default=DamagePercent.ZERO,
     )
     po = models.CharField(
+        _("po"),
         max_length=3,
         choices=DamagePercent,
         default=DamagePercent.ZERO,
     )
     r_vol = models.CharField(
+        _("r_vol"),
         max_length=3,
         choices=DamagePercent,
         default=DamagePercent.ZERO,
     )
     r_cr = models.CharField(
+        _("r_cr"),
         max_length=3,
         choices=DamagePercent,
         default=DamagePercent.ZERO,
     )
     r_ce = models.CharField(
+        _("r_ce"),
         max_length=3,
         choices=DamagePercent,
         default=DamagePercent.ZERO,
@@ -335,7 +361,9 @@ class Observation(BaseModel):
     )
     field_notes = models.TextField(_("field notes"), blank=True)
     recorded_by = models.CharField(_("recorded by"), max_length=50, default="Cortolima")
-    accompanying_collectors = models.TextField(_("accompanying collectors"), blank=True)
+    accompanying_collectors = models.CharField(
+        _("accompanying collectors"), max_length=255, blank=True
+    )
     date = models.DateField(_("observation date"), null=True, blank=True)
 
     class Meta:

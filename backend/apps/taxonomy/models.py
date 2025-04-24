@@ -1,3 +1,19 @@
+"""
+Key database constraints and model design notes:
+
+- Each FunctionalGroup can have at most one TraitValue per Trait
+  (enforced by a unique constraint on (trait, functional_group)).
+- Each Trait is unique by its type (Trait.type is unique), so a
+  FunctionalGroup can have at most one TraitValue for each TraitType.
+- A FunctionalGroup may have zero to n TraitValue relations,
+  corresponding to the available n TraitType choices (four initially).
+- TraitValue allows partial values: min_value and max_value can be
+  null independently.
+- These constraints ensure that trait values are not duplicated
+  for any functional group and trait combination, and that the
+  schema is extensible if new TraitTypes are added.
+"""
+
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django.core.validators import MinValueValidator
@@ -96,6 +112,10 @@ class TraitValue(BaseModel):
         verbose_name = _("trait value")
         verbose_name_plural = _("trait values")
         constraints = [
+            models.UniqueConstraint(
+                fields=["trait", "functional_group"],
+                name="unique_trait_per_functional_group",
+            ),
             models.CheckConstraint(
                 condition=models.Q(min_value__isnull=True) | models.Q(min_value__gte=0),
                 name="min_value_greater_than_zero",

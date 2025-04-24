@@ -19,13 +19,14 @@ class StationFilter(django_filters.FilterSet):
         fields = {
             "code": ["exact"],
             "name": ["exact", "icontains"],
+            "municipality": ["exact"],
         }
 
 
 class StationViewSet(viewsets.ReadOnlyModelViewSet):
     """API endpoint for Station model."""
 
-    queryset = Station.objects.all()
+    queryset = Station.objects.select_related("municipality")
     serializer_class = StationSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
     filter_backends = [
@@ -95,16 +96,16 @@ class ClimateFilter(django_filters.FilterSet):
         model = Climate
         fields = {
             "station": ["exact"],
-            "municipality": ["exact"],
             "sensor": ["exact"],
             "measure_unit": ["exact"],
+            "station__municipality": ["exact"],
         }
 
 
 class ClimateViewSet(viewsets.ReadOnlyModelViewSet):
     """API endpoint for Climate model."""
 
-    queryset = Climate.objects.select_related("station", "municipality")
+    queryset = Climate.objects.select_related("station__municipality")
     serializer_class = ClimateSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
@@ -127,7 +128,7 @@ class ClimateViewSet(viewsets.ReadOnlyModelViewSet):
             param in self.request.query_params
             for param in [
                 "station",
-                "municipality",
+                "station__municipality",
                 "date_from",
                 "date_to",
                 "sensor",

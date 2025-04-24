@@ -840,7 +840,6 @@ class Command(BaseCommand):
 
         # Validate headers
         required_columns = {
-            "municipality_id",
             "stationcode",
             "stationname",
             "datetime",
@@ -879,6 +878,7 @@ class Command(BaseCommand):
                 code=row.stationcode,
                 name=row.stationname,
                 location=location,
+                municipality=self.ibague,
             )
             stations_batch.append(station)
 
@@ -907,7 +907,6 @@ class Command(BaseCommand):
                     station = station_map.get(row.stationcode)
 
                     climate_record = Climate(
-                        municipality=self.ibague,
                         station=station,
                         date=self.parse_date(row.datetime),
                         sensor=row.sensordescription,

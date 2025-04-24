@@ -22,6 +22,7 @@ class Migration(migrations.Migration):
                 ('code', models.IntegerField(unique=True, verbose_name='station code')),
                 ('name', models.CharField(max_length=100, verbose_name='station name')),
                 ('location', django.contrib.gis.db.models.fields.PointField(geography=True, srid=4326, verbose_name='location')),
+                ('municipality', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='stations', to='places.municipality', verbose_name='municipality')),
             ],
             options={
                 'verbose_name': 'weather station',
@@ -40,7 +41,6 @@ class Migration(migrations.Migration):
                 ('sensor', models.CharField(choices=[('t2m', 'air temperature at 2 m')], default='t2m', max_length=3, verbose_name='sensor description')),
                 ('value', models.FloatField(verbose_name='measured value')),
                 ('measure_unit', models.CharField(choices=[('°C', 'Celsius')], default='°C', max_length=2, verbose_name='measurement unit')),
-                ('municipality', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='climate_data', to='places.municipality', verbose_name='municipality')),
                 ('station', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='climate_data', to='climate.station', verbose_name='weather station')),
             ],
             options={

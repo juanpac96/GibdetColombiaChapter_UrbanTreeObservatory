@@ -9,10 +9,19 @@ class StationSerializer(serializers.ModelSerializer):
 
     longitude = serializers.FloatField(read_only=True)
     latitude = serializers.FloatField(read_only=True)
+    municipality = MunicipalitySerializer(read_only=True)
 
     class Meta:
         model = Station
-        fields = ["id", "code", "name", "location", "longitude", "latitude"]
+        fields = [
+            "id",
+            "code",
+            "name",
+            "location",
+            "longitude",
+            "latitude",
+            "municipality",
+        ]
 
 
 class StationGeoSerializer(GeoFeatureModelSerializer):
@@ -28,8 +37,7 @@ class ClimateSerializer(serializers.ModelSerializer):
     """Serializer for the Climate model."""
 
     station = StationSerializer(read_only=True)
-    municipality = MunicipalitySerializer(read_only=True)
-
+    municipality = MunicipalitySerializer(source="station.municipality", read_only=True)
     sensor_display = serializers.CharField(source="get_sensor_display", read_only=True)
     measure_unit_display = serializers.CharField(
         source="get_measure_unit_display", read_only=True

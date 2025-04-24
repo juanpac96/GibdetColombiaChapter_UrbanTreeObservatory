@@ -26,7 +26,7 @@ class StationFilter(django_filters.FilterSet):
 class StationViewSet(viewsets.ReadOnlyModelViewSet):
     """API endpoint for Station model."""
 
-    queryset = Station.select_related("municipality")
+    queryset = Station.objects.select_related("municipality")
     serializer_class = StationSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
     filter_backends = [

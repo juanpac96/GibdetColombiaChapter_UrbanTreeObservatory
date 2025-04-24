@@ -451,25 +451,24 @@ class Command(BaseCommand):
             "height": Trait.objects.get_or_create(type=Trait.TraitType.HEIGHT_MAX)[0],
         }
 
+        # Deduplicate by pft_id: keep only the first row for each group
+        fg_rows = df.drop_duplicates(subset=["pft_id"]).copy()
+
         # Create functional groups
         fg_batch = []
         for row in tqdm(
-            df[["pft_id"]].drop_duplicates().itertuples(index=False),
-            desc="Creating functional groups",
+            fg_rows.itertuples(index=False), desc="Creating functional groups"
         ):
             fg = FunctionalGroup(group_id=row.pft_id)
             fg_batch.append(fg)
-
         functional_groups = FunctionalGroup.objects.bulk_create(fg_batch)
 
         # Create mapping of pft_id to FunctionalGroup objects
         fg_map = {fg.group_id: fg for fg in functional_groups}
 
-        # Create trait values
+        # Create trait values (one set per group)
         trait_values = []
-        for row in tqdm(
-            df.itertuples(index=False), desc="Creating trait values", total=len(df)
-        ):
+        for row in tqdm(fg_rows.itertuples(index=False), desc="Creating trait values"):
             # Carbon sequestration trait values
             trait_values.append(
                 TraitValue(
@@ -529,7 +528,7 @@ class Command(BaseCommand):
         # Bulk create all trait values
         TraitValue.objects.bulk_create(trait_values, batch_size=500)
 
-        # Update species with functional group references
+        # Update species with functional group references (all rows, not deduplicated)
         taxonomy_to_fg = {}
         for row in df.itertuples(index=False):
             taxonomy_to_fg[row.taxonomy_id] = fg_map[row.pft_id]

@@ -10,6 +10,12 @@ class Station(models.Model):
     code = models.IntegerField(_("station code"), unique=True)
     name = models.CharField(_("station name"), max_length=100)
     location = gis_models.PointField(_("location"), srid=4326, geography=True)
+    municipality = models.ForeignKey(
+        Municipality,
+        on_delete=models.PROTECT,
+        related_name="stations",
+        verbose_name=_("municipality"),
+    )
 
     class Meta:
         verbose_name = _("weather station")
@@ -37,12 +43,6 @@ class Climate(BaseModel):
     class MeasureUnit(models.TextChoices):
         CELSIUS = "°C", _("Celsius")
 
-    municipality = models.ForeignKey(
-        Municipality,
-        on_delete=models.PROTECT,
-        related_name="climate_data",
-        verbose_name=_("municipality"),
-    )
     station = models.ForeignKey(
         Station,
         on_delete=models.PROTECT,

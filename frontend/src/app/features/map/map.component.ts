@@ -128,7 +128,7 @@ export class MapComponent implements AfterViewInit, OnChanges {
   }
 
   private initMap(): void {
-    this.map = L.map('map').setView([4.6097, -74.0817], 6);
+    this.map = L.map('map').setView([4.4389, -75.2322], 14);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
@@ -187,8 +187,8 @@ export class MapComponent implements AfterViewInit, OnChanges {
 
                 // Zoom to the clicked region
                 this.map.fitBounds(bounds, {
-                  padding: [50, 50],
-                  maxZoom: 12
+                  padding: [10, 10],
+                  maxZoom: 16
                 });
 
                 // Update region details

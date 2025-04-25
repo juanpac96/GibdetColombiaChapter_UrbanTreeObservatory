@@ -56,7 +56,11 @@ class BiodiversityRecordFactory(BaseFactory):
             # Add other municipalities as needed for tests
         }
 
-        municipality_name = self.place.municipality.name
+        # Use municipality name from kwargs if provided, otherwise check the place
+        municipality_name = kwargs.get("municipality_name", None)
+        if municipality_name is None and self.place and self.place.municipality:
+            municipality_name = self.place.municipality.name
+
         if municipality_name in municipality_bounds:
             bounds = municipality_bounds[municipality_name]
             self.location = Point(

@@ -28,13 +28,31 @@ class StationFactory(DjangoModelFactory):
     municipality = factory.SubFactory(MunicipalityFactory)
 
     @factory.post_generation
-    def ensure_municipality_consistency(self, create, extracted, **kwargs):
-        """Ensure location is within municipality bounds if it's Ibagué."""
-        if create and self.municipality.name == "Ibagué":
-            # Ibagué bounds (approximate): -75.3W to -75.1W and 4.35N to 4.5N
+    def set_location_for_specific_municipalities(self, create, extracted, **kwargs):
+        """Set location coordinates appropriate for the municipality if needed.
+
+        This is a hook for tests to ensure geographic consistency when required.
+        Called automatically by the set_municipality parameter or can be used in fixtures.
+        """
+        if not create:
+            return
+
+        # Municipality locations can be added when specific tests need them
+        municipality_bounds = {
+            "Ibagué": {
+                "lon_min": -75.3,
+                "lon_max": -75.1,
+                "lat_min": 4.35,
+                "lat_max": 4.5,
+            }
+            # Add other municipalities as needed for tests
+        }
+
+        if self.municipality.name in municipality_bounds:
+            bounds = municipality_bounds[self.municipality.name]
             self.location = Point(
-                random.uniform(-75.3, -75.1),  # longitude
-                random.uniform(4.35, 4.5),  # latitude
+                random.uniform(bounds["lon_min"], bounds["lon_max"]),
+                random.uniform(bounds["lat_min"], bounds["lat_max"]),
                 srid=4326,
             )
             self.save()

@@ -135,7 +135,7 @@ export class MapComponent implements AfterViewInit, OnChanges {
       attribution: '© OpenStreetMap contributors'
     }).addTo(this.map);
 
-    this.http.get('assets/Colombia.geo.json').subscribe((geoJson: any) => {
+    this.http.get('assets/ibague_communes.geojson').subscribe((geoJson: any) => {
       L.geoJSON(geoJson, {
         style: (feature) => {
           return {

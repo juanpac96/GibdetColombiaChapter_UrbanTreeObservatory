@@ -38,11 +38,21 @@ class TraitFactory(BaseFactory):
 
     @classmethod
     def _create(cls, model_class, *args, **kwargs):
-        """Override _create to handle uniqueness for the type field."""
+        """Override _create to handle uniqueness for the type field.
+
+        Args:
+            force_new (bool): If True, always create a new instance even if one exists
+                             (useful for tests that need distinct instances but same type).
+                             The uniqueness constraint will prevent saving to the database.
+        """
+        force_new = kwargs.pop("force_new", False)
         type_value = kwargs.get("type", Trait.TraitType.CARBON_SEQUESTRATION)
-        existing = model_class.objects.filter(type=type_value).first()
-        if existing:
-            return existing
+
+        if not force_new:
+            existing = model_class.objects.filter(type=type_value).first()
+            if existing:
+                return existing
+
         return super()._create(model_class, *args, **kwargs)
 
 

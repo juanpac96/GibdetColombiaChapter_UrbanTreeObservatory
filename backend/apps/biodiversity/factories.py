@@ -35,11 +35,13 @@ class BiodiversityRecordFactory(BaseFactory):
 
     # By default, include elevation
     with_elevation = True
+    municipality_name = "Ibagué"
 
     @factory.post_generation
     def ensure_place_consistency(self, create, extracted, **kwargs):
-        """Ensure location is within Ibagué bounds if using the default place."""
-        if create and self.place.municipality.name == "Ibagué":
+        """Ensure location is within specified municipality bounds if applicable."""
+        municipality_name = kwargs.get("municipality_name", None)
+        if create and municipality_name == "Ibagué":
             # Ibagué bounds (approximate): -75.3W to -75.1W and 4.35N to 4.5N
             self.location = Point(
                 random.uniform(-75.3, -75.1),  # longitude

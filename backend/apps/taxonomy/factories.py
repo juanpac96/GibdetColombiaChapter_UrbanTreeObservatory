@@ -36,16 +36,14 @@ class TraitFactory(BaseFactory):
     # Override this in specific tests if needed
     type = Trait.TraitType.CARBON_SEQUESTRATION
 
-    @factory.post_generation
-    def ensure_unique_type(self, create, extracted, **kwargs):
-        """Ensure we don't create duplicate trait types since type field is unique."""
-        if create:
-            # Check if another trait with this type exists
-            existing = Trait.objects.filter(type=self.type).exclude(pk=self.pk).first()
-            if existing:
-                # If it exists, return the existing one instead
-                self.delete()
-                return existing
+    @classmethod
+    def _create(cls, model_class, *args, **kwargs):
+        """Override _create to handle uniqueness for the type field."""
+        type_value = kwargs.get("type", Trait.TraitType.CARBON_SEQUESTRATION)
+        existing = model_class.objects.filter(type=type_value).first()
+        if existing:
+            return existing
+        return super()._create(model_class, *args, **kwargs)
 
 
 class FunctionalGroupFactory(BaseFactory):

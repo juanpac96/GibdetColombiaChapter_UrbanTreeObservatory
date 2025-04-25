@@ -1,5 +1,6 @@
 import { Component, AfterViewInit } from '@angular/core';
 import * as L from 'leaflet';
+import 'leaflet.markercluster';
 
 @Component({
   selector: 'app-map-page',
@@ -9,8 +10,12 @@ import * as L from 'leaflet';
 export class MapPageComponent implements AfterViewInit {
 
   private map!: L.Map;
+  private markerClusterGroup!: L.MarkerClusterGroup;
   private loadedPoints: Set<string> = new Set();
   private dataLoaded: boolean = false;
+
+  // Variables para las capas
+  private communeLayer: L.GeoJSON | null = null;
 
   ngAfterViewInit(): void {
     this.initMap();
@@ -23,41 +28,55 @@ export class MapPageComponent implements AfterViewInit {
       zoomControl: true
     });
 
+    // Cargar la capa base de OpenStreetMap
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap contributors'
     }).addTo(this.map);
 
+    // Crear el grupo de clusters de los puntos
+    this.markerClusterGroup = L.markerClusterGroup();
+    this.map.addLayer(this.markerClusterGroup);
+
+    // Cargar las capas de comunas y los puntos
     this.loadGeoJSON();
-    this.loadPointsFromMultiplePages(10); 
+    this.loadAllPoints();
   }
 
   private loadGeoJSON(): void {
+    // Cargar las comunas desde el repositorio en GitHub
     fetch('https://raw.githubusercontent.com/OmdenaAI/GibdetColombiaChapter_UrbanTreeObservatory/main/data/geojson/ibague_communes.geojson')
       .then(response => response.json())
       .then(data => {
-        L.geoJSON(data).addTo(this.map);
+        // Crear la capa de comunas y guardarla
+        this.communeLayer = L.geoJSON(data);
+        console.log('Capa de comunas cargada correctamente');
       })
-      .catch(error => console.error('Error al cargar el GeoJSON:', error));
+      .catch(error => console.error('Error al cargar el GeoJSON de comunas:', error));
   }
 
-  private async loadPointsFromMultiplePages(pages: number): Promise<void> {
+  private async loadAllPoints(): Promise<void> {
     if (this.dataLoaded) return;
     this.dataLoaded = true;
 
-    const baseUrl = 'http://localhost:8000/api/v1/biodiversity/records/?life_form=TR&limit=100';
+    const baseUrl = 'http://localhost:8000/api/v1/biodiversity/records/';
+    let currentPage = 1;
+    let totalRecords = 0;
 
-    for (let page = 0; page < pages; page++) {
-      const offset = page * 100;
-      const url = `${baseUrl}&offset=${offset}`;
-      try {
-        const response = await fetch(url);
+    try {
+      while (true) {
+        // Cargar los registros de la página actual
+        const response = await fetch(`${baseUrl}?page=${currentPage}`); // Aquí implementamos la paginación
         const data = await response.json();
 
-        if (!data.results || !Array.isArray(data.results)) {
-          console.warn(`Página ${page + 1}: sin resultados válidos.`);
-          continue;
+        if (!data.count || !data.results || data.results.length === 0) {
+          console.warn('No se encontraron registros en la página', currentPage);
+          break;
         }
 
+        totalRecords = data.count;
+        console.log(`Total de registros hasta la página ${currentPage}: ${totalRecords}`);
+
+        // Procesar los registros de la página actual
         data.results.forEach((record: any) => {
           const lat = record.latitude;
           const lng = record.longitude;
@@ -67,28 +86,56 @@ export class MapPageComponent implements AfterViewInit {
             if (!this.loadedPoints.has(key)) {
               this.loadedPoints.add(key);
 
-              L.circleMarker([lat, lng], {
+              const marker = L.circleMarker([lat, lng], {
                 radius: 4,
                 color: 'black',
                 weight: 1,
                 fillColor: 'green',
                 fillOpacity: 0.5
-              })
-                .addTo(this.map)
-                .bindPopup(`
-                  <b>${record.common_name || 'Sin nombre común'}</b><br>
-                  <i>${record.species?.scientific_name || 'Sin nombre científico'}</i><br>
-                  <b>Sitio:</b> ${record.place?.site || 'Sin sitio'}<br>
-                  <b>Fecha:</b> ${record.date || 'Sin fecha'}
-                `);
+              }).bindPopup(`
+                <b>${record.common_name || 'Sin nombre común'}</b><br>
+                <i>${record.species?.scientific_name || 'Sin nombre científico'}</i><br>
+                <b>Sitio:</b> ${record.place?.site || 'Sin sitio'}<br>
+                <b>Fecha:</b> ${record.date || 'Sin fecha'}
+              `);
+
+              // Agregar el marcador al grupo de clusters
+              this.markerClusterGroup.addLayer(marker);
             }
           }
         });
 
-      } catch (error) {
-        console.error(`Error al cargar la página ${page + 1}:`, error);
+        // Si ya hemos cargado todos los registros, salimos del ciclo
+        if (data.next === null) {
+          console.log('Todos los puntos han sido cargados');
+          break;
+        }
+
+        // Incrementar la página para cargar la siguiente
+        currentPage++;
       }
+
+      console.log('Puntos cargados en el cluster:', this.markerClusterGroup.getLayers().length);
+
+      // Agregar un controlador de capas
+      this.addLayerControl();
+
+    } catch (error) {
+      console.error('Error al cargar los datos:', error);
     }
   }
+
+  // Función para agregar el controlador de capas
+  private addLayerControl(): void {
+    const layers = {
+      'Puntos de Biodiversidad': this.markerClusterGroup,
+      'Comunas de Ibagué': this.communeLayer || new L.LayerGroup() // Usar una capa vacía si la capa de comunas no está cargada aún
+    };
+
+    // Crear el control de capas
+    L.control.layers(null, layers).addTo(this.map);
+  }
 }
+
+
 

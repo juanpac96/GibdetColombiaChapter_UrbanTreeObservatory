@@ -23,8 +23,12 @@
             "polyfills": "src/polyfills.ts",
             "tsConfig": "tsconfig.json",
             "assets": ["src/assets"],
-            "styles": ["src/styles.css"],
-            "scripts": []
+            "styles": ["src/styles.css",
+            "node_modules/leaflet/dist/leaflet.css",
+            "node_modules/leaflet.markercluster/dist/MarkerCluster.css",
+            "node_modules/leaflet.markercluster/dist/MarkerCluster.Default.css"],
+            "scripts": ["node_modules/leaflet/dist/leaflet.js",
+                        "node_modules/leaflet.markercluster/dist/leaflet.markercluster.js"]
           }
         },
         "serve": {

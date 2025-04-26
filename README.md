@@ -1,6 +1,7 @@
 # Urban Tree Observatory Project
 
 ![CI](https://github.com/OmdenaAI/GibdetColombiaChapter_UrbanTreeObservatory/workflows/CI/badge.svg)
+[![codecov](https://codecov.io/gh/OmdenaAI/GibdetColombiaChapter_UrbanTreeObservatory/branch/main/graph/badge.svg)](https://app.codecov.io/gh/OmdenaAI/GibdetColombiaChapter_UrbanTreeObservatory)
 
 ## Project Overview
 
@@ -131,7 +132,10 @@ pre-commit run --all-files
 
 ```bash
 # Backend tests
-docker compose exec backend python manage.py test
+docker compose exec backend pytest
+
+# Backend tests with coverage
+docker compose exec backend pytest --cov=. --cov-config=.coveragerc
 
 # Frontend tests
 docker compose exec frontend ng test

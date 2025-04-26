@@ -1,2 +1,3 @@
 # Data import files
 data/csv/
+**/locale/**/*.mo

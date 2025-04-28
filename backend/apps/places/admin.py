@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Country, Department, Municipality, Place
+from .models import Country, Department, Municipality, Site
 
 
 @admin.register(Country)
@@ -26,10 +26,10 @@ class MunicipalityAdmin(admin.ModelAdmin):
     readonly_fields = ("id",)
 
 
-@admin.register(Place)
-class PlaceAdmin(admin.ModelAdmin):
-    list_display = ("site", "populated_center", "zone", "subzone", "municipality")
-    list_filter = ("municipality", "zone", "subzone")
-    search_fields = ("site", "populated_center", "municipality__name")
+@admin.register(Site)
+class SiteAdmin(admin.ModelAdmin):
+    list_display = ("name", "zone", "subzone")
+    list_filter = ("zone", "subzone")
+    search_fields = ("name",)
     readonly_fields = ("id", "created_at", "updated_at")
     list_per_page = 25

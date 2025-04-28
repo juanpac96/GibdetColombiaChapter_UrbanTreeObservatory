@@ -1,3 +1,7 @@
 # Data import files
 data/csv/
 **/locale/**/*.mo
+
+# Coverage files
+.coverage
+htmlcov/

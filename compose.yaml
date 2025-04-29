@@ -1,6 +1,8 @@
 volumes:
   postgres_data:
   pgadmin_data:
+  static_volume:
+  media_volume:
 
 services:
   # PostgreSQL database with PostGIS extension (multi-architecture support)
@@ -23,9 +25,11 @@ services:
   # Django backend API
   backend:
     build: ./backend
-    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    command: python manage.py runserver 0.0.0.0:8000
     volumes:
       - ./backend:/app
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
     ports:
       - "8000:8000"
     environment:
@@ -33,6 +37,8 @@ services:
       - SECRET_KEY=dev_secret_key
       - DATABASE_URL=postgis://postgres:postgres@db:5432/urban_tree_db
       - ALLOWED_HOSTS=localhost,127.0.0.1
+      - STATIC_ROOT=/app/staticfiles
+      - MEDIA_ROOT=/app/media
     depends_on:
       db:
         condition: service_healthy

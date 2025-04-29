@@ -27,6 +27,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "coverage[toml]>=7.8.0",
     "django-debug-toolbar>=5.1.0",
     "django-extensions>=3.2.3",
     "factory-boy>=3.3.3",
@@ -43,3 +44,31 @@ python_files = "test_*.py"
 python_classes = "Test*"
 python_functions = "test_*"
 testpaths = ["apps"]
+
+[tool.coverage.run]
+source = ["."]
+omit = [
+    "*/migrations/*",
+    "*/tests/*",
+    "*/admin.py",
+    "config/*",
+    "manage.py"
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "def __str__",
+    "raise NotImplementedError",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise ImportError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "pass",
+    "raise NotImplementedError"
+]
+
+[tool.coverage.html]
+directory = "htmlcov"

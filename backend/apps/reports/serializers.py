@@ -7,7 +7,9 @@ from apps.biodiversity.serializers import BiodiversityRecordLightSerializer
 class MeasurementSerializer(serializers.ModelSerializer):
     """Serializer for the Measurement model."""
 
-    biodiversity_record = BiodiversityRecordLightSerializer(read_only=True)
+    # Use SerializerMethodField instead of direct relation to control output format
+    biodiversity_record = serializers.SerializerMethodField()
+
     biodiversity_record_id = serializers.PrimaryKeyRelatedField(
         write_only=True,
         source="biodiversity_record",
@@ -19,6 +21,14 @@ class MeasurementSerializer(serializers.ModelSerializer):
     )
     unit_display = serializers.CharField(source="get_unit_display", read_only=True)
     method_display = serializers.CharField(source="get_method_display", read_only=True)
+
+    def get_biodiversity_record(self, obj):
+        """Return the biodiversity_record ID or full object based on context."""
+        # For list views, just return the ID
+        if self.context.get("view") and self.context["view"].action == "list":
+            return obj.biodiversity_record.id
+        # For detail views, return the full serialization
+        return BiodiversityRecordLightSerializer(obj.biodiversity_record).data
 
     class Meta:
         model = Measurement
@@ -43,7 +53,9 @@ class MeasurementSerializer(serializers.ModelSerializer):
 class ObservationSerializer(serializers.ModelSerializer):
     """Serializer for the Observation model."""
 
-    biodiversity_record = BiodiversityRecordLightSerializer(read_only=True)
+    # Use SerializerMethodField instead of direct relation to control output format
+    biodiversity_record = serializers.SerializerMethodField()
+
     biodiversity_record_id = serializers.PrimaryKeyRelatedField(
         write_only=True,
         source="biodiversity_record",
@@ -72,6 +84,14 @@ class ObservationSerializer(serializers.ModelSerializer):
     standing_display = serializers.CharField(
         source="get_standing_display", read_only=True
     )
+
+    def get_biodiversity_record(self, obj):
+        """Return the biodiversity_record ID or full object based on context."""
+        # For list views, just return the ID
+        if self.context.get("view") and self.context["view"].action == "list":
+            return obj.biodiversity_record.id
+        # For detail views, return the full serialization
+        return BiodiversityRecordLightSerializer(obj.biodiversity_record).data
 
     class Meta:
         model = Observation

@@ -51,7 +51,14 @@ class MeasurementViewSet(viewsets.ReadOnlyModelViewSet):
 
         # Limit to 1000 records by default unless explicitly paginated
         if not self.request.query_params.get("page"):
-            queryset = queryset[:1000]
+            # Get the IDs of the latest 1000 records
+            # Using values_list with flat=True to get just the IDs
+            latest_ids = list(
+                queryset.order_by("-date").values_list("id", flat=True)[:1000]
+            )
+
+            # Create a new queryset with those IDs
+            return queryset.filter(id__in=latest_ids)
 
         return queryset
 
@@ -108,3 +115,20 @@ class ObservationViewSet(viewsets.ReadOnlyModelViewSet):
         "created_at",
     ]
     ordering = ["-date"]
+
+    def get_queryset(self):
+        """Optimize queryset for large dataset."""
+        queryset = super().get_queryset()
+
+        # Limit to 1000 records by default unless explicitly paginated
+        if not self.request.query_params.get("page"):
+            # Get the IDs of the latest 1000 records
+            # Using values_list with flat=True to get just the IDs
+            latest_ids = list(
+                queryset.order_by("-date").values_list("id", flat=True)[:1000]
+            )
+
+            # Create a new queryset with those IDs
+            return queryset.filter(id__in=latest_ids)
+
+        return queryset

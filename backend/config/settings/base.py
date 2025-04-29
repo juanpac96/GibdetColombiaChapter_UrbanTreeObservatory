@@ -144,6 +144,18 @@ LEAFLET_CONFIG = {
             },
         ),
     ],
+    "PLUGINS": {
+        "forms": {"auto-include": True},
+        "draw": {"auto-include": True},
+    },
+    "SCALE": "both",
+    "MINIMAP": False,
+    "RESET_VIEW": False,
+    "NO_GLOBALS": False,
+    "FORCE_IMAGE_PATH": True,
+    "MAX_ZOOM": 18,
+    "MIN_ZOOM": 3,
+    "DEFAULT_PRECISION": 6,
 }
 
 # Internationalization

@@ -1,7 +1,7 @@
 # SOME DESCRIPTIVE TITLE.
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the PACKAGE package.
-# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+# Sebastian Duque, 2025.
 #
 #, fuzzy
 msgid ""
@@ -23,13 +23,14 @@ msgstr ""
 msgid "common name"
 msgstr "nombre común"
 
-#: apps/biodiversity/models.py:22 apps/taxonomy/models.py:278
-#: apps/taxonomy/models.py:279
+#: apps/taxonomy/models.py:280
 msgid "species"
 msgstr "especie"
 
-# msgid "species"
-# msgstr "especies"
+#: apps/biodiversity/models.py:23 apps/taxonomy/models.py:281
+msgid "species"
+msgstr "especies"
+
 #: apps/biodiversity/models.py:28
 msgid "place"
 msgstr "lugar"
@@ -133,7 +134,7 @@ msgstr "departamento"
 
 #: apps/places/models.py:52
 msgid "municipalities"
-msgstr "minicipios"
+msgstr "municipios"
 
 #: apps/places/models.py:67
 msgid "site"
@@ -141,7 +142,7 @@ msgstr "sitio"
 
 #: apps/places/models.py:68
 msgid "populated center"
-msgstr "centro populado"
+msgstr "centro poblado"
 
 #: apps/places/models.py:69
 msgid "zone"
@@ -165,18 +166,16 @@ msgstr "diámetro de la copa"
 
 #: apps/reports/models.py:18
 msgid "diameter at breast height"
-msgstr "diámetro normal"
+msgstr "diámetro a la altura del pecho"
 
-# #######################
 #: apps/reports/models.py:19
 msgid "volume"
 msgstr "volumen"
 
 #: apps/reports/models.py:20
 msgid "wood density"
-msgstr "densidad del follaje"
+msgstr "densidad de la madera"
 
-# ###################
 #: apps/reports/models.py:21 apps/reports/models.py:28
 #: apps/reports/models.py:35 apps/reports/models.py:91
 #: apps/reports/models.py:98 apps/reports/models.py:104
@@ -210,17 +209,14 @@ msgstr "estimación óptica"
 msgid "volume equation"
 msgstr "ecuación volumétrica"
 
-# ##############
 #: apps/reports/models.py:33
 msgid "diameter tape"
-msgstr "cinta de diámetro"
+msgstr "cinta diamétrica"
 
-# ##################
 #: apps/reports/models.py:34
 msgid "wood density database"
-msgstr "base de datos de la densidad del follaje"
+msgstr "base de datos de la densidad de la madera"
 
-# ####################
 #: apps/reports/models.py:44
 msgid "measured attribute"
 msgstr "atributo medido"
@@ -245,12 +241,10 @@ msgstr "medidas"
 msgid "flowering"
 msgstr "floreciendo"
 
-# ###############
 #: apps/reports/models.py:89
 msgid "fruiting"
 msgstr "dando frutos"
 
-# #################
 #: apps/reports/models.py:90
 msgid "sterile"
 msgstr "estéril"
@@ -277,9 +271,8 @@ msgstr "bueno"
 
 #: apps/reports/models.py:102
 msgid "fair"
-msgstr "bueno"
+msgstr "regular"
 
-# ######################
 #: apps/reports/models.py:103
 msgid "poor"
 msgstr "pobre"
@@ -318,9 +311,8 @@ msgstr "inaceptable"
 
 #: apps/reports/models.py:121
 msgid "seedling"
-msgstr "semilla"
+msgstr "plántula"
 
-# ##########
 #: apps/reports/models.py:122
 msgid "juvenile"
 msgstr "juvenil"
@@ -346,7 +338,6 @@ msgid "nutrient deficiency"
 msgstr "deficiencia de nutrientes"
 
 #: apps/reports/models.py:136
-#, fuzzy
 #| msgid "0%"
 msgid "0%"
 msgstr "0%"
@@ -368,7 +359,6 @@ msgid "80%"
 msgstr "80%"
 
 #: apps/reports/models.py:141
-#, fuzzy
 #| msgid "100%"
 msgid "100%"
 msgstr "100%"
@@ -413,7 +403,6 @@ msgstr "hcf"
 msgid "standing"
 msgstr "posición"
 
-# ##########
 #: apps/reports/models.py:215
 msgid "cre"
 msgstr "cre"
@@ -520,9 +509,8 @@ msgstr "notas en campo"
 
 #: apps/reports/models.py:365
 msgid "accompanying collectors"
-msgstr "coleccionistas acompañantes"
+msgstr "recolectores acompañantes"
 
-# ##############
 #: apps/reports/models.py:367
 msgid "observation date"
 msgstr "fecha de la observación"
@@ -559,24 +547,20 @@ msgstr "género"
 msgid "genera"
 msgstr "genera"
 
-# ############
 #: apps/taxonomy/models.py:62
 #, fuzzy
 #| msgid "carbon sequestration (%)"
 msgid "carbon sequestration (%)"
 msgstr "secuestro de carbono (%)"
 
-# ############
 #: apps/taxonomy/models.py:63
 msgid "shade index"
 msgstr "índice de sombra"
 
-# ##########
 #: apps/taxonomy/models.py:64
 msgid "canopy diameter (m)"
 msgstr "diámetro del dosel arbóreo (m)"
 
-# ################
 #: apps/taxonomy/models.py:65
 msgid "maximum height (m)"
 msgstr "altura máxima (m)"
@@ -604,7 +588,7 @@ msgstr "Valor mínimo para este rasgo en el grupo funcional"
 
 #: apps/taxonomy/models.py:104
 msgid "maximum value"
-msgstr "Valor máximo"
+msgstr "valor máximo"
 
 #: apps/taxonomy/models.py:108
 msgid "Maximum value for this trait in the functional group"
@@ -624,7 +608,7 @@ msgstr "id del grupo"
 
 #: apps/taxonomy/models.py:138
 msgid "Unique identifier for the functional group"
-msgstr "Indentificador único para el grupo funcional"
+msgstr "Identificador único para el grupo funcional"
 
 #: apps/taxonomy/models.py:145
 msgid "traits"
@@ -671,7 +655,6 @@ msgstr "dato deficiente"
 msgid "least concern"
 msgstr "menor importancia"
 
-# ###################
 #: apps/taxonomy/models.py:172
 msgid "lower risk / conservation dependent"
 msgstr "riesgo bajo / dependiente de la conservación"
@@ -729,17 +712,14 @@ msgstr "ancho"
 msgid "caulirosula - fan"
 msgstr "abanico - caulirosula"
 
-# ##########################
 #: apps/taxonomy/models.py:190
 msgid "caulirosula - feather"
 msgstr "pluma - caulirosula"
 
-# ###########################
 #: apps/taxonomy/models.py:191
 msgid "caulirosula sespitoso"
 msgstr "caulirosula sespitoso"
 
-# ####################
 #: apps/taxonomy/models.py:192
 msgid "columnar"
 msgstr "columnar"
@@ -754,7 +734,7 @@ msgstr "irregular"
 
 #: apps/taxonomy/models.py:195
 msgid "oval"
-msgstr "oval"
+msgstr "ovalado"
 
 #: apps/taxonomy/models.py:196
 msgid "pyramidal"
@@ -766,9 +746,8 @@ msgstr "semigloboso"
 
 #: apps/taxonomy/models.py:198
 msgid "spreading"
-msgstr "esparciendo"
+msgstr "esparcida"
 
-# #########################
 #: apps/taxonomy/models.py:203
 msgid "brown"
 msgstr "café"
@@ -836,7 +815,6 @@ msgstr "estado IUCN"
 msgid "life form"
 msgstr "forma de vida"
 
-# ##########
 #: apps/taxonomy/models.py:258
 msgid "canopy shape"
 msgstr "forma del dosel arbóreo"
@@ -867,7 +845,7 @@ msgstr "perfil de usuario"
 
 #: apps/users/models.py:29
 msgid "user profiles"
-msgstr "perfiles de usuariro"
+msgstr "perfiles de usuarios"
 
 #: config/settings/base.py:156
 msgid "Spanish"

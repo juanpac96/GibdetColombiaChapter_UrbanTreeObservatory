@@ -18,6 +18,7 @@ from django.db import models
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from django.core.validators import MinValueValidator
+from django.utils.translation import pgettext_lazy
 
 from apps.core.models import BaseModel
 
@@ -276,8 +277,8 @@ class Species(BaseModel):
     date = models.DateField(_("identified date"), null=True, blank=True)
 
     class Meta:
-        verbose_name = _("species")
-        verbose_name_plural = _("species")
+        verbose_name = pgettext_lazy("singular", "species")
+        verbose_name_plural = pgettext_lazy("plural", "species")
         ordering = ["genus", "name"]
         constraints = [
             models.UniqueConstraint(

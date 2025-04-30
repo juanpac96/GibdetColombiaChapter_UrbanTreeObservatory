@@ -7,34 +7,34 @@ Observatory.
 """
 
 import json
-import pytest
 import tempfile
-from unittest import mock
-from pathlib import Path
 from io import StringIO
+from pathlib import Path
+from unittest import mock
 
 import pandas as pd
+import pytest
 from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.test import override_settings
 
+from apps.biodiversity.models import BiodiversityRecord
+from apps.climate.models import Climate, Station
 from apps.places.models import (
-    Municipality,
     Locality,
+    Municipality,
     Neighborhood,
     Site,
 )
+from apps.reports.models import Measurement, Observation
 from apps.taxonomy.models import (
     Family,
+    FunctionalGroup,
     Genus,
     Species,
-    FunctionalGroup,
     Trait,
     TraitValue,
 )
-from apps.biodiversity.models import BiodiversityRecord
-from apps.reports.models import Measurement, Observation
-from apps.climate.models import Station, Climate
 
 
 class TestImportInitialDataCommand:

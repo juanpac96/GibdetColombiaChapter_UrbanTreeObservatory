@@ -58,26 +58,25 @@ Example:
 import json
 from pathlib import Path
 
-from tqdm import tqdm
 import pandas as pd
-
 from django.conf import settings
 from django.contrib.gis.geos import GEOSGeometry, MultiPolygon, Point
 from django.core.management.base import BaseCommand, CommandError
-from django.db import transaction, connection
+from django.db import connection, transaction
+from tqdm import tqdm
 
+from apps.biodiversity.models import BiodiversityRecord
+from apps.climate.models import Climate, Station
+from apps.places.models import Locality, Municipality, Neighborhood, Site
+from apps.reports.models import Measurement, Observation
 from apps.taxonomy.models import (
     Family,
+    FunctionalGroup,
     Genus,
     Species,
-    FunctionalGroup,
     Trait,
     TraitValue,
 )
-from apps.places.models import Locality, Municipality, Neighborhood, Site
-from apps.biodiversity.models import BiodiversityRecord
-from apps.reports.models import Measurement, Observation
-from apps.climate.models import Station, Climate
 
 
 class Command(BaseCommand):

@@ -1,0 +1,14 @@
+/* Make polygons more visible */
+.leaflet-interactive {
+    stroke: #2200ff !important;
+    stroke-width: 3 !important;
+    stroke-opacity: 0.8 !important;
+    fill-opacity: 0.2 !important;
+    fill: #4d7cff !important;
+}
+
+/* Make the map container better sized */
+.leaflet-container {
+    min-height: 500px !important;
+    width: 100% !important;
+}

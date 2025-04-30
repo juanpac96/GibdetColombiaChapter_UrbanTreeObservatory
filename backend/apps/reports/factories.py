@@ -1,7 +1,8 @@
 import factory
-from apps.reports.models import Measurement, Observation
-from apps.core.factories import BaseFactory
+
 from apps.biodiversity.factories import BiodiversityRecordFactory
+from apps.core.factories import BaseFactory
+from apps.reports.models import Measurement, Observation
 
 
 class MeasurementFactory(BaseFactory):
@@ -88,14 +89,8 @@ class ObservationFactory(BaseFactory):
     r_ce = factory.Iterator([choice[0] for choice in Observation.DamagePercent.choices])
 
     # Other fields
-    photo_url = factory.Maybe("with_photo", factory.Faker("image_url"), None)
+    photo_url = factory.Faker("image_url")
     field_notes = factory.Faker("paragraph")
     recorded_by = factory.Faker("name")
-    accompanying_collectors = factory.Maybe(
-        "with_accompanying", factory.Faker("name"), ""
-    )
+    accompanying_collectors = factory.Faker("name")
     date = factory.Faker("date_this_decade")
-
-    # Control flags
-    with_photo = True
-    with_accompanying = True

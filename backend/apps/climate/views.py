@@ -1,14 +1,14 @@
+import django_filters
 from django.contrib.gis.geos import Point
 from django.contrib.gis.measure import D
-from rest_framework import viewsets, filters, status
-from rest_framework.decorators import action
-from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import filters, status, viewsets
+from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
-import django_filters
+from rest_framework.response import Response
 
-from .models import Station, Climate
-from .serializers import StationSerializer, StationGeoSerializer, ClimateSerializer
+from .models import Climate, Station
+from .serializers import ClimateSerializer, StationGeoSerializer, StationSerializer
 
 
 class StationFilter(django_filters.FilterSet):
@@ -124,6 +124,8 @@ class ClimateViewSet(viewsets.ReadOnlyModelViewSet):
         queryset = super().get_queryset()
 
         # Ensure proper filtering before returning data
+        # Instead of slicing the queryset (which causes issues with ordering and filtering),
+        # we'll use the primary key values to create a new queryset
         if not any(
             param in self.request.query_params
             for param in [
@@ -137,8 +139,13 @@ class ClimateViewSet(viewsets.ReadOnlyModelViewSet):
                 "page",
             ]
         ):
-            # If no filters are provided, only return the latest 1000 records
-            # to avoid performance issues
-            queryset = queryset.order_by("-date")[:1000]
+            # Get the IDs of the latest 1000 records
+            # Using values_list with flat=True to get just the IDs
+            latest_ids = list(
+                queryset.order_by("-date").values_list("id", flat=True)[:1000]
+            )
+
+            # Create a new queryset with those IDs
+            return queryset.filter(id__in=latest_ids)
 
         return queryset

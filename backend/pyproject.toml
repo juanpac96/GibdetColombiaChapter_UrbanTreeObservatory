@@ -27,6 +27,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "coverage[toml]>=7.8.0",
     "django-debug-toolbar>=5.1.0",
     "django-extensions>=3.2.3",
     "factory-boy>=3.3.3",
@@ -38,8 +39,62 @@ dev = [
 ]
 
 [tool.pytest.ini_options]
+minversion = "6.0"
 DJANGO_SETTINGS_MODULE = "config.settings.dev"
-python_files = "test_*.py"
-python_classes = "Test*"
+addopts = "--cov=. --cov-report=term --reuse-db --import-mode=importlib"
+python_files = "tests.py test_*.py *_tests.py"
+python_classes = "Test* *Tests"
 python_functions = "test_*"
 testpaths = ["apps"]
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.coverage.run]
+source = ["."]
+omit = [
+    "*/migrations/*",
+    "*/tests/*",
+    "*/admin.py",
+    "config/*",
+    "manage.py"
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "def __str__",
+    "raise NotImplementedError",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise ImportError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "pass",
+    "raise NotImplementedError"
+]
+
+[tool.coverage.html]
+directory = "htmlcov"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 88
+
+[tool.ruff.lint]
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "C",  # flake8-comprehensions
+    "B",  # flake8-bugbear
+]
+ignore = [
+    "E203",  # whitespace before ':'
+    "E501",  # line too long
+    "B904",  # Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling
+    "B017",  # Do not assert blind exception: `Exception`
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["apps", "config"]

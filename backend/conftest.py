@@ -1,23 +1,24 @@
 import pytest
 from rest_framework.test import APIClient
 
+from apps.biodiversity.factories import BiodiversityRecordFactory
+from apps.climate.factories import ClimateFactory, StationFactory
 from apps.places.factories import (
     CountryFactory,
     DepartmentFactory,
+    LocalityFactory,
     MunicipalityFactory,
-    PlaceFactory,
+    NeighborhoodFactory,
+    SiteFactory,
 )
+from apps.reports.factories import MeasurementFactory, ObservationFactory
 from apps.taxonomy.factories import (
     FamilyFactory,
+    FunctionalGroupFactory,
     GenusFactory,
     SpeciesFactory,
-    FunctionalGroupFactory,
-    TraitFactory,
 )
-from apps.biodiversity.factories import BiodiversityRecordFactory
-from apps.reports.factories import MeasurementFactory, ObservationFactory
-from apps.climate.factories import StationFactory, ClimateFactory
-from apps.users.factories import UserFactory, StaffUserFactory, SuperUserFactory
+from apps.users.factories import StaffUserFactory, SuperUserFactory, UserFactory
 
 
 @pytest.fixture
@@ -87,12 +88,27 @@ def municipality(department):
 
 
 @pytest.fixture
-def place(municipality):
-    """Create a place for testing."""
-    return PlaceFactory(
+def locality(municipality):
+    """Create a locality for testing."""
+    return LocalityFactory(
+        name="Test Locality",
         municipality=municipality,
-        site="Test Site",
-        populated_center="Test Center",
+        calculated_area_m2=1000000,
+        population_2019=50000,
+    )
+
+
+@pytest.fixture
+def neighborhood(locality):
+    """Create a neighborhood for testing."""
+    return NeighborhoodFactory(name="Test Neighborhood", locality=locality)
+
+
+@pytest.fixture
+def site():
+    """Create a site for testing."""
+    return SiteFactory(
+        name="Test Site",
         zone=1,
         subzone=2,
     )
@@ -113,6 +129,8 @@ def genus(family):
 @pytest.fixture
 def traits():
     """Create all four trait types."""
+    from apps.taxonomy.models import Trait
+
     traits = []
     for trait_type in [
         "CS",  # Carbon sequestration
@@ -120,7 +138,7 @@ def traits():
         "CY",  # Canopy diameter
         "HX",  # Max height
     ]:
-        trait, _ = TraitFactory.get_or_create(type=trait_type)
+        trait, _ = Trait.objects.get_or_create(type=trait_type)
         traits.append(trait)
     return traits
 
@@ -143,10 +161,10 @@ def species(genus, functional_group):
 
 
 @pytest.fixture
-def biodiversity_record(species, place):
+def biodiversity_record(species, site, neighborhood):
     """Create a biodiversity record for testing."""
     return BiodiversityRecordFactory(
-        common_name="Test Tree", species=species, place=place
+        common_name="Test Tree", species=species, site=site, neighborhood=neighborhood
     )
 
 

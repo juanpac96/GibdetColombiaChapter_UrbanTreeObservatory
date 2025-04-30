@@ -14,10 +14,10 @@ Key database constraints and model design notes:
   schema is extensible if new TraitTypes are added.
 """
 
+from django.core.validators import MinValueValidator
 from django.db import models
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
-from django.core.validators import MinValueValidator
 
 from apps.core.models import BaseModel
 

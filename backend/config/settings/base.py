@@ -1,8 +1,7 @@
 from pathlib import Path
 
-from django.utils.translation import gettext_lazy as _
-
 import environ
+from django.utils.translation import gettext_lazy as _
 
 # Initialize environment variables
 env = environ.Env()

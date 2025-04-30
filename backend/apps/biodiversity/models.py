@@ -4,7 +4,7 @@ from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
 from apps.core.models import BaseModel
-from apps.places.models import Site, Neighborhood
+from apps.places.models import Neighborhood, Site
 from apps.taxonomy.models import Species
 
 

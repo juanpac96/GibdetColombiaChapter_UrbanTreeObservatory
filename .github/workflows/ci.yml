@@ -34,7 +34,7 @@ jobs:
         pip install pre-commit ruff
 
     - name: Format files with ruff
-      run: ruff check . --fix
+      run: ruff check backend --fix
 
     - name: Cache pre-commit hooks
       uses: actions/cache@v4

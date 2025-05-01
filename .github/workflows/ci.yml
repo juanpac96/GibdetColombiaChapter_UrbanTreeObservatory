@@ -99,6 +99,10 @@ jobs:
       working-directory: ./backend
       run: python manage.py migrate
 
+    - name: Compile translation messages
+      working-directory: ./backend
+      run: python manage.py compilemessages
+
     - name: Run collectstatic
       working-directory: ./backend
       run: python manage.py collectstatic --noinput

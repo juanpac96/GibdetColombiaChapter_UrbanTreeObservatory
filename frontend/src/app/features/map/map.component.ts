@@ -138,10 +138,10 @@ export class MapComponent implements AfterViewInit, OnChanges {
       attribution: '© OpenStreetMap contributors'
     }).addTo(this.map);
 
-    // Lista de IDs del 1 al 13
+    // List of IDs from 1 to 13
     const comunaIds = Array.from({ length: 13 }, (_, i) => i + 1);
     
-    // Hacer solicitudes en paralelo
+   // Make requests in parallel
     forkJoin(
       comunaIds.map(id => 
         this.http.get<any>(`http://localhost:8000/api/v1/places/localities/${id}/`)
@@ -151,7 +151,7 @@ export class MapComponent implements AfterViewInit, OnChanges {
         const allLayers = L.featureGroup();
 
         responses.forEach(data => {
-          // Validar datos antes de procesar
+          // Validate data before processing
           if (!data?.boundary?.coordinates) return;
 
           const geojsonFeature = {

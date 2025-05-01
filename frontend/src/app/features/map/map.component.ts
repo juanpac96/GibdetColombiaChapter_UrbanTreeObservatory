@@ -135,65 +135,72 @@ export class MapComponent implements AfterViewInit, OnChanges {
       attribution: '© OpenStreetMap contributors'
     }).addTo(this.map);
 
-    this.http.get('assets/ibague_communes.geojson').subscribe((geoJson: any) => {
-      L.geoJSON(geoJson, {
-        style: (feature) => {
-          return {
-            color: '#ffffff',
-            weight: 1,
-            fillColor: '#2F7B3D',
-            fillOpacity: 0.7,
-            opacity: 1
-          };
+    this.http.get<any>('http://localhost:8000/api/v1/places/localities/1/').subscribe((data) => {
+      const geojsonFeature = {
+        type: 'Feature',
+        geometry: data.boundary,
+        properties: {
+          name: data.name,
+          comunas: data.name
+        }
+      };
+  
+      const geoLayer = L.geoJSON(geojsonFeature, {
+        style: {
+          color: '#ffffff',
+          weight: 1,
+          fillColor: '#2F7B3D',
+          fillOpacity: 0.7
         },
         onEachFeature: (feature, layer) => {
           if (feature.properties) {
-            const center = (layer as L.Polygon).getBounds().getCenter();
+            const comuna = feature.properties.comunas || 'Unknown Region';
 
-            const label = L.divIcon({
-              className: 'region-label',
-              html: `<div class="label-content">
-                      <div class="region-name">${feature.properties.name || 'Unknown Region'}</div>
-                      ${feature.properties.statistics ?
-                        `<div class="statistics">${feature.properties.statistics}</div>`
-                        : ''}
-                    </div>`,
-              iconSize: [200, 50],
-              iconAnchor: [100, 25]
-            });
+            // Render solo si no se ha mostrado antes
+            if (!shownLabels.has(comuna)) {
+              const center = (layer as L.Polygon).getBounds().getCenter();
 
-            L.marker(center, {
-              icon: label,
-              interactive: false
-            }).addTo(this.map);
+              const label = L.divIcon({
+                className: 'region-label',
+                html: `<div class="label-content">
+                        <div class="region-name">${comuna}</div>
+                        ${feature.properties.statistics ?
+                          `<div class="statistics">${feature.properties.statistics}</div>`
+                          : ''}
+                      </div>`,
+                iconSize: [200, 50],
+                iconAnchor: [100, 25]
+              });
 
-            // Add hover effect
+              L.marker(center, {
+                icon: label,
+                interactive: false
+              }).addTo(this.map);
+
+              shownLabels.add(comuna);
+            }
+
+            // Add hover and click interactions
             layer.on({
               mouseover: (e) => {
                 const layer = e.target;
-                layer.setStyle({
-                  fillOpacity: 0.9
-                });
+                layer.setStyle({ fillOpacity: 0.9 });
               },
               mouseout: (e) => {
                 const layer = e.target;
-                layer.setStyle({
-                  fillOpacity: 0.7
-                });
+                layer.setStyle({ fillOpacity: 0.7 });
               },
               click: (e) => {
                 const layer = e.target;
                 const bounds = layer.getBounds();
 
-                // Zoom to the clicked region
                 this.map.fitBounds(bounds, {
                   padding: [10, 10],
                   maxZoom: 16
                 });
 
-                // Update region details
                 this.selectedRegion = {
-                  name: feature.properties.name || 'Unknown Region',
+                  name: feature.properties.name || comuna,
                   statistics: feature.properties.statistics || {
                     totalTrees: 'N/A',
                     speciesCount: 'N/A',
@@ -213,3 +220,4 @@ export class MapComponent implements AfterViewInit, OnChanges {
     });
   }
 }
+

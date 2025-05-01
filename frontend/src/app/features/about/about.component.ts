@@ -174,7 +174,7 @@ import { CommonModule } from '@angular/common';
         <p class="text-gray-700 mb-4">
           We welcome collaboration from researchers, municipal partners, and community organizations. 
           If you're interested in contributing to the Urban Tree Observatory or using our data for 
-          research purposes, please contact us at <a href="mailto:contact&#64;gibdetibague.org" class="text-primary-600 hover:underline">contact&#64;gibdetcolombia.org</a>.
+          research purposes, please contact us at <a href="mailto:contact&#64;gibdetcolombia.org" class="text-primary-600 hover:underline">contact&#64;gibdetcolombia.org</a>.
         </p>
       </div>
     </div>

@@ -16,6 +16,7 @@ class BiodiversityRecordAdmin(GISModelAdmin):
     )
     list_filter = ("date", "species__life_form", "neighborhood__locality")
     search_fields = (
+        "id",
         "common_name",
         "species__name",
         "species__genus__name",

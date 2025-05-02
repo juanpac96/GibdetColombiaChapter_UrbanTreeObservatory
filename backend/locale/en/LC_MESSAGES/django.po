@@ -191,7 +191,7 @@ msgstr "population 2019"
 
 #: apps/places/models/spatial.py:134
 msgid "localities"
-msgstr "municipalities"
+msgstr "localities"
 
 #: apps/places/models/spatial.py:168
 msgid "neighborhood boundary"

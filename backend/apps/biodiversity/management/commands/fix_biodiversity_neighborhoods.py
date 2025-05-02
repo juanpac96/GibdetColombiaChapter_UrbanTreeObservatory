@@ -276,23 +276,50 @@ class Command(BaseCommand):
                 if neighborhood_updates or system_comment_updates:
                     if not dry_run:
                         with transaction.atomic():
+                            # Prepare records for bulk update
+                            records_to_update = []
+
+                            # First, load all affected records in a single query to reduce database hits
+                            affected_ids = set(neighborhood_updates.keys()) | set(
+                                system_comment_updates.keys()
+                            )
+                            records_dict = {
+                                record.id: record
+                                for record in BiodiversityRecord.objects.filter(
+                                    id__in=affected_ids
+                                )
+                            }
+
+                            # Update records with new neighborhoods
                             for (
                                 record_id,
                                 new_neighborhood,
                             ) in neighborhood_updates.items():
-                                comment = system_comment_updates.get(record_id, "")
-                                BiodiversityRecord.objects.filter(id=record_id).update(
-                                    neighborhood=new_neighborhood,
-                                    system_comment=comment,
-                                )
+                                if record_id in records_dict:
+                                    record = records_dict[record_id]
+                                    record.neighborhood = new_neighborhood
+                                    record.system_comment = system_comment_updates.get(
+                                        record_id, ""
+                                    )
+                                    records_to_update.append(record)
 
                             # Update records that have comments but no neighborhood updates
                             comment_only_ids = set(system_comment_updates.keys()) - set(
                                 neighborhood_updates.keys()
                             )
                             for record_id in comment_only_ids:
-                                BiodiversityRecord.objects.filter(id=record_id).update(
-                                    system_comment=system_comment_updates[record_id]
+                                if record_id in records_dict:
+                                    record = records_dict[record_id]
+                                    record.system_comment = system_comment_updates[
+                                        record_id
+                                    ]
+                                    records_to_update.append(record)
+
+                            # Perform the bulk update if there are records to update
+                            if records_to_update:
+                                BiodiversityRecord.objects.bulk_update(
+                                    records_to_update,
+                                    fields=["neighborhood", "system_comment"],
                                 )
 
                 processed_batch_size = len(batch_records)

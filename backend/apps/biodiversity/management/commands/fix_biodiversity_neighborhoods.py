@@ -73,10 +73,8 @@ class Command(BaseCommand):
         # Apply limit if specified
         if limit:
             self.stdout.write(f"Limiting to {limit} records")
-            records_to_process = base_query[:limit]
             total_to_process = min(limit, total_records)
         else:
-            records_to_process = base_query
             total_to_process = total_records
 
         # Get all neighborhoods with boundaries
@@ -95,7 +93,7 @@ class Command(BaseCommand):
         )
 
         # Get the extent of all records to filter neighborhoods
-        extent = records_to_process.annotate(
+        extent = base_query.annotate(
             location_geom=Cast("location", GeometryField())
         ).aggregate(extent=Extent("location_geom"))["extent"]
 
@@ -149,15 +147,26 @@ class Command(BaseCommand):
         non_matching_records = 0
         processed_records = 0
 
-        # Process in batches for better performance
+        # Process in batches to handle potential query size limitations
         with tqdm(total=total_to_process, desc="Processing records") as progress_bar:
+            # Process records in chunks to avoid query size limitations
             for offset in range(0, total_to_process, batch_size):
                 end_offset = min(offset + batch_size, total_to_process)
-                batch = list(records_to_process[offset:end_offset])
+
+                # Get IDs for this batch
+                batch_ids = list(
+                    base_query.values_list("id", flat=True)[offset:end_offset]
+                )
 
                 # Skip empty batches
-                if not batch:
-                    continue
+                if not batch_ids:
+                    self.stdout.write(
+                        f"No records found in batch {offset}-{end_offset}. Stopping."
+                    )
+                    break
+
+                # Fetch full records for this batch by ID to ensure we get exactly what we want
+                batch = list(BiodiversityRecord.objects.filter(id__in=batch_ids))
 
                 # Process each record in the batch
                 neighborhood_updates = {}  # record_id -> neighborhood
@@ -251,11 +260,8 @@ class Command(BaseCommand):
                 processed_records += len(batch)
                 progress_bar.update(len(batch))
 
-                # Print interim progress report every 1000 records
-                if (
-                    processed_records % 1000 == 0
-                    or processed_records == total_to_process
-                ):
+                # Print interim progress report
+                if processed_records % 1000 == 0 or processed_records % batch_size == 0:
                     elapsed_time = time.time() - start_time
                     records_per_second = (
                         processed_records / elapsed_time if elapsed_time > 0 else 0

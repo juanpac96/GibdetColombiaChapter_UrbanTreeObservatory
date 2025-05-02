@@ -33,8 +33,9 @@ class BiodiversityRecordSerializer(serializers.ModelSerializer):
             "date",
             "created_at",
             "updated_at",
+            "system_comment",
         ]
-        read_only_fields = ["longitude", "latitude"]
+        read_only_fields = ["longitude", "latitude", "system_comment"]
 
 
 class BiodiversityRecordGeoSerializer(GeoFeatureModelSerializer):
@@ -81,8 +82,9 @@ class BiodiversityRecordGeoSerializer(GeoFeatureModelSerializer):
             "date",
             "created_at",
             "updated_at",
+            "system_comment",
         ]
-        read_only_fields = ["longitude", "latitude"]
+        read_only_fields = ["longitude", "latitude", "system_comment"]
 
 
 class BiodiversityRecordLightSerializer(serializers.ModelSerializer):
@@ -106,4 +108,6 @@ class BiodiversityRecordLightSerializer(serializers.ModelSerializer):
             "site_name",
             "neighborhood_name",
             "date",
+            "system_comment",
         ]
+        read_only_fields = ["system_comment"]

@@ -16,15 +16,17 @@ class BiodiversityRecordAdmin(GISModelAdmin):
     )
     list_filter = ("date", "species__life_form", "neighborhood__locality")
     search_fields = (
+        "id",
         "common_name",
         "species__name",
         "species__genus__name",
         "site__name",
         "neighborhood__name",
         "neighborhood__locality__name",
+        "system_comment",
     )
     raw_id_fields = ("species", "site", "neighborhood")
-    readonly_fields = ("id", "created_at", "updated_at", "uuid")
+    readonly_fields = ("id", "created_at", "updated_at", "uuid", "system_comment")
     date_hierarchy = "date"
     list_per_page = 25
 

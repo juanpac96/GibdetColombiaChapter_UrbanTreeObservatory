@@ -1,0 +1,205 @@
+import time
+
+from django.contrib.gis.db.models import Extent, GeometryField
+from django.contrib.gis.db.models.functions import Cast
+from django.core.management.base import BaseCommand
+from django.db import transaction
+from tqdm import tqdm
+
+from apps.biodiversity.models import BiodiversityRecord
+from apps.places.models import Neighborhood
+
+
+class Command(BaseCommand):
+    help = "Fixes BiodiversityRecord instances assigned to the 'Desconocido' neighborhood by finding their correct neighborhoods using spatial queries."
+
+    def add_arguments(self, parser):
+        parser.add_argument(
+            "--dry-run",
+            action="store_true",
+            help="Run the command without making any changes to the database",
+        )
+        parser.add_argument(
+            "--batch-size",
+            type=int,
+            default=500,
+            help="Number of records to process in each batch (default: 500)",
+        )
+        parser.add_argument(
+            "--limit",
+            type=int,
+            help="Limit the number of records to process",
+        )
+        parser.add_argument(
+            "--neighborhood-id",
+            type=int,
+            default=688,
+            help="ID of the 'Desconocido' neighborhood (default: 688)",
+        )
+        parser.add_argument(
+            "--stats-only",
+            action="store_true",
+            help="Only print stats without processing records",
+        )
+
+    def handle(self, *args, **options):  # noqa: C901
+        dry_run = options.get("dry_run", False)
+        batch_size = options.get("batch_size", 500)
+        limit = options.get("limit")
+        unknown_neighborhood_id = options.get("neighborhood_id")
+        stats_only = options.get("stats_only", False)
+
+        start_time = time.time()
+
+        # Find all records with "Desconocido" neighborhood
+        base_query = BiodiversityRecord.objects.filter(
+            neighborhood_id=unknown_neighborhood_id,
+            location__isnull=False,
+        )
+
+        total_records = base_query.count()
+        self.stdout.write(
+            f"Found {total_records} biodiversity records with unknown neighborhood"
+        )
+
+        if stats_only:
+            self.stdout.write("Stats-only mode, exiting without processing records")
+            return
+
+        if total_records == 0:
+            self.stdout.write(self.style.WARNING("No records found to process."))
+            return
+
+        # Apply limit if specified
+        if limit:
+            self.stdout.write(f"Limiting to {limit} records")
+            records_to_process = base_query[:limit]
+            total_to_process = min(limit, total_records)
+        else:
+            records_to_process = base_query
+            total_to_process = total_records
+
+        # Get all neighborhoods with boundaries
+        valid_neighborhoods = Neighborhood.objects.exclude(
+            id=unknown_neighborhood_id
+        ).exclude(boundary__isnull=True)
+
+        self.stdout.write(
+            f"Found {valid_neighborhoods.count()} neighborhoods with boundaries"
+        )
+
+        # Get the extent of all records to filter neighborhoods
+        extent = records_to_process.annotate(
+            location_geom=Cast("location", GeometryField())
+        ).aggregate(extent=Extent("location_geom"))["extent"]
+        if extent:
+            min_lon, min_lat, max_lon, max_lat = extent
+            # Add a buffer for safety
+            buffer = 0.05  # approximately 5km
+            min_lon -= buffer
+            min_lat -= buffer
+            max_lon += buffer
+            max_lat += buffer
+
+            # Bounding box for the extent
+            bbox = (
+                f"POLYGON(("
+                f"{min_lon} {min_lat}, "
+                f"{max_lon} {min_lat}, "
+                f"{max_lon} {max_lat}, "
+                f"{min_lon} {max_lat}, "
+                f"{min_lon} {min_lat}"
+                f"))"
+            )
+
+            # Filter neighborhoods that intersect with the extent
+            filtered_neighborhoods = valid_neighborhoods.filter(
+                boundary__intersects=bbox
+            )
+
+            self.stdout.write(
+                f"Filtered to {filtered_neighborhoods.count()} neighborhoods within records extent"
+            )
+        else:
+            filtered_neighborhoods = valid_neighborhoods
+            self.stdout.write("Could not determine extent, using all neighborhoods")
+
+        # Statistics tracking
+        updated_records = 0
+        non_matching_records = 0
+        processed_records = 0
+
+        # Process in batches for better performance
+        with tqdm(total=total_to_process, desc="Processing records") as progress_bar:
+            for offset in range(0, total_to_process, batch_size):
+                end_offset = min(offset + batch_size, total_to_process)
+                batch = list(records_to_process[offset:end_offset])
+
+                # Skip empty batches
+                if not batch:
+                    continue
+
+                # Process each record in the batch
+                update_mapping = {}
+
+                for record in batch:
+                    found_match = False
+
+                    # Use spatial query with DB-side filtering
+                    matching_neighborhoods = list(
+                        filtered_neighborhoods.filter(
+                            boundary__contains=record.location
+                        )
+                    )
+
+                    if matching_neighborhoods:
+                        # Take the first matching neighborhood
+                        update_mapping[record.id] = matching_neighborhoods[0]
+                        updated_records += 1
+                        found_match = True
+
+                    if not found_match:
+                        non_matching_records += 1
+
+                # Bulk update records that have matching neighborhoods
+                if update_mapping and not dry_run:
+                    with transaction.atomic():
+                        for record_id, new_neighborhood in update_mapping.items():
+                            BiodiversityRecord.objects.filter(id=record_id).update(
+                                neighborhood=new_neighborhood
+                            )
+
+                processed_records += len(batch)
+                progress_bar.update(len(batch))
+
+                # Print interim progress report every 1000 records
+                if (
+                    processed_records % 1000 == 0
+                    or processed_records == total_to_process
+                ):
+                    elapsed_time = time.time() - start_time
+                    records_per_second = (
+                        processed_records / elapsed_time if elapsed_time > 0 else 0
+                    )
+                    self.stdout.write(
+                        f"Processed {processed_records}/{total_to_process} records "
+                        f"({records_per_second:.2f} records/sec)"
+                    )
+
+        # Final report
+        elapsed_time = time.time() - start_time
+        self.stdout.write(
+            self.style.SUCCESS(f"Processing complete in {elapsed_time:.2f} seconds:")
+        )
+        self.stdout.write(f"- Total records processed: {processed_records}")
+        self.stdout.write(f"- Records updated with new neighborhood: {updated_records}")
+        self.stdout.write(
+            f"- Records without matching neighborhood: {non_matching_records}"
+        )
+
+        if dry_run:
+            self.stdout.write(
+                self.style.WARNING(
+                    "This was a dry run. No changes were made to the database."
+                )
+            )

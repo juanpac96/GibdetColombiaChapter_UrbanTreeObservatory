@@ -4,6 +4,7 @@ from django.contrib.gis.db.models import Extent, GeometryField
 from django.contrib.gis.db.models.functions import Cast
 from django.core.management.base import BaseCommand
 from django.db import transaction
+from django.db.models import Q
 from tqdm import tqdm
 
 from apps.biodiversity.models import BiodiversityRecord
@@ -41,6 +42,11 @@ class Command(BaseCommand):
             action="store_true",
             help="Only print stats without processing records",
         )
+        parser.add_argument(
+            "--all-records",
+            action="store_true",
+            help="Process all records, including those that have already been processed",
+        )
 
     def handle(self, *args, **options):  # noqa: C901
         dry_run = options.get("dry_run", False)
@@ -48,18 +54,26 @@ class Command(BaseCommand):
         limit = options.get("limit")
         unknown_neighborhood_id = options.get("neighborhood_id")
         stats_only = options.get("stats_only", False)
+        all_records = options.get("all_records", False)
 
         start_time = time.time()
 
-        # Find all records with "Desconocido" neighborhood
+        # Find all records with "Desconocido" neighborhood that need processing
         base_query = BiodiversityRecord.objects.filter(
             neighborhood_id=unknown_neighborhood_id,
             location__isnull=False,
         )
 
+        # Unless all_records flag is set, only process records that haven't been processed yet
+        # This addresses the halving issue by excluding records we've already processed
+        if not all_records:
+            base_query = base_query.filter(
+                Q(system_comment__isnull=True) | Q(system_comment="")
+            )
+
         total_records = base_query.count()
         self.stdout.write(
-            f"Found {total_records} biodiversity records with unknown neighborhood"
+            f"Found {total_records} biodiversity records with unknown neighborhood to process"
         )
 
         if stats_only:
@@ -147,32 +161,37 @@ class Command(BaseCommand):
         non_matching_records = 0
         processed_records = 0
 
-        # Process in batches to handle potential query size limitations
-        with tqdm(total=total_to_process, desc="Processing records") as progress_bar:
-            # Process records in chunks to avoid query size limitations
-            for offset in range(0, total_to_process, batch_size):
-                end_offset = min(offset + batch_size, total_to_process)
+        # Keep a record of all processed record IDs
+        processed_record_ids = set()
 
-                # Get IDs for this batch
-                batch_ids = list(
-                    base_query.values_list("id", flat=True)[offset:end_offset]
+        # Get all record IDs before processing to prevent any issues with pagination or filtering
+        all_record_ids = list(base_query.values_list("id", flat=True))
+        total_to_process = min(total_to_process, len(all_record_ids))
+
+        # Process in batches for better performance
+        with tqdm(total=total_to_process, desc="Processing records") as progress_bar:
+            # Process IDs in batches
+            for batch_start in range(0, total_to_process, batch_size):
+                batch_end = min(batch_start + batch_size, total_to_process)
+                batch_ids = all_record_ids[batch_start:batch_end]
+
+                # Skip if batch is empty
+                if not batch_ids:
+                    continue
+
+                # Fetch the full records for this batch
+                batch_records = list(
+                    BiodiversityRecord.objects.filter(id__in=batch_ids)
                 )
 
-                # Skip empty batches
-                if not batch_ids:
-                    self.stdout.write(
-                        f"No records found in batch {offset}-{end_offset}. Stopping."
-                    )
-                    break
-
-                # Fetch full records for this batch by ID to ensure we get exactly what we want
-                batch = list(BiodiversityRecord.objects.filter(id__in=batch_ids))
+                # Add batch IDs to processed set
+                processed_record_ids.update(batch_ids)
 
                 # Process each record in the batch
                 neighborhood_updates = {}  # record_id -> neighborhood
                 system_comment_updates = {}  # record_id -> comment
 
-                for record in batch:
+                for record in batch_records:
                     found_match = False
 
                     # 1. First try to find a direct neighborhood match
@@ -247,21 +266,41 @@ class Command(BaseCommand):
 
                     if not found_match:
                         non_matching_records += 1
-
-                # Bulk update records with their new neighborhoods and comments
-                if neighborhood_updates and not dry_run:
-                    with transaction.atomic():
-                        for record_id, new_neighborhood in neighborhood_updates.items():
-                            comment = system_comment_updates.get(record_id, "")
-                            BiodiversityRecord.objects.filter(id=record_id).update(
-                                neighborhood=new_neighborhood, system_comment=comment
+                        # Mark records without matches so they won't be processed again
+                        if not dry_run:
+                            system_comment_updates[record.id] = (
+                                "No matching neighborhood or locality boundary found for this record."
                             )
 
-                processed_records += len(batch)
-                progress_bar.update(len(batch))
+                # Bulk update records with their new neighborhoods and comments
+                if neighborhood_updates or system_comment_updates:
+                    if not dry_run:
+                        with transaction.atomic():
+                            for (
+                                record_id,
+                                new_neighborhood,
+                            ) in neighborhood_updates.items():
+                                comment = system_comment_updates.get(record_id, "")
+                                BiodiversityRecord.objects.filter(id=record_id).update(
+                                    neighborhood=new_neighborhood,
+                                    system_comment=comment,
+                                )
+
+                            # Update records that have comments but no neighborhood updates
+                            comment_only_ids = set(system_comment_updates.keys()) - set(
+                                neighborhood_updates.keys()
+                            )
+                            for record_id in comment_only_ids:
+                                BiodiversityRecord.objects.filter(id=record_id).update(
+                                    system_comment=system_comment_updates[record_id]
+                                )
+
+                processed_batch_size = len(batch_records)
+                processed_records += processed_batch_size
+                progress_bar.update(processed_batch_size)
 
                 # Print interim progress report
-                if processed_records % 1000 == 0 or processed_records % batch_size == 0:
+                if processed_records % 1000 == 0 or batch_end == total_to_process:
                     elapsed_time = time.time() - start_time
                     records_per_second = (
                         processed_records / elapsed_time if elapsed_time > 0 else 0

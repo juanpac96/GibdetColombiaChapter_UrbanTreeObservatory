@@ -22,9 +22,10 @@ class BiodiversityRecordAdmin(GISModelAdmin):
         "site__name",
         "neighborhood__name",
         "neighborhood__locality__name",
+        "system_comment",
     )
     raw_id_fields = ("species", "site", "neighborhood")
-    readonly_fields = ("id", "created_at", "updated_at", "uuid")
+    readonly_fields = ("id", "created_at", "updated_at", "uuid", "system_comment")
     date_hierarchy = "date"
     list_per_page = 25
 

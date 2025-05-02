@@ -7,7 +7,7 @@ from django.db import transaction
 from tqdm import tqdm
 
 from apps.biodiversity.models import BiodiversityRecord
-from apps.places.models import Neighborhood
+from apps.places.models import Locality, Neighborhood
 
 
 class Command(BaseCommand):
@@ -88,10 +88,17 @@ class Command(BaseCommand):
             f"Found {valid_neighborhoods.count()} neighborhoods with boundaries"
         )
 
+        # Get all localities with boundaries
+        valid_localities = Locality.objects.exclude(boundary__isnull=True)
+        self.stdout.write(
+            f"Found {valid_localities.count()} localities with boundaries"
+        )
+
         # Get the extent of all records to filter neighborhoods
         extent = records_to_process.annotate(
             location_geom=Cast("location", GeometryField())
         ).aggregate(extent=Extent("location_geom"))["extent"]
+
         if extent:
             min_lon, min_lat, max_lon, max_lat = extent
             # Add a buffer for safety
@@ -117,15 +124,28 @@ class Command(BaseCommand):
                 boundary__intersects=bbox
             )
 
+            # Filter localities that intersect with the extent
+            filtered_localities = valid_localities.filter(boundary__intersects=bbox)
+
             self.stdout.write(
-                f"Filtered to {filtered_neighborhoods.count()} neighborhoods within records extent"
+                f"Filtered to {filtered_neighborhoods.count()} neighborhoods and "
+                f"{filtered_localities.count()} localities within records extent"
             )
         else:
             filtered_neighborhoods = valid_neighborhoods
-            self.stdout.write("Could not determine extent, using all neighborhoods")
+            filtered_localities = valid_localities
+            self.stdout.write(
+                "Could not determine extent, using all neighborhoods and localities"
+            )
+
+        # Create a dictionary to cache "Desconocido en X" neighborhoods
+        # Key: locality_id, Value: neighborhood
+        unknown_neighborhood_cache = {}
 
         # Statistics tracking
-        updated_records = 0
+        updated_with_neighborhood = 0
+        updated_with_locality = 0
+        created_neighborhoods = 0
         non_matching_records = 0
         processed_records = 0
 
@@ -140,12 +160,13 @@ class Command(BaseCommand):
                     continue
 
                 # Process each record in the batch
-                update_mapping = {}
+                neighborhood_updates = {}  # record_id -> neighborhood
+                system_comment_updates = {}  # record_id -> comment
 
                 for record in batch:
                     found_match = False
 
-                    # Use spatial query with DB-side filtering
+                    # 1. First try to find a direct neighborhood match
                     matching_neighborhoods = list(
                         filtered_neighborhoods.filter(
                             boundary__contains=record.location
@@ -154,19 +175,77 @@ class Command(BaseCommand):
 
                     if matching_neighborhoods:
                         # Take the first matching neighborhood
-                        update_mapping[record.id] = matching_neighborhoods[0]
-                        updated_records += 1
+                        neighborhood_updates[record.id] = matching_neighborhoods[0]
+                        system_comment_updates[record.id] = (
+                            f"Automatically assigned to neighborhood '{matching_neighborhoods[0].name}' "
+                            f"based on spatial location."
+                        )
+                        updated_with_neighborhood += 1
                         found_match = True
+
+                    # 2. If no neighborhood match, try to find a locality match
+                    if not found_match:
+                        matching_localities = list(
+                            filtered_localities.filter(
+                                boundary__contains=record.location
+                            )
+                        )
+
+                        if matching_localities:
+                            # Take the first matching locality
+                            locality = matching_localities[0]
+
+                            # Check if we already have a "Desconocido en X" neighborhood for this locality
+                            if locality.id in unknown_neighborhood_cache:
+                                unknown_neighborhood = unknown_neighborhood_cache[
+                                    locality.id
+                                ]
+                            else:
+                                # Try to find an existing "Desconocido en X" neighborhood
+                                unknown_neighborhood_name = (
+                                    f"Desconocido en {locality.name}"
+                                )
+                                unknown_neighborhood = Neighborhood.objects.filter(
+                                    name=unknown_neighborhood_name, locality=locality
+                                ).first()
+
+                                # Create a new "Desconocido en X" neighborhood if it doesn't exist
+                                if not unknown_neighborhood and not dry_run:
+                                    unknown_neighborhood = Neighborhood.objects.create(
+                                        name=unknown_neighborhood_name,
+                                        locality=locality,
+                                        boundary=None,  # No boundary for these special neighborhoods
+                                    )
+                                    created_neighborhoods += 1
+                                    self.stdout.write(
+                                        f"Created new neighborhood: {unknown_neighborhood_name}"
+                                    )
+
+                                # Cache the neighborhood for future use
+                                unknown_neighborhood_cache[locality.id] = (
+                                    unknown_neighborhood
+                                )
+
+                            if unknown_neighborhood:
+                                neighborhood_updates[record.id] = unknown_neighborhood
+                                system_comment_updates[record.id] = (
+                                    f"Automatically assigned to placeholder neighborhood '{unknown_neighborhood.name}' "
+                                    f"as record is within locality '{locality.name}' boundary but no matching "
+                                    f"neighborhood boundary was found."
+                                )
+                                updated_with_locality += 1
+                                found_match = True
 
                     if not found_match:
                         non_matching_records += 1
 
-                # Bulk update records that have matching neighborhoods
-                if update_mapping and not dry_run:
+                # Bulk update records with their new neighborhoods and comments
+                if neighborhood_updates and not dry_run:
                     with transaction.atomic():
-                        for record_id, new_neighborhood in update_mapping.items():
+                        for record_id, new_neighborhood in neighborhood_updates.items():
+                            comment = system_comment_updates.get(record_id, "")
                             BiodiversityRecord.objects.filter(id=record_id).update(
-                                neighborhood=new_neighborhood
+                                neighborhood=new_neighborhood, system_comment=comment
                             )
 
                 processed_records += len(batch)
@@ -192,9 +271,17 @@ class Command(BaseCommand):
             self.style.SUCCESS(f"Processing complete in {elapsed_time:.2f} seconds:")
         )
         self.stdout.write(f"- Total records processed: {processed_records}")
-        self.stdout.write(f"- Records updated with new neighborhood: {updated_records}")
         self.stdout.write(
-            f"- Records without matching neighborhood: {non_matching_records}"
+            f"- Records assigned to existing neighborhoods: {updated_with_neighborhood}"
+        )
+        self.stdout.write(
+            f"- Records assigned to locality-based placeholder neighborhoods: {updated_with_locality}"
+        )
+        self.stdout.write(
+            f"- New placeholder neighborhoods created: {created_neighborhoods}"
+        )
+        self.stdout.write(
+            f"- Records without matching neighborhood or locality: {non_matching_records}"
         )
 
         if dry_run:

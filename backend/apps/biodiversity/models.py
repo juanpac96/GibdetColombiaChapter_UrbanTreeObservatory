@@ -42,6 +42,9 @@ class BiodiversityRecord(BaseModel):
         _("recorded by"), max_length=50, default="Cortolima", blank=True
     )
     date = models.DateField(_("recorded date"), null=True, blank=True)
+    system_comment = models.TextField(
+        _("system comment"), null=True, blank=True, editable=False
+    )
 
     class Meta:
         verbose_name = _("biodiversity record")

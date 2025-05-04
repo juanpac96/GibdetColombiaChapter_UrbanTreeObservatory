@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.conf.urls.i18n import i18n_patterns
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
@@ -19,7 +20,6 @@ admin.site.index_title = "Urban Tree Observatory Admin"
 
 
 urlpatterns = [
-    path("admin/", admin.site.urls),
     path("api/v1/schema/", SpectacularAPIView.as_view(), name="schema"),
     path(
         "api/v1/swagger/",
@@ -59,7 +59,13 @@ urlpatterns = [
     ),
     # Development tools
     path("api-auth/", include("rest_framework.urls")),
+    path("i18n/", include("django.conf.urls.i18n")),
 ]
+
+# Wrap admin URLs with i18n_patterns
+urlpatterns += i18n_patterns(
+    path("admin/", admin.site.urls),
+)
 
 # Serve media files in development
 if settings.DEBUG:

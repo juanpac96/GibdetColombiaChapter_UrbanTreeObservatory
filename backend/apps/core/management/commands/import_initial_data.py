@@ -124,7 +124,7 @@ class Command(BaseCommand):
         parser.add_argument(
             "--chunksize",
             type=int,
-            default=10000,
+            default=25000,
             help="Number of records to process in each chunk of measurements and climate data",
         )
 

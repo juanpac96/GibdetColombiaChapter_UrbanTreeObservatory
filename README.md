@@ -62,6 +62,16 @@ docker compose exec backend python manage.py createsuperuser
 
 ### Initial Data Import
 
+### Initial Data Import
+
+To get the initial data, you can use one of the following links:
+
+1. [Google Drive](https://drive.google.com/drive/folders/1EgslMmVYdvtSXS22wDYCDCroOLV7TqmY?usp=sharing)
+2. [Hugging Face](https://huggingface.co/datasets/juanpac96/urban_tree_census_data)
+
+
+
+
 To import initial data into the database:
 
 1. Download the latest version of the CSV snd JSON files from the project's shared Google Drive.

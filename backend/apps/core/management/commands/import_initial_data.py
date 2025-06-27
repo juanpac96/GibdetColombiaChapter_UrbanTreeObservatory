@@ -491,11 +491,11 @@ class Command(BaseCommand):
         )
 
     def _create_unknown_neighborhood(self):
-        """Create the unknown neighborhood with id=688 if it does not exist."""
-        unknown_id = 688
+        """Create the unknown neighborhood with id=709 if it does not exist."""
+        unknown_id = 709
         if Neighborhood.objects.filter(id=unknown_id).exists():
             raise CommandError(
-                "A neighborhood with id=688 already exists. Cannot create the unknown neighborhood."
+                "A neighborhood with id=709 already exists. Cannot create the unknown neighborhood."
             )
         unknown_neighborhood = Neighborhood.objects.create(
             id=unknown_id,

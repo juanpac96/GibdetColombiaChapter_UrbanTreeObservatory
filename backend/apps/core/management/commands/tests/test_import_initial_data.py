@@ -496,8 +496,8 @@ class TestImportInitialDataCommand:
             unknown_locality = Locality.objects.get(id=14)
             assert unknown_locality.name == "Desconocida"
 
-            # Verify unknown neighborhood (id=688) was created
-            unknown_neighborhood = Neighborhood.objects.get(id=688)
+            # Verify unknown neighborhood (id=709) was created
+            unknown_neighborhood = Neighborhood.objects.get(id=709)
             assert unknown_neighborhood.name == "Desconocido"
             assert unknown_neighborhood.locality_id == 14
 

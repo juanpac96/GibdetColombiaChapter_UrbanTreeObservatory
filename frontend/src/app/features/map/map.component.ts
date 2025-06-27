@@ -24,11 +24,11 @@ interface GeoJsonProperties {
               <h3 class="text-lg font-semibold text-gray-700">Tree Statistics</h3>
               <div class="grid grid-cols-2 gap-x-8 gap-y-4">
                 <div>
-                  <p class="text-2xl font-bold text-green-700">{{ selectedRegion?.statistics?.totalTrees || '96,943' }}</p>
+                  <p class="text-2xl font-bold text-green-700">{{ selectedRegion?.statistics?.totalTrees || '101,283' }}</p>
                   <p class="text-sm text-gray-600">Total Trees</p>
                 </div>
                 <div>
-                  <p class="text-2xl font-bold text-green-700">{{ selectedRegion?.statistics?.speciesCount || '439' }}</p>
+                  <p class="text-2xl font-bold text-green-700">{{ selectedRegion?.statistics?.speciesCount || '407' }}</p>
                   <p class="text-sm text-gray-600">Species Count</p>
                 </div>
                 <div>
@@ -109,7 +109,18 @@ export class MapComponent implements AfterViewInit, OnChanges {
   private pointLayer: L.LayerGroup = L.layerGroup();
   private localityLayer: L.FeatureGroup = L.featureGroup();
   private neighborhoodLayer: L.FeatureGroup = L.featureGroup();
-  private localityLabels: L.LayerGroup = L.layerGroup();  
+  private localityLabels: L.LayerGroup = L.layerGroup();
+  private comunaCoords: Record<number, [number, number]> = {
+    1: [4.444155773015618, -75.23969864493603],
+    3: [4.44314777205183, -75.2229990060045],
+    5: [4.4414122157367455, -75.19866063473717],
+    6: [4.448946582667143, -75.19216298371211],
+    7: [4.447054612850441, -75.15486397564855],
+    8: [4.439440632646043, -75.17641129077383],
+    9: [4.43193067187494, -75.1956365655411],
+    11: [4.428197280276076, -75.2300237422717],
+    12: [4.429748394627603, -75.24106640852413]
+  };
 
   selectedRegion: any = {
     name: 'Ibagué Overview',
@@ -118,11 +129,11 @@ export class MapComponent implements AfterViewInit, OnChanges {
   };
 
   selectedTree: {
-  commonName: string;
-  scientificName: string;
-  lifeForm: string;
-  neighborhood: string;
-} | null = null;
+    commonName: string;
+    scientificName: string;
+    lifeForm: string;
+    neighborhood: string;
+  } | null = null;
 
   constructor(private http: HttpClient) {}
 
@@ -169,8 +180,8 @@ export class MapComponent implements AfterViewInit, OnChanges {
       comunaIds.map(id => this.http.get<any>(`http://localhost:8000/api/v1/places/localities/${id}/`))
     ).subscribe({
       next: (responses) => {
-        this.shownLabels.clear();           
-        this.localityLabels.clearLayers();  
+        this.shownLabels.clear();
+        this.localityLabels.clearLayers();
 
         responses.forEach(data => {
           if (!data?.boundary?.coordinates) return;
@@ -197,29 +208,36 @@ export class MapComponent implements AfterViewInit, OnChanges {
 
               if (!this.shownLabels.has(comuna)) {
                 try {
-                  const bounds = (layer as L.Polygon).getBounds();
-                  if (bounds.isValid()) {
-                    const center = bounds.getCenter();
-                    const label = L.divIcon({
-                      className: 'region-label',
-                      html: `<div class="label-content">
+                  const comunaId = data.id;
+                  const manualCoords = this.comunaCoords[comunaId];
+
+                  let center: L.LatLng;
+                  if (manualCoords) {
+                    center = L.latLng(manualCoords[0], manualCoords[1]);
+                  } else {
+                    const bounds = (layer as L.Polygon).getBounds();
+                    if (!bounds.isValid()) return;
+                    center = bounds.getCenter();
+                  }
+
+                  const label = L.divIcon({
+                    className: 'region-label',
+                    html: `<div class="label-content">
                               <div class="region-name">${comuna}</div>
-                              ${feature.properties?.statistics ? 
+                              ${feature.properties?.statistics ?
                                 `<div class="statistics">${feature.properties.statistics.totalTrees || 'N/A'}</div>` : ''}
                             </div>`,
-                      iconSize: [200, 50],
-                      iconAnchor: [100, 25]
-                    });
+                    iconSize: [200, 50],
+                    iconAnchor: [100, 25]
+                  });
 
-                    const marker = L.marker(center, {
-                      icon: label,
-                      interactive: false
-                    });
+                  const marker = L.marker(center, {
+                    icon: label,
+                    interactive: false
+                  });
 
-                    this.localityLabels.addLayer(marker);  // ⬅️ Agrega al grupo
-
-                    this.shownLabels.add(comuna);
-                  }
+                  this.localityLabels.addLayer(marker);
+                  this.shownLabels.add(comuna);
                 } catch (error) {
                   console.warn(`Error creating label for ${comuna}:`, error);
                 }
@@ -264,7 +282,7 @@ export class MapComponent implements AfterViewInit, OnChanges {
         });
 
         this.localityLayer.addTo(this.map);
-        this.localityLabels.addTo(this.map);  // ⬅️ Añade las etiquetas al mapa
+        this.localityLabels.addTo(this.map);
       },
       error: (error) => {
         console.error('Error loading communes:', error);
@@ -308,7 +326,7 @@ export class MapComponent implements AfterViewInit, OnChanges {
 
     if (zoom >= 19) {
       this.map.removeLayer(this.localityLayer);
-      this.map.removeLayer(this.localityLabels);  // ⬅️ Oculta etiquetas también
+      this.map.removeLayer(this.localityLabels);
       this.map.removeLayer(this.neighborhoodLayer);
     } else if (zoom >= 17) {
       this.map.addLayer(this.neighborhoodLayer);
@@ -316,7 +334,7 @@ export class MapComponent implements AfterViewInit, OnChanges {
       this.map.removeLayer(this.localityLabels);
     } else {
       this.map.addLayer(this.localityLayer);
-      this.map.addLayer(this.localityLabels);     // ⬅️ Muestra etiquetas con capas
+      this.map.addLayer(this.localityLabels);
       this.map.removeLayer(this.neighborhoodLayer);
     }
   }
@@ -375,4 +393,5 @@ export class MapComponent implements AfterViewInit, OnChanges {
     this.map.removeLayer(this.pointLayer);
   }
 }
+
 

@@ -125,24 +125,24 @@ import { Chart } from 'chart.js/auto';
             <h3 class="text-lg font-medium text-gray-700 mb-3">Top Species Distribution</h3>
             <div class="space-y-2">
               <div class="flex flex-col">
-                <span class="text-sm">Ceiba pentandra</span>
-                <div class="flex items-center mt-1">
-                  <div class="h-2 bg-green-500 rounded" style="width: 15%"></div>
-                  <span class="ml-2 text-xs">15,000 (15%)</span>
-                </div>
-              </div>
-              <div class="flex flex-col">
-                <span class="text-sm">Quercus humboldtii</span>
-                <div class="flex items-center mt-1">
-                  <div class="h-2 bg-green-500 rounded" style="width: 12%"></div>
-                  <span class="ml-2 text-xs">12,000 (12%)</span>
-                </div>
-              </div>
-              <div class="flex flex-col">
                 <span class="text-sm">Tabebuia rosea</span>
                 <div class="flex items-center mt-1">
+                  <div class="h-2 bg-green-500 rounded" style="width: 15%"></div>
+                  <span class="ml-2 text-xs">9,463 (9.76%)</span>
+                </div>
+              </div>
+              <div class="flex flex-col">
+                <span class="text-sm">Dypsis lutescens</span>
+                <div class="flex items-center mt-1">
+                  <div class="h-2 bg-green-500 rounded" style="width: 12%"></div>
+                  <span class="ml-2 text-xs">7,430 (7.66%)</span>
+                </div>
+              </div>
+              <div class="flex flex-col">
+                <span class="text-sm">Syzygium malaccense</span>
+                <div class="flex items-center mt-1">
                   <div class="h-2 bg-green-500 rounded" style="width: 10%"></div>
-                  <span class="ml-2 text-xs">10,000 (10%)</span>
+                  <span class="ml-2 text-xs">7,175 (7.40%)</span>
                 </div>
               </div>
             </div>
@@ -448,55 +448,76 @@ export class DashboardComponent implements OnInit {
     });
   }
 
-  private createGeoDistributionChart() {
-    const ctx = document.getElementById('geoDistributionChart') as HTMLCanvasElement;
-    if (!ctx) return;
-    
-    new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: ['Ibagué', 'Medellín', 'Cali', 'Barranquilla', 'Cartagena'],
-        datasets: [{
-          label: 'Trees',
-          data: [20000, 18000, 15000, 12000, 10000],
-          backgroundColor: '#60a5fa',
-          borderWidth: 0,
-          borderRadius: 4
-        }]
-      },
-      options: {
-        scales: {
-          y: {
-            beginAtZero: true,
-            grid: {
-              display: true,
-              color: 'rgba(0, 0, 0, 0.05)'
-            },
-            ticks: {
-              font: {
-                size: 10
-              }
+private createGeoDistributionChart() {
+  const ctx = document.getElementById('geoDistributionChart') as HTMLCanvasElement;
+  if (!ctx) return;
+
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: [
+        'Comuna 1', 'Comuna 2', 'Comuna 3', 'Comuna 4',
+        'Comuna 5', 'Comuna 6', 'Comuna 7', 'Comuna 8',
+        'Comuna 9', 'Comuna 10', 'Comuna 11', 'Comuna 12',
+        'Comuna 13', 'Comuna 14'
+      ],
+      datasets: [{
+        label: 'Total Trees',
+        data: [
+          3269, 2311, 2476, 3220,
+          8492, 5590, 10890, 16893,
+          13503, 7768, 9087, 3658,
+          4077, 5709
+        ],
+        backgroundColor: '#2F7B3D',
+        borderRadius: 4,
+        borderSkipped: false
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          beginAtZero: true,
+          grid: {
+            display: true,
+            color: 'rgba(0, 0, 0, 0.05)'
+          },
+          ticks: {
+            font: {
+              size: 10
             }
           },
-          x: {
-            grid: {
-              display: false
-            },
-            ticks: {
-              font: {
-                size: 10
-              }
-            }
+          title: {
+            display: true,
+            text: 'Total de árboles'
           }
         },
-        plugins: {
-          legend: {
+        x: {
+          grid: {
             display: false
+          },
+          ticks: {
+            font: {
+              size: 10
+            }
+          },
+          title: {
+            display: true,
+            text: 'Comunas'
           }
         }
+      },
+      plugins: {
+        legend: {
+          display: false
+        }
       }
-    });
-  }
+    }
+  });
+}
+
 
   private createTemperatureTrendsChart() {
     const ctx = document.getElementById('temperatureTrendsChart') as HTMLCanvasElement;
